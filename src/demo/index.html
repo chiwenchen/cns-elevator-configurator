@@ -70,11 +70,157 @@
       }
       main {
         display: grid;
-        grid-template-columns: 1fr 380px;
+        grid-template-columns: 340px 1fr 380px;
         gap: 1px;
         background: var(--border);
         min-height: 0;
         overflow: hidden;
+      }
+      .solver-panel {
+        background: var(--bg-elev);
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow-y: auto;
+      }
+      .solver-header {
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border);
+      }
+      .solver-title {
+        font-size: 12px;
+        color: var(--fg-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 10px;
+      }
+      .mode-tabs {
+        display: flex;
+        gap: 1px;
+        background: var(--border);
+        border: 1px solid var(--border-strong);
+        border-radius: 4px;
+        padding: 1px;
+      }
+      .mode-tab {
+        flex: 1;
+        padding: 8px 10px;
+        background: var(--bg-panel);
+        color: var(--fg-muted);
+        border: none;
+        cursor: pointer;
+        font-family: var(--sans);
+        font-size: 12px;
+        border-radius: 3px;
+      }
+      .mode-tab.active {
+        background: var(--accent);
+        color: #0e1013;
+        font-weight: 600;
+      }
+      .mode-tab:hover:not(.active) {
+        background: var(--bg-elev);
+        color: var(--fg);
+      }
+      .solver-body {
+        padding: 16px 20px;
+        flex: 1;
+      }
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 100px;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .form-row label {
+        font-size: 12px;
+        color: var(--fg-muted);
+      }
+      .form-row input,
+      .form-row select {
+        background: var(--bg-panel);
+        color: var(--fg);
+        border: 1px solid var(--border-strong);
+        padding: 6px 8px;
+        font-family: var(--mono);
+        font-size: 12px;
+        border-radius: 3px;
+        width: 100%;
+      }
+      .form-row input:focus,
+      .form-row select:focus {
+        outline: 1px solid var(--accent);
+        border-color: var(--accent);
+      }
+      .form-section-divider {
+        height: 1px;
+        background: var(--border);
+        margin: 12px 0;
+      }
+      .form-hint {
+        font-size: 11px;
+        color: var(--fg-dim);
+        font-style: italic;
+        margin-bottom: 10px;
+        line-height: 1.4;
+      }
+      .btn-primary {
+        width: 100%;
+        padding: 10px;
+        background: var(--accent);
+        color: #0e1013;
+        border: none;
+        font-family: var(--sans);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border-radius: 3px;
+        margin-top: 8px;
+      }
+      .btn-primary:hover {
+        background: #f58662;
+      }
+      .btn-primary:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .btn-secondary {
+        width: 100%;
+        padding: 8px;
+        background: transparent;
+        color: var(--fg);
+        border: 1px solid var(--border-strong);
+        font-family: var(--sans);
+        font-size: 12px;
+        cursor: pointer;
+        border-radius: 3px;
+        margin-top: 8px;
+      }
+      .btn-secondary:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .solver-status {
+        padding: 10px 12px;
+        margin-top: 12px;
+        font-family: var(--mono);
+        font-size: 11px;
+        border-radius: 3px;
+        display: none;
+      }
+      .solver-status.success {
+        display: block;
+        background: rgba(46, 160, 67, 0.12);
+        border-left: 3px solid #3fb950;
+        color: #7ee787;
+      }
+      .solver-status.error {
+        display: block;
+        background: rgba(248, 81, 73, 0.12);
+        border-left: 3px solid #f85149;
+        color: #ff8a80;
+        white-space: pre-wrap;
       }
       .viz {
         background: var(--bg-panel);
@@ -310,6 +456,107 @@
     </header>
 
     <main>
+      <div class="solver-panel">
+        <div class="solver-header">
+          <div class="solver-title">解算器輸入（Solver）</div>
+          <div class="mode-tabs">
+            <button type="button" class="mode-tab active" data-mode="A">Mode A — 空間 → 電梯</button>
+            <button type="button" class="mode-tab" data-mode="B">Mode B — 需求 → 空間</button>
+          </div>
+        </div>
+
+        <div class="solver-body">
+          <!-- Mode A form -->
+          <form id="form-a" class="mode-form">
+            <div class="form-hint">
+              客戶已預留好坑道，想知道能裝什麼規格的電梯。
+            </div>
+            <div class="form-row">
+              <label>坑道寬 W (mm)</label>
+              <input type="number" name="width_mm" value="2000" min="1400" max="6000" />
+            </div>
+            <div class="form-row">
+              <label>坑道深 D (mm)</label>
+              <input type="number" name="depth_mm" value="2200" min="1500" max="6000" />
+            </div>
+            <div class="form-row">
+              <label>坑道行程高 H (mm)</label>
+              <input type="number" name="total_height_mm" value="18000" min="3000" max="300000" />
+            </div>
+            <div class="form-row">
+              <label>頂部高度 OH (mm)</label>
+              <input type="number" name="overhead_mm" value="4200" min="2000" max="8000" />
+            </div>
+            <div class="form-row">
+              <label>底坑深度 PIT (mm)</label>
+              <input type="number" name="pit_depth_mm" value="1600" min="1000" max="5000" />
+            </div>
+            <div class="form-row">
+              <label>停站數</label>
+              <input type="number" name="stops" value="6" min="2" max="100" />
+            </div>
+            <div class="form-row">
+              <label>用途</label>
+              <select name="usage">
+                <option value="passenger">客用</option>
+                <option value="freight">貨用</option>
+                <option value="bed">病床</option>
+                <option value="accessible">無障礙</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>偏好速度 (m/min)</label>
+              <input type="number" name="preferred_speed_mpm" value="60" min="15" max="270" step="15" />
+            </div>
+            <button type="submit" class="btn-primary">產生 DXF 草稿</button>
+            <button type="button" class="btn-secondary" id="download-a" disabled>下載 DXF</button>
+          </form>
+
+          <!-- Mode B form -->
+          <form id="form-b" class="mode-form" style="display:none">
+            <div class="form-hint">
+              客戶還在規劃階段，想知道需求要預留多大坑道。
+            </div>
+            <div class="form-row">
+              <label>額定載重 (kg)</label>
+              <input type="number" name="rated_load_kg" value="500" min="100" max="4500" />
+            </div>
+            <div class="form-row">
+              <label>額定速度 (m/min)</label>
+              <input type="number" name="rated_speed_mpm" value="60" min="15" max="270" step="15" />
+            </div>
+            <div class="form-row">
+              <label>停站數</label>
+              <input type="number" name="stops" value="6" min="2" max="100" />
+            </div>
+            <div class="form-row">
+              <label>用途</label>
+              <select name="usage">
+                <option value="passenger">客用</option>
+                <option value="freight">貨用</option>
+                <option value="bed">病床</option>
+                <option value="accessible">無障礙</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>機房型式</label>
+              <select name="machine_location">
+                <option value="MR">有機房 (MR)</option>
+                <option value="MRL">無機房 (MRL)</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>樓層高 (mm)</label>
+              <input type="number" name="floor_height_mm" value="3000" min="2200" max="6000" />
+            </div>
+            <button type="submit" class="btn-primary">產生 DXF 草稿</button>
+            <button type="button" class="btn-secondary" id="download-b" disabled>下載 DXF</button>
+          </form>
+
+          <div class="solver-status" id="solver-status"></div>
+        </div>
+      </div>
+
       <div class="viz">
         <div class="viz-header">
           <span class="viz-title" id="viz-title">建築平面圖 · 由 DXF SVG 渲染</span>
@@ -478,6 +725,118 @@
       const sourceSelect = document.getElementById('source-select')
       sourceSelect.addEventListener('change', () => loadSource(sourceSelect.value))
       loadSource(sourceSelect.value)
+
+      // ---- Solver form handling ----
+
+      let lastDxfString = null
+      let lastMode = 'A'
+
+      const modeTabs = document.querySelectorAll('.mode-tab')
+      const formA = document.getElementById('form-a')
+      const formB = document.getElementById('form-b')
+      const statusEl = document.getElementById('solver-status')
+
+      modeTabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+          modeTabs.forEach((t) => t.classList.remove('active'))
+          tab.classList.add('active')
+          const mode = tab.dataset.mode
+          formA.style.display = mode === 'A' ? '' : 'none'
+          formB.style.display = mode === 'B' ? '' : 'none'
+          statusEl.className = 'solver-status'
+          statusEl.textContent = ''
+        })
+      })
+
+      function formToObject(form) {
+        const obj = {}
+        for (const el of form.elements) {
+          if (el.name) obj[el.name] = el.value
+        }
+        return obj
+      }
+
+      async function submitSolve(mode, payload) {
+        statusEl.className = 'solver-status'
+        statusEl.textContent = '解算中…'
+        statusEl.style.display = 'block'
+        statusEl.style.background = 'rgba(139, 147, 160, 0.12)'
+        statusEl.style.color = 'var(--fg-muted)'
+        statusEl.style.borderLeft = '3px solid var(--fg-dim)'
+
+        try {
+          const res = await fetch('/api/solve', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ mode, ...payload }),
+          })
+          const data = await res.json()
+          if (!res.ok) {
+            statusEl.className = 'solver-status error'
+            statusEl.textContent =
+              (data.error === 'non_standard' ? '⚠ 非標輸入\n' : '✕ 解算失敗\n') +
+              (data.message || '') +
+              (data.suggestion ? '\n\n建議：' + data.suggestion : '')
+            return
+          }
+
+          // Success
+          lastDxfString = data.dxf_string
+          lastMode = mode
+
+          const d = data.design
+          statusEl.className = 'solver-status success'
+          statusEl.innerHTML = [
+            '✓ 解算成功',
+            '',
+            `載重: ${d.rated_load_kg} kg`,
+            `車廂: ${d.car.width_mm}×${d.car.depth_mm}×${d.car.height_mm} mm`,
+            `面積: ${d.car.area_m2} m²`,
+            `坑道: ${d.shaft.width_mm}×${d.shaft.depth_mm} mm`,
+            `全高: ${d.shaft.total_height_mm + d.shaft.overhead_mm + d.shaft.pit_depth_mm} mm`,
+            `門寬: ${d.door.width_mm} mm`,
+            `DXF: ${data.dxf_kb} KB`,
+          ].join('\n')
+
+          // Render the analysis result in the viewer (reuses renderSvg)
+          applyCopy(mode === 'A' ? 'solver-mode-a' : 'solver-mode-b')
+          renderMetrics(data.analysis, mode === 'A' ? 'solver-mode-a' : 'solver-mode-b')
+          renderShafts(data.analysis.shaft_groups)
+          renderSvg(data.analysis)
+
+          // Enable download button
+          const btn = document.getElementById('download-' + mode.toLowerCase())
+          btn.disabled = false
+          btn.onclick = () => downloadDxf(d, data.dxf_string)
+        } catch (err) {
+          statusEl.className = 'solver-status error'
+          statusEl.textContent = '✕ 網路錯誤：' + err.message
+        }
+      }
+
+      function downloadDxf(design, dxfString) {
+        const blob = new Blob([dxfString], { type: 'application/dxf' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        const usage = design.shaft.usage
+        const load = design.rated_load_kg
+        const date = new Date().toISOString().slice(0, 10)
+        a.download = `elevator-${design.solver_mode}-${usage}-${load}kg-${date}.dxf`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      }
+
+      formA.addEventListener('submit', (e) => {
+        e.preventDefault()
+        submitSolve('A', formToObject(formA))
+      })
+      formB.addEventListener('submit', (e) => {
+        e.preventDefault()
+        submitSolve('B', formToObject(formB))
+      })
 
       function renderMetrics(data, source) {
         document.getElementById('unit-badge').textContent =

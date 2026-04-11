@@ -38,6 +38,10 @@ async function analyze(source: string = DEFAULT_SOURCE) {
 async function analyzeGenerated(sourceKey: string) {
   const filePath = SOURCE_PATHS[sourceKey] || SOURCE_PATHS.generated
   const dxfText = await Bun.file(filePath).text()
+  return analyzeDxfString(dxfText, sourceKey, filePath)
+}
+
+function analyzeDxfString(dxfText: string, sourceKey: string, filePath: string) {
   const parser = new DxfParser()
   const dxf: any = parser.parseSync(dxfText)
 
@@ -383,6 +387,54 @@ async function analyzeHackCanada(source: string) {
   }
 }
 
+// ---- Solver routes ----
+
+import { solveModeA } from '../solver/mode-a'
+import { solveModeB } from '../solver/mode-b'
+import { NonStandardError } from '../solver/types'
+import { generateElevatorDXF } from '../dxf/generate'
+import type { Usage, MachineLocation } from '../solver/types'
+
+async function handleSolve(body: any) {
+  const mode = String(body.mode || '').toUpperCase()
+  let design
+  if (mode === 'A') {
+    design = solveModeA({
+      width_mm: Number(body.width_mm),
+      depth_mm: Number(body.depth_mm),
+      total_height_mm: Number(body.total_height_mm),
+      overhead_mm: Number(body.overhead_mm),
+      pit_depth_mm: Number(body.pit_depth_mm),
+      stops: Number(body.stops),
+      usage: (body.usage || 'passenger') as Usage,
+      preferred_speed_mpm: body.preferred_speed_mpm
+        ? Number(body.preferred_speed_mpm)
+        : undefined,
+    })
+  } else if (mode === 'B') {
+    design = solveModeB({
+      rated_load_kg: Number(body.rated_load_kg),
+      stops: Number(body.stops),
+      usage: (body.usage || 'passenger') as Usage,
+      machine_location: (body.machine_location || 'MR') as MachineLocation,
+      rated_speed_mpm: body.rated_speed_mpm ? Number(body.rated_speed_mpm) : undefined,
+      floor_height_mm: body.floor_height_mm ? Number(body.floor_height_mm) : undefined,
+    })
+  } else {
+    throw new Error(`Unknown mode: ${mode}`)
+  }
+
+  const dxfString = generateElevatorDXF(design)
+  // Reuse the same renderer as the file-based sources
+  const analysis = analyzeDxfString(dxfString, `solver-${mode.toLowerCase()}`, '(in-memory)')
+  return {
+    design,
+    dxf_string: dxfString,
+    dxf_kb: Number((dxfString.length / 1024).toFixed(1)),
+    analysis,
+  }
+}
+
 // ---- Server ----
 
 const indexHtml = await Bun.file(join(import.meta.dir, 'index.html')).text()
@@ -404,6 +456,29 @@ const server = Bun.serve({
       } catch (err) {
         return Response.json(
           { error: String(err), hint: `DXF source: ${source}` },
+          { status: 500 }
+        )
+      }
+    }
+    if (url.pathname === '/api/solve' && req.method === 'POST') {
+      try {
+        const body = await req.json()
+        const result = await handleSolve(body)
+        return Response.json(result)
+      } catch (err) {
+        if (err instanceof NonStandardError) {
+          return Response.json(
+            {
+              error: 'non_standard',
+              message: err.message,
+              reason: err.reason,
+              suggestion: err.suggestion,
+            },
+            { status: 400 }
+          )
+        }
+        return Response.json(
+          { error: 'solve_failed', message: String(err) },
           { status: 500 }
         )
       }
