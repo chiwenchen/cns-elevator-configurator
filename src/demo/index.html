@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CNS Elevator Configurator — Spike 1 Demo</title>
+    <style>
+      :root {
+        --bg: #0e1013;
+        --bg-panel: #15181d;
+        --bg-elev: #1b1f25;
+        --fg: #e7e9ec;
+        --fg-muted: #8b93a0;
+        --fg-dim: #535c6b;
+        --border: #242932;
+        --border-strong: #333a45;
+        --accent: #e8734e;
+        --accent-soft: rgba(232, 115, 78, 0.18);
+        --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        --sans: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang TC",
+          "Microsoft JhengHei", sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: var(--sans);
+        font-size: 14px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+      body {
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+      }
+      header {
+        padding: 20px 28px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 24px;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      header h1 small {
+        color: var(--fg-muted);
+        font-weight: 400;
+        margin-left: 10px;
+      }
+      header .source {
+        color: var(--fg-muted);
+        font-family: var(--mono);
+        font-size: 12px;
+      }
+      header .source a {
+        color: var(--fg-muted);
+        text-decoration: underline dotted;
+      }
+      main {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        gap: 1px;
+        background: var(--border);
+        min-height: 0;
+      }
+      .viz {
+        background: var(--bg-panel);
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+      .viz-header {
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .viz-title {
+        font-size: 12px;
+        color: var(--fg-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .legend {
+        display: flex;
+        gap: 16px;
+        font-size: 11px;
+        color: var(--fg-muted);
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .legend-swatch {
+        width: 12px;
+        height: 12px;
+        border-radius: 2px;
+        border: 1px solid var(--border-strong);
+      }
+      .swatch-room {
+        background: transparent;
+        border-color: #4a5360;
+      }
+      .swatch-wall {
+        background: transparent;
+        border-color: #667082;
+      }
+      .swatch-elev {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+      }
+      .viz-body {
+        flex: 1;
+        overflow: auto;
+        padding: 24px;
+        display: flex;
+        justify-content: center;
+      }
+      #svg-container {
+        width: 100%;
+        max-width: 560px;
+      }
+      #svg-container svg {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      aside {
+        background: var(--bg-elev);
+        overflow-y: auto;
+        min-height: 0;
+      }
+      .metric {
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border);
+      }
+      .metric-label {
+        font-size: 11px;
+        color: var(--fg-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 4px;
+      }
+      .metric-value {
+        font-family: var(--mono);
+        font-size: 16px;
+        color: var(--fg);
+      }
+      .metrics-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+      .metrics-grid .metric {
+        border-right: 1px solid var(--border);
+      }
+      .metrics-grid .metric:nth-child(even) {
+        border-right: none;
+      }
+      .section-title {
+        padding: 18px 20px 8px;
+        font-size: 11px;
+        color: var(--fg-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .shaft-card {
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border);
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 2px 14px;
+      }
+      .shaft-dims {
+        font-family: var(--mono);
+        font-size: 20px;
+        color: var(--accent);
+        grid-column: 1 / 3;
+        margin-bottom: 4px;
+      }
+      .shaft-meta-label {
+        font-size: 11px;
+        color: var(--fg-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .shaft-meta-value {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--fg);
+      }
+      .shaft-labels {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--fg-muted);
+      }
+      footer {
+        padding: 10px 28px;
+        border-top: 1px solid var(--border);
+        color: var(--fg-dim);
+        font-size: 11px;
+        font-family: var(--mono);
+        display: flex;
+        justify-content: space-between;
+      }
+      .error {
+        padding: 20px;
+        background: #2a1a1a;
+        color: #ff8a80;
+        font-family: var(--mono);
+        font-size: 12px;
+        border-left: 3px solid #ff8a80;
+        margin: 20px;
+        white-space: pre-wrap;
+      }
+      /* SVG classes */
+      .room-outline {
+        fill: none;
+        stroke: #3a4250;
+        stroke-width: 0.05;
+        vector-effect: non-scaling-stroke;
+      }
+      .wall-line {
+        fill: none;
+        stroke: #58627a;
+        stroke-width: 0.12;
+        vector-effect: non-scaling-stroke;
+      }
+      .elev-room {
+        fill: var(--accent-soft);
+        stroke: var(--accent);
+        stroke-width: 0.15;
+        vector-effect: non-scaling-stroke;
+      }
+      .elev-label-dot {
+        fill: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>
+        CNS Elevator Configurator
+        <small>Spike 1 — DXF Parser Demo</small>
+      </h1>
+      <div class="source">
+        source: Elliot-Sones/Hack_Canada · sample_building.dxf ·
+        <span id="unit-badge">—</span>
+      </div>
+    </header>
+
+    <main>
+      <div class="viz">
+        <div class="viz-header">
+          <span class="viz-title">Building Plan · SVG-rendered from DXF</span>
+          <div class="legend">
+            <div class="legend-item">
+              <span class="legend-swatch swatch-wall"></span>wall
+            </div>
+            <div class="legend-item">
+              <span class="legend-swatch swatch-room"></span>room boundary
+            </div>
+            <div class="legend-item">
+              <span class="legend-swatch swatch-elev"></span>detected elevator
+            </div>
+          </div>
+        </div>
+        <div class="viz-body">
+          <div id="svg-container">
+            <div class="error" id="svg-placeholder">Loading DXF analysis…</div>
+          </div>
+        </div>
+      </div>
+
+      <aside>
+        <div class="metrics-grid">
+          <div class="metric">
+            <div class="metric-label">Entities parsed</div>
+            <div class="metric-value" id="m-entities">—</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">File size</div>
+            <div class="metric-value" id="m-filesize">—</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Room polygons</div>
+            <div class="metric-value" id="m-rooms">—</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Elevator labels</div>
+            <div class="metric-value" id="m-labels">—</div>
+          </div>
+        </div>
+
+        <div class="section-title">Extracted Shaft Dimensions</div>
+        <div id="shafts"></div>
+
+        <div class="section-title">Match Report</div>
+        <div class="metric" style="border-bottom: none">
+          <div class="metric-label">Labels matched to rooms</div>
+          <div class="metric-value" id="m-matched">—</div>
+        </div>
+      </aside>
+    </main>
+
+    <footer>
+      <span>bun src/demo/server.ts · port 3000</span>
+      <span>algorithm: A-ROOM-BDRY × point-in-polygon join</span>
+    </footer>
+
+    <script>
+      (async function () {
+        try {
+          const res = await fetch('/api/analysis')
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}))
+            throw new Error(body.error || res.statusText)
+          }
+          const data = await res.json()
+          renderMetrics(data)
+          renderShafts(data.shaft_groups)
+          renderSvg(data)
+        } catch (err) {
+          document.getElementById('svg-placeholder').textContent =
+            'Failed to load analysis:\n' + err.message
+        }
+      })()
+
+      function renderMetrics(data) {
+        document.getElementById('unit-badge').textContent = data.unit
+        document.getElementById('m-entities').textContent = data.entity_count.toLocaleString()
+        document.getElementById('m-filesize').textContent = data.file_kb + ' KB'
+        document.getElementById('m-rooms').textContent = data.room_count
+        document.getElementById('m-labels').textContent = data.elevator_label_count
+        const matched = data.elevator_labels.filter((l) => l.matchedRoomId !== null).length
+        document.getElementById('m-matched').textContent =
+          matched + ' / ' + data.elevator_label_count
+      }
+
+      function renderShafts(groups) {
+        const el = document.getElementById('shafts')
+        if (!groups || groups.length === 0) {
+          el.innerHTML = '<div class="metric"><div class="metric-value">No shafts extracted.</div></div>'
+          return
+        }
+        el.innerHTML = groups
+          .map(
+            (g) => `
+          <div class="shaft-card">
+            <div class="shaft-dims">${g.width_mm} × ${g.depth_mm} mm</div>
+            <div class="shaft-meta-label">instances</div>
+            <div class="shaft-meta-value">${g.instance_count}</div>
+            <div class="shaft-meta-label">labels</div>
+            <div class="shaft-labels">${g.labels.join(' · ')}</div>
+          </div>
+        `
+          )
+          .join('')
+      }
+
+      function renderSvg(data) {
+        const bb = data.building_bbox
+        const pad = 2
+        const minX = bb.minX - pad
+        const minY = bb.minY - pad
+        const w = bb.maxX - bb.minX + pad * 2
+        const h = bb.maxY - bb.minY + pad * 2
+
+        // SVG Y grows down, CAD Y grows up → flip via scale(1 -1) on a group.
+        // We use viewBox with negated Y to keep everything positive.
+        const svgNS = 'http://www.w3.org/2000/svg'
+        const svg = document.createElementNS(svgNS, 'svg')
+        svg.setAttribute('viewBox', `${minX} ${-bb.maxY - pad} ${w} ${h}`)
+        svg.setAttribute('xmlns', svgNS)
+        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet')
+
+        const g = document.createElementNS(svgNS, 'g')
+        g.setAttribute('transform', 'scale(1 -1)')
+        svg.appendChild(g)
+
+        // Walls (background context)
+        for (const wall of data.walls) {
+          if (wall.length < 2) continue
+          const path = document.createElementNS(svgNS, 'polyline')
+          path.setAttribute('class', 'wall-line')
+          path.setAttribute(
+            'points',
+            wall.map((p) => `${p.x},${p.y}`).join(' ')
+          )
+          g.appendChild(path)
+        }
+
+        // All room outlines
+        for (const room of data.rooms) {
+          if (room.is_elevator) continue
+          const path = document.createElementNS(svgNS, 'polygon')
+          path.setAttribute('class', 'room-outline')
+          path.setAttribute(
+            'points',
+            room.vertices.map((p) => `${p.x},${p.y}`).join(' ')
+          )
+          g.appendChild(path)
+        }
+
+        // Elevator rooms (highlighted)
+        for (const room of data.rooms) {
+          if (!room.is_elevator) continue
+          const path = document.createElementNS(svgNS, 'polygon')
+          path.setAttribute('class', 'elev-room')
+          path.setAttribute(
+            'points',
+            room.vertices.map((p) => `${p.x},${p.y}`).join(' ')
+          )
+          g.appendChild(path)
+        }
+
+        // Elevator label dots
+        for (const label of data.elevator_labels) {
+          const dot = document.createElementNS(svgNS, 'circle')
+          dot.setAttribute('cx', label.position.x)
+          dot.setAttribute('cy', label.position.y)
+          dot.setAttribute('r', '0.3')
+          dot.setAttribute('class', 'elev-label-dot')
+          g.appendChild(dot)
+        }
+
+        const container = document.getElementById('svg-container')
+        container.innerHTML = ''
+        container.appendChild(svg)
+      }
+    </script>
+  </body>
+</html>
