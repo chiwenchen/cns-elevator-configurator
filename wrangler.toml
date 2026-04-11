@@ -10,3 +10,8 @@ binding = "ASSETS"
 [[routes]]
 pattern = "elevator-configurator.redarch.dev"
 custom_domain = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "elevator-configurator-db"
+database_id = "907ec485-0ee5-47de-9edd-086eb82f8703"
