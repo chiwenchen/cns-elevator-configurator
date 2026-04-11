@@ -1,176 +1,56 @@
 /**
  * Parametric DXF Writer — production 版本
  *
- * 由 spikes/spike-4-dxf-writer/generate.ts 的 POC 提升而來。
  * 接受 ElevatorDesign，產出含平面圖 + 側面圖 + 規格卡的 DXF 字串。
  *
- * 純函式，無 side effects，可單元測試。
+ * Layers（ACI 顏色編號 — AutoCAD Color Index）：
+ *   SHAFT     7  white/black  井道外牆（結構）
+ *   WALL      8  dark gray    井道內壁
+ *   CAR       1  red          車廂
+ *   CWT       3  green        配重框
+ *   RAIL_CAR  5  blue         車廂導軌
+ *   RAIL_CWT  4  cyan         配重導軌
+ *   DOOR      6  magenta      門扇 + 門框 + 門檻
+ *   CENTER    1  red DASHED   中心線
+ *   DIMS      2  yellow       尺寸線 + 標註文字
+ *   TEXT      7  white        一般標籤
+ *   STOP      3  green        停站水平線（elevation）
  */
 
 // @ts-ignore
 import Drawing from 'dxf-writer'
 import type { ElevatorDesign } from '../solver/types'
+import { drawPlanView } from './plan'
 
-/**
- * 從 ElevatorDesign 產生 DXF 字串（平面 + 側面 + 規格卡）
- */
 export function generateElevatorDXF(design: ElevatorDesign): string {
   const dw = new Drawing()
   dw.setUnits('Millimeters')
 
   dw.addLayer('SHAFT', Drawing.ACI.WHITE, 'CONTINUOUS')
-  dw.addLayer('CAR', Drawing.ACI.YELLOW, 'CONTINUOUS')
-  dw.addLayer('DOOR', Drawing.ACI.CYAN, 'CONTINUOUS')
-  dw.addLayer('STOP', Drawing.ACI.GREEN, 'CONTINUOUS')
-  dw.addLayer('DIMS', Drawing.ACI.MAGENTA, 'CONTINUOUS')
+  dw.addLayer('WALL', 8, 'CONTINUOUS')
+  dw.addLayer('CAR', Drawing.ACI.RED, 'CONTINUOUS')
+  dw.addLayer('CWT', Drawing.ACI.GREEN, 'CONTINUOUS')
+  dw.addLayer('RAIL_CAR', Drawing.ACI.BLUE, 'CONTINUOUS')
+  dw.addLayer('RAIL_CWT', Drawing.ACI.CYAN, 'CONTINUOUS')
+  dw.addLayer('DOOR', Drawing.ACI.MAGENTA, 'CONTINUOUS')
+  dw.addLayer('CENTER', Drawing.ACI.RED, 'DASHED')
+  dw.addLayer('DIMS', Drawing.ACI.YELLOW, 'CONTINUOUS')
   dw.addLayer('TEXT', Drawing.ACI.WHITE, 'CONTINUOUS')
+  dw.addLayer('STOP', Drawing.ACI.GREEN, 'CONTINUOUS')
 
-  const { shaft, car, door, rated_load_kg, rated_speed_mpm, machine_location } = design
+  const { shaft, car, rated_load_kg, rated_speed_mpm, machine_location } = design
 
   // ---- PLAN VIEW ----
-  const planOX = 0
-  const planOY = 0
+  drawPlanView(dw, design, { x: 0, y: 0 })
 
-  dw.setActiveLayer('SHAFT')
-  dw.drawRect(planOX, planOY, planOX + shaft.width_mm, planOY + shaft.depth_mm)
-
-  const carDx = (shaft.width_mm - car.width_mm) / 2
-  const carDy = shaft.depth_mm - car.depth_mm - 150
-
-  dw.setActiveLayer('CAR')
-  dw.drawRect(
-    planOX + carDx,
-    planOY + carDy,
-    planOX + carDx + car.width_mm,
-    planOY + carDy + car.depth_mm
-  )
-
-  const doorX0 = planOX + (shaft.width_mm - door.width_mm) / 2
-  const doorY = planOY + shaft.depth_mm
-  dw.setActiveLayer('DOOR')
-  dw.drawLine(doorX0, doorY - 100, doorX0, doorY + 100)
-  dw.drawLine(
-    doorX0 + door.width_mm,
-    doorY - 100,
-    doorX0 + door.width_mm,
-    doorY + 100
-  )
-  dw.drawLine(doorX0, doorY, doorX0 + door.width_mm, doorY)
-
-  // Plan dimensions
-  dw.setActiveLayer('DIMS')
-  const dimOff = 250
-  dw.drawText(
-    planOX + shaft.width_mm / 2,
-    planOY - dimOff,
-    120,
-    0,
-    `W ${shaft.width_mm}`,
-    'center'
-  )
-  dw.drawText(
-    planOX - dimOff,
-    planOY + shaft.depth_mm / 2,
-    120,
-    90,
-    `D ${shaft.depth_mm}`,
-    'center'
-  )
-  dw.drawText(
-    planOX + shaft.width_mm / 2,
-    planOY + carDy + car.depth_mm / 2,
-    90,
-    0,
-    `car ${car.width_mm}x${car.depth_mm}`,
-    'center'
-  )
-  dw.drawText(
-    planOX + shaft.width_mm / 2,
-    doorY + dimOff,
-    100,
-    0,
-    `door ${door.width_mm}`,
-    'center'
-  )
-
-  dw.setActiveLayer('TEXT')
-  dw.drawText(
-    planOX + shaft.width_mm / 2,
-    planOY - dimOff - 400,
-    180,
-    0,
-    'PLAN VIEW / 平面圖',
-    'center'
-  )
-
-  // ---- ELEVATION VIEW ----
-  const elevOX = shaft.width_mm + 3500
+  // ---- ELEVATION VIEW (右側) ----
+  const elevOX = shaft.width_mm + 4000
   const elevOY = 0
+  drawElevationView(dw, design, { x: elevOX, y: elevOY })
 
-  const shaftBottom = elevOY - shaft.pit_depth_mm
-  const shaftTop = elevOY + shaft.total_height_mm + shaft.overhead_mm
-
-  dw.setActiveLayer('SHAFT')
-  dw.drawRect(elevOX, shaftBottom, elevOX + shaft.width_mm, shaftTop)
-
-  dw.drawLine(elevOX, elevOY, elevOX + shaft.width_mm, elevOY)
-
-  dw.setActiveLayer('STOP')
-  const stopSpacing = shaft.total_height_mm / (shaft.stops - 1)
-  for (let i = 0; i < shaft.stops; i++) {
-    const y = elevOY + i * stopSpacing
-    dw.drawLine(elevOX, y, elevOX + shaft.width_mm, y)
-    dw.setActiveLayer('TEXT')
-    dw.drawText(elevOX - 250, y, 100, 0, `${i + 1}F`, 'right')
-    dw.setActiveLayer('STOP')
-  }
-
-  const carInsetX = (shaft.width_mm - car.width_mm) / 2
-  dw.setActiveLayer('CAR')
-  dw.drawRect(
-    elevOX + carInsetX,
-    elevOY + 100,
-    elevOX + carInsetX + car.width_mm,
-    elevOY + 100 + car.height_mm
-  )
-
-  dw.setActiveLayer('DIMS')
-  dw.drawText(
-    elevOX + shaft.width_mm + 350,
-    elevOY + shaft.total_height_mm + shaft.overhead_mm / 2,
-    120,
-    0,
-    `OH ${shaft.overhead_mm}`
-  )
-  dw.drawText(
-    elevOX + shaft.width_mm + 350,
-    elevOY - shaft.pit_depth_mm / 2,
-    120,
-    0,
-    `PIT ${shaft.pit_depth_mm}`
-  )
-  dw.drawText(
-    elevOX + shaft.width_mm + 1400,
-    elevOY + (shaftTop - shaftBottom) / 2 + shaftBottom,
-    140,
-    90,
-    `H ${shaft.total_height_mm + shaft.overhead_mm + shaft.pit_depth_mm}`,
-    'center'
-  )
-
-  dw.setActiveLayer('TEXT')
-  dw.drawText(
-    elevOX + shaft.width_mm / 2,
-    shaftBottom - 400,
-    180,
-    0,
-    'ELEVATION VIEW / 側面圖',
-    'center'
-  )
-
-  // ---- SPEC BLOCK ----
+  // ---- SPEC BLOCK (最右, 對齊 plan view 頂端) ----
   const specX = elevOX + shaft.width_mm + 3500
-  const specY = shaftTop
+  const specY = shaft.depth_mm + 500
   const specLines = [
     'CNS ELEVATOR DRAFT',
     '',
@@ -188,7 +68,7 @@ export function generateElevatorDXF(design: ElevatorDesign): string {
     '',
     `car:        ${car.width_mm} x ${car.depth_mm} x ${car.height_mm}`,
     `area:       ${car.area_m2} m2`,
-    `door:       ${door.width_mm} mm (${door.type})`,
+    `door:       ${design.door.width_mm} mm (${design.door.type})`,
     '',
     `generated:  ${design.generated_at.slice(0, 19)}Z`,
     `status:     DRAFT - engineer review required`,
@@ -200,4 +80,87 @@ export function generateElevatorDXF(design: ElevatorDesign): string {
   }
 
   return dw.toDxfString()
+}
+
+/**
+ * 極簡版 elevation — 只畫 pit + 1F + 車廂 + 中斷符號。
+ * 不再畫頂樓、overhead、H 標註 — 讓 elevation 高度接近 plan view 高度，
+ * 保持兩圖視覺平衡。
+ */
+function drawElevationView(
+  dw: any,
+  design: ElevatorDesign,
+  origin: { x: number; y: number }
+): void {
+  const { shaft, car } = design
+  const ox = origin.x
+  const oy = origin.y
+
+  const BREAK_HEADROOM = 600        // 車廂頂到第一道 zigzag 的距離
+  const BREAK_GAP = 1200            // 兩條 zigzag 之間間距
+  const TOP_MARGIN = 300            // 上方外框到第二道 zigzag 的距離
+
+  const firstStopY = oy
+  const carBottom = firstStopY + 100
+  const carTop = carBottom + car.height_mm
+
+  const zigBot = carTop + BREAK_HEADROOM
+  const zigTop = zigBot + BREAK_GAP
+
+  const shaftBottom = firstStopY - shaft.pit_depth_mm
+  const shaftTop = zigTop + TOP_MARGIN
+
+  // 井道外框（只含可見範圍）
+  dw.setActiveLayer('SHAFT')
+  dw.drawRect(ox, shaftBottom, ox + shaft.width_mm, shaftTop)
+  dw.drawLine(ox, firstStopY, ox + shaft.width_mm, firstStopY)
+
+  // 中斷符號（zigzag 上下各一條）
+  const zigStep = shaft.width_mm / 6
+  for (const y of [zigBot, zigTop]) {
+    const pts: Array<[number, number]> = []
+    for (let i = 0; i <= 6; i++) {
+      const dx = i * zigStep
+      const dy = i % 2 === 0 ? -80 : 80
+      pts.push([ox + dx, y + dy])
+    }
+    for (let i = 0; i < pts.length - 1; i++) {
+      dw.setActiveLayer('STOP')
+      dw.drawLine(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1])
+    }
+  }
+
+  // 1F 標籤
+  dw.setActiveLayer('TEXT')
+  dw.drawText(ox - 250, firstStopY, 140, 0, '1F', 'right')
+
+  // 車廂立面
+  const carInsetX = (shaft.width_mm - car.width_mm) / 2
+  dw.setActiveLayer('CAR')
+  dw.drawRect(
+    ox + carInsetX,
+    carBottom,
+    ox + carInsetX + car.width_mm,
+    carTop
+  )
+
+  // 尺寸標註 — 只保留 PIT
+  dw.setActiveLayer('DIMS')
+  dw.drawText(
+    ox + shaft.width_mm + 350,
+    firstStopY - shaft.pit_depth_mm / 2,
+    120,
+    0,
+    `PIT ${shaft.pit_depth_mm}`
+  )
+
+  dw.setActiveLayer('TEXT')
+  dw.drawText(
+    ox + shaft.width_mm / 2,
+    shaftBottom - 400,
+    180,
+    0,
+    'ELEVATION VIEW / 側面圖',
+    'center'
+  )
 }
