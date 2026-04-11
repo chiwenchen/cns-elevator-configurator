@@ -289,11 +289,15 @@
     <header>
       <h1>
         CNS Elevator Configurator
-        <small>Spike 1 — DXF Parser Demo</small>
+        <small id="demo-subtitle">Spike 1 — DXF Parser Demo</small>
       </h1>
       <div class="source">
-        source: Elliot-Sones/Hack_Canada · sample_building.dxf ·
-        <span id="unit-badge">—</span>
+        <label style="font-size:11px;color:var(--fg-muted);margin-right:8px;text-transform:uppercase;letter-spacing:0.08em">source:</label>
+        <select id="source-select" style="background:var(--bg-panel);color:var(--fg);border:1px solid var(--border-strong);font-family:var(--mono);font-size:12px;padding:4px 8px;">
+          <option value="hack-canada">Hack_Canada / sample_building.dxf (read)</option>
+          <option value="generated">Spike 4 / generated.dxf (write)</option>
+        </select>
+        <span id="unit-badge" style="margin-left:12px">—</span>
       </div>
     </header>
 
@@ -366,9 +370,11 @@
     </footer>
 
     <script>
-      (async function () {
+      async function loadSource(source) {
+        const container = document.getElementById('svg-container')
+        container.innerHTML = '<div class="error" id="svg-placeholder">Loading…</div>'
         try {
-          const res = await fetch('/api/analysis')
+          const res = await fetch('/api/analysis?source=' + encodeURIComponent(source))
           if (!res.ok) {
             const body = await res.json().catch(() => ({}))
             throw new Error(body.error || res.statusText)
@@ -378,10 +384,14 @@
           renderShafts(data.shaft_groups)
           renderSvg(data)
         } catch (err) {
-          document.getElementById('svg-placeholder').textContent =
-            'Failed to load analysis:\n' + err.message
+          container.innerHTML =
+            '<div class="error">Failed to load analysis:\n' + err.message + '</div>'
         }
-      })()
+      }
+
+      const sourceSelect = document.getElementById('source-select')
+      sourceSelect.addEventListener('change', () => loadSource(sourceSelect.value))
+      loadSource(sourceSelect.value)
 
       function renderMetrics(data) {
         document.getElementById('unit-badge').textContent = data.unit
@@ -506,6 +516,46 @@
         for (const room of data.rooms) {
           if (!room.is_elevator) continue
           g.appendChild(makePoly('polygon', room.vertices, 'elev-room'))
+        }
+
+        // Generated DXF specific: render raw lines (doors, stops)
+        if (data.extra_lines) {
+          for (const l of data.extra_lines) {
+            const line = document.createElementNS(svgNS, 'line')
+            line.setAttribute('x1', l.a.x)
+            line.setAttribute('y1', l.a.y)
+            line.setAttribute('x2', l.b.x)
+            line.setAttribute('y2', l.b.y)
+            const color = l.layer === 'STOP' ? '#8b93a0'
+                        : l.layer === 'DOOR' ? '#e8734e'
+                        : '#d9dde3'
+            line.setAttribute('stroke', color)
+            line.setAttribute('stroke-width', '2')
+            line.setAttribute('vector-effect', 'non-scaling-stroke')
+            g.appendChild(line)
+          }
+        }
+
+        // Generated DXF specific: render text entities (need counter-flip to stay readable)
+        if (data.extra_texts) {
+          for (const t of data.extra_texts) {
+            const txt = document.createElementNS(svgNS, 'text')
+            txt.setAttribute('x', t.position.x)
+            txt.setAttribute('y', t.position.y)
+            // Counter-flip: since parent has scale(1 -1), text draws upside down; re-flip.
+            txt.setAttribute(
+              'transform',
+              `translate(${t.position.x * 2}, ${t.position.y * 2}) scale(1 -1) translate(${-t.position.x * 2}, ${-t.position.y * 2})`
+            )
+            txt.setAttribute('font-size', Math.max(t.height, 80))
+            txt.setAttribute(
+              'fill',
+              t.layer === 'DIMS' ? '#e8734e' : t.layer === 'TEXT' ? '#e7e9ec' : '#8b93a0'
+            )
+            txt.setAttribute('font-family', 'ui-monospace, monospace')
+            txt.textContent = t.text
+            g.appendChild(txt)
+          }
         }
 
         for (const label of data.elevator_labels) {

@@ -16,12 +16,133 @@ import { join } from 'path'
 type Point = { x: number; y: number }
 type Bbox = { minX: number; minY: number; maxX: number; maxY: number }
 
-const DXF_PATH = join(homedir(), 'cns-data', 'sample_building.dxf')
+const SOURCE_PATHS: Record<string, string> = {
+  'hack-canada': join(homedir(), 'cns-data', 'sample_building.dxf'),
+  generated: join(homedir(), 'cns-data', 'spike4-generated.dxf'),
+}
+const DEFAULT_SOURCE = 'hack-canada'
 
-// ---- Analysis (same algorithm as parse-real.ts) ----
+// ---- Router ----
 
-async function analyze() {
-  const dxfText = await Bun.file(DXF_PATH).text()
+async function analyze(source: string = DEFAULT_SOURCE) {
+  if (source === 'generated') return analyzeGenerated()
+  return analyzeHackCanada(source)
+}
+
+// ---- Analysis: generated Spike 4 DXF (simpler — render by layer) ----
+
+async function analyzeGenerated() {
+  const filePath = SOURCE_PATHS.generated
+  const dxfText = await Bun.file(filePath).text()
+  const parser = new DxfParser()
+  const dxf: any = parser.parseSync(dxfText)
+
+  const entities = dxf.entities || []
+
+  // Collect polylines by layer
+  type Poly = { vertices: Point[]; layer: string; closed: boolean }
+  const polys: Poly[] = []
+  const lines: Array<{ a: Point; b: Point; layer: string }> = []
+  const texts: Array<{ text: string; position: Point; layer: string; height: number }> = []
+
+  for (const e of entities) {
+    if (e.type === 'LWPOLYLINE' || e.type === 'POLYLINE') {
+      if (!Array.isArray(e.vertices)) continue
+      const vs: Point[] = e.vertices
+        .filter((v: any) => typeof v.x === 'number')
+        .map((v: any) => ({ x: v.x, y: v.y }))
+      if (vs.length < 2) continue
+      polys.push({ vertices: vs, layer: e.layer || '0', closed: vs.length >= 4 })
+    } else if (e.type === 'LINE') {
+      const a = e.startPoint || (e.vertices && e.vertices[0])
+      const b = e.endPoint || (e.vertices && e.vertices[1])
+      if (!a || !b) continue
+      lines.push({ a: { x: a.x, y: a.y }, b: { x: b.x, y: b.y }, layer: e.layer || '0' })
+    } else if (e.type === 'TEXT' || e.type === 'MTEXT') {
+      const pos = e.position || e.startPoint
+      if (!pos || typeof pos.x !== 'number') continue
+      texts.push({
+        text: e.text || '',
+        position: { x: pos.x, y: pos.y },
+        layer: e.layer || '0',
+        height: e.textHeight || e.height || 100,
+      })
+    }
+  }
+
+  // Overall bbox across all content
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+  const consume = (p: Point) => {
+    if (p.x < minX) minX = p.x
+    if (p.y < minY) minY = p.y
+    if (p.x > maxX) maxX = p.x
+    if (p.y > maxY) maxY = p.y
+  }
+  for (const p of polys) for (const v of p.vertices) consume(v)
+  for (const l of lines) { consume(l.a); consume(l.b) }
+  for (const t of texts) consume(t.position)
+
+  // Shaft summary: find SHAFT layer closed polys, report their W×H
+  const shaftGroups = polys
+    .filter((p) => p.layer === 'SHAFT' && p.closed)
+    .map((p) => {
+      let pMinX = Infinity, pMinY = Infinity, pMaxX = -Infinity, pMaxY = -Infinity
+      for (const v of p.vertices) {
+        if (v.x < pMinX) pMinX = v.x
+        if (v.y < pMinY) pMinY = v.y
+        if (v.x > pMaxX) pMaxX = v.x
+        if (v.y > pMaxY) pMaxY = v.y
+      }
+      return {
+        width_mm: Math.round(pMaxX - pMinX),
+        depth_mm: Math.round(pMaxY - pMinY),
+        instance_count: 1,
+        labels: ['SHAFT'],
+      }
+    })
+
+  return {
+    source: 'generated',
+    file: filePath,
+    file_kb: Math.round(dxfText.length / 1024),
+    unit: 'Millimeters',
+    entity_count: entities.length,
+    room_count: polys.length,
+    wall_count: 0,
+    door_count: 0,
+    window_count: 0,
+    column_count: 0,
+    balcony_count: 0,
+    insert_count: 0,
+    elevator_label_count: 0,
+    matched_room_count: polys.filter((p) => p.layer === 'CAR').length,
+    building_bbox: { minX, minY, maxX, maxY },
+    // Map to the same schema as hack-canada so the front-end code is one path
+    rooms: polys.map((p, i) => ({
+      id: i,
+      vertices: p.vertices,
+      is_elevator: p.layer === 'CAR' || p.layer === 'DOOR',
+      layer: p.layer,
+    })),
+    walls: [],
+    doors: [],
+    windows: [],
+    columns: [],
+    balconies: [],
+    inserts: [],
+    elevator_labels: [],
+    // Expose raw lines and texts so the front-end can render them (only for generated)
+    extra_lines: lines,
+    extra_texts: texts,
+    shaft_groups: shaftGroups,
+  }
+}
+
+// ---- Analysis: Hack_Canada AIA-style architectural DXF ----
+
+async function analyzeHackCanada(source: string) {
+  const filePath = SOURCE_PATHS[source] || SOURCE_PATHS[DEFAULT_SOURCE]
+  const dxfText = await Bun.file(filePath).text()
   const parser = new DxfParser()
   const dxf: any = parser.parseSync(dxfText)
 
@@ -227,7 +348,8 @@ async function analyze() {
   const shaftGroups = Array.from(byDims.values()).sort((a, b) => b.instance_count - a.instance_count)
 
   return {
-    file: DXF_PATH,
+    source,
+    file: filePath,
     file_kb: Math.round(dxfText.length / 1024),
     unit: unitName,
     entity_count: dxf.entities.length,
@@ -271,12 +393,13 @@ const server = Bun.serve({
       })
     }
     if (url.pathname === '/api/analysis') {
+      const source = url.searchParams.get('source') || DEFAULT_SOURCE
       try {
-        const data = await analyze()
+        const data = await analyze(source)
         return Response.json(data)
       } catch (err) {
         return Response.json(
-          { error: String(err), hint: `Expected DXF at ${DXF_PATH}` },
+          { error: String(err), hint: `DXF source: ${source}` },
           { status: 500 }
         )
       }
@@ -290,4 +413,7 @@ const server = Bun.serve({
 })
 
 console.log(`Spike 1 demo running at http://localhost:${server.port}`)
-console.log(`DXF source: ${DXF_PATH}`)
+console.log(`Sources:`)
+for (const [key, path] of Object.entries(SOURCE_PATHS)) {
+  console.log(`  ${key.padEnd(15)} ${path}`)
+}

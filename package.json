@@ -5,7 +5,8 @@
   "private": true,
   "devDependencies": {
     "@types/bun": "latest",
-    "dxf-parser": "^1.1.2"
+    "dxf-parser": "^1.1.2",
+    "dxf-writer": "^1.18.4"
   },
   "peerDependencies": {
     "typescript": "^5"
