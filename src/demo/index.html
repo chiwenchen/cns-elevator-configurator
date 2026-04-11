@@ -288,14 +288,14 @@
   <body>
     <header>
       <h1>
-        CNS Elevator Configurator
-        <small id="demo-subtitle">Spike 1 — DXF Parser Demo</small>
+        CNS 電梯配件器
+        <small id="demo-subtitle">DXF 解析 Demo</small>
       </h1>
       <div class="source">
-        <label style="font-size:11px;color:var(--fg-muted);margin-right:8px;text-transform:uppercase;letter-spacing:0.08em">source:</label>
+        <label style="font-size:11px;color:var(--fg-muted);margin-right:8px;text-transform:uppercase;letter-spacing:0.08em">資料來源</label>
         <select id="source-select" style="background:var(--bg-panel);color:var(--fg);border:1px solid var(--border-strong);font-family:var(--mono);font-size:12px;padding:4px 8px;">
-          <option value="hack-canada">Hack_Canada / sample_building.dxf (read)</option>
-          <option value="generated">Spike 4 / generated.dxf (write)</option>
+          <option value="hack-canada">Hack_Canada 真實建築 DXF（讀取驗證）</option>
+          <option value="generated">Spike 4 參數化生成 DXF（寫入驗證）</option>
         </select>
         <span id="unit-badge" style="margin-left:12px">—</span>
       </div>
@@ -304,31 +304,31 @@
     <main>
       <div class="viz">
         <div class="viz-header">
-          <span class="viz-title">Building Plan · SVG-rendered from DXF</span>
-          <div class="legend">
+          <span class="viz-title" id="viz-title">建築平面圖 · 由 DXF SVG 渲染</span>
+          <div class="legend" id="legend-container">
             <div class="legend-item">
-              <span class="legend-swatch" style="background:#d9dde3;border-color:#d9dde3"></span>wall
+              <span class="legend-swatch" style="background:#d9dde3;border-color:#d9dde3"></span>牆
             </div>
             <div class="legend-item">
-              <span class="legend-swatch" style="background:#6b7383;border-color:#6b7383"></span>column
+              <span class="legend-swatch" style="background:#6b7383;border-color:#6b7383"></span>結構柱
             </div>
             <div class="legend-item">
-              <span class="legend-swatch" style="background:#5a7b9a;border-color:#5a7b9a"></span>window
+              <span class="legend-swatch" style="background:#5a7b9a;border-color:#5a7b9a"></span>窗
             </div>
             <div class="legend-item">
-              <span class="legend-swatch" style="background:#8b93a0;border-color:#8b93a0"></span>door
+              <span class="legend-swatch" style="background:#8b93a0;border-color:#8b93a0"></span>門
             </div>
             <div class="legend-item">
-              <span class="legend-swatch swatch-room"></span>room
+              <span class="legend-swatch swatch-room"></span>房間
             </div>
             <div class="legend-item">
-              <span class="legend-swatch swatch-elev"></span>elevator
+              <span class="legend-swatch swatch-elev"></span>電梯區域
             </div>
           </div>
         </div>
         <div class="viz-body">
           <div id="svg-container">
-            <div class="error" id="svg-placeholder">Loading DXF analysis…</div>
+            <div class="error" id="svg-placeholder">載入中…</div>
           </div>
         </div>
       </div>
@@ -336,29 +336,29 @@
       <aside>
         <div class="metrics-grid">
           <div class="metric">
-            <div class="metric-label">Entities parsed</div>
+            <div class="metric-label">解析實體數</div>
             <div class="metric-value" id="m-entities">—</div>
           </div>
           <div class="metric">
-            <div class="metric-label">File size</div>
+            <div class="metric-label">檔案大小</div>
             <div class="metric-value" id="m-filesize">—</div>
           </div>
           <div class="metric">
-            <div class="metric-label">Room polygons</div>
+            <div class="metric-label">房間多邊形</div>
             <div class="metric-value" id="m-rooms">—</div>
           </div>
           <div class="metric">
-            <div class="metric-label">Elevator labels</div>
+            <div class="metric-label" id="m-labels-label">電梯標籤</div>
             <div class="metric-value" id="m-labels">—</div>
           </div>
         </div>
 
-        <div class="section-title">Extracted Shaft Dimensions</div>
+        <div class="section-title" id="shaft-section-title">抽取出的坑道尺寸</div>
         <div id="shafts"></div>
 
-        <div class="section-title">Match Report</div>
+        <div class="section-title" id="match-section-title">配對結果</div>
         <div class="metric" style="border-bottom: none">
-          <div class="metric-label">Labels matched to rooms</div>
+          <div class="metric-label" id="m-matched-label">標籤配對到房間</div>
           <div class="metric-value" id="m-matched">—</div>
         </div>
       </aside>
@@ -366,13 +366,71 @@
 
     <footer>
       <span>bun src/demo/server.ts · port 3000</span>
-      <span>algorithm: A-ROOM-BDRY × point-in-polygon join</span>
+      <span id="footer-algo">演算法：A-ROOM-BDRY × 點在多邊形內</span>
     </footer>
 
     <script>
+      // 根據 source 調整 UI 文案
+      const copyByMode = {
+        'hack-canada': {
+          subtitle: 'DXF 讀取驗證 (Spike 1)',
+          vizTitle: '建築平面圖 · 由真實 AutoCAD DXF 渲染',
+          labelsLabel: '電梯標籤',
+          shaftTitle: '抽取出的坑道尺寸',
+          matchTitle: '配對結果',
+          matchLabel: '標籤配對到房間',
+          footerAlgo: '演算法：A-ROOM-BDRY × 點在多邊形內 (Spike 1)',
+          legend: 'architecture',
+        },
+        generated: {
+          subtitle: 'DXF 生成驗證 (Spike 4)',
+          vizTitle: '參數化生成的電梯草稿 · 平面圖 + 側面圖',
+          labelsLabel: 'CAR 多邊形',
+          shaftTitle: 'SHAFT 層尺寸（平面 + 側面）',
+          matchTitle: '生成品質檢查',
+          matchLabel: 'SHAFT bbox round-trip',
+          footerAlgo: '演算法：dxf-writer@1.18.4 → 文字 DXF → dxf-parser 驗證 (Spike 4)',
+          legend: 'generated',
+        },
+      }
+
+      function applyCopy(mode) {
+        const c = copyByMode[mode] || copyByMode['hack-canada']
+        document.getElementById('demo-subtitle').textContent = c.subtitle
+        document.getElementById('viz-title').textContent = c.vizTitle
+        document.getElementById('m-labels-label').textContent = c.labelsLabel
+        document.getElementById('shaft-section-title').textContent = c.shaftTitle
+        document.getElementById('match-section-title').textContent = c.matchTitle
+        document.getElementById('m-matched-label').textContent = c.matchLabel
+        document.getElementById('footer-algo').textContent = c.footerAlgo
+        renderLegend(c.legend)
+      }
+
+      function renderLegend(kind) {
+        const legend = document.getElementById('legend-container')
+        if (kind === 'generated') {
+          legend.innerHTML = `
+            <div class="legend-item"><span class="legend-swatch swatch-room"></span>坑道 (SHAFT)</div>
+            <div class="legend-item"><span class="legend-swatch swatch-elev"></span>車廂 (CAR)</div>
+            <div class="legend-item"><span class="legend-swatch" style="background:#8b93a0;border-color:#8b93a0"></span>樓層線 (STOP)</div>
+            <div class="legend-item"><span class="legend-swatch" style="background:#e8734e;border-color:#e8734e"></span>門 (DOOR)</div>
+          `
+        } else {
+          legend.innerHTML = `
+            <div class="legend-item"><span class="legend-swatch" style="background:#d9dde3;border-color:#d9dde3"></span>牆</div>
+            <div class="legend-item"><span class="legend-swatch" style="background:#6b7383;border-color:#6b7383"></span>結構柱</div>
+            <div class="legend-item"><span class="legend-swatch" style="background:#5a7b9a;border-color:#5a7b9a"></span>窗</div>
+            <div class="legend-item"><span class="legend-swatch" style="background:#8b93a0;border-color:#8b93a0"></span>門</div>
+            <div class="legend-item"><span class="legend-swatch swatch-room"></span>房間</div>
+            <div class="legend-item"><span class="legend-swatch swatch-elev"></span>電梯區域</div>
+          `
+        }
+      }
+
       async function loadSource(source) {
+        applyCopy(source)
         const container = document.getElementById('svg-container')
-        container.innerHTML = '<div class="error" id="svg-placeholder">Loading…</div>'
+        container.innerHTML = '<div class="error" id="svg-placeholder">載入中…</div>'
         try {
           const res = await fetch('/api/analysis?source=' + encodeURIComponent(source))
           if (!res.ok) {
@@ -380,12 +438,12 @@
             throw new Error(body.error || res.statusText)
           }
           const data = await res.json()
-          renderMetrics(data)
+          renderMetrics(data, source)
           renderShafts(data.shaft_groups)
           renderSvg(data)
         } catch (err) {
           container.innerHTML =
-            '<div class="error">Failed to load analysis:\n' + err.message + '</div>'
+            '<div class="error">載入失敗:\n' + err.message + '</div>'
         }
       }
 
@@ -393,21 +451,28 @@
       sourceSelect.addEventListener('change', () => loadSource(sourceSelect.value))
       loadSource(sourceSelect.value)
 
-      function renderMetrics(data) {
-        document.getElementById('unit-badge').textContent = data.unit
+      function renderMetrics(data, source) {
+        document.getElementById('unit-badge').textContent =
+          data.unit === 'Meters' ? '公尺' : data.unit === 'Millimeters' ? '公釐' : data.unit
         document.getElementById('m-entities').textContent = data.entity_count.toLocaleString()
         document.getElementById('m-filesize').textContent = data.file_kb + ' KB'
         document.getElementById('m-rooms').textContent = data.room_count
-        document.getElementById('m-labels').textContent = data.elevator_label_count
-        const matched = data.elevator_labels.filter((l) => l.matchedRoomId !== null).length
-        document.getElementById('m-matched').textContent =
-          matched + ' / ' + data.elevator_label_count
+        if (source === 'generated') {
+          document.getElementById('m-labels').textContent = data.matched_room_count
+          document.getElementById('m-matched').textContent =
+            data.shaft_groups.length + ' / ' + data.shaft_groups.length + '（通過）'
+        } else {
+          document.getElementById('m-labels').textContent = data.elevator_label_count
+          const matched = data.elevator_labels.filter((l) => l.matchedRoomId !== null).length
+          document.getElementById('m-matched').textContent =
+            matched + ' / ' + data.elevator_label_count
+        }
       }
 
       function renderShafts(groups) {
         const el = document.getElementById('shafts')
         if (!groups || groups.length === 0) {
-          el.innerHTML = '<div class="metric"><div class="metric-value">No shafts extracted.</div></div>'
+          el.innerHTML = '<div class="metric"><div class="metric-value">未抽出任何坑道。</div></div>'
           return
         }
         el.innerHTML = groups
@@ -415,9 +480,9 @@
             (g) => `
           <div class="shaft-card">
             <div class="shaft-dims">${g.width_mm} × ${g.depth_mm} mm</div>
-            <div class="shaft-meta-label">instances</div>
+            <div class="shaft-meta-label">實例數</div>
             <div class="shaft-meta-value">${g.instance_count}</div>
-            <div class="shaft-meta-label">labels</div>
+            <div class="shaft-meta-label">標籤</div>
             <div class="shaft-labels">${g.labels.join(' · ')}</div>
           </div>
         `

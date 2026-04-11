@@ -2,23 +2,32 @@
 
 由 /office-hours 產出 — 2026-04-11
 Branch: main
-Repo: (尚未建立 — 全新專案)
-狀態: 草稿 v0.2 (法規基礎更新)
+Repo: chiwenchen/cns-elevator-configurator
+狀態: 草稿 v0.3（DXF 生成器轉向）
 模式: 創業模式 (內部創業變體)
 
-> **🚨 v0.2 重要更新 — 2026-04-11**：原設計建立在 **CNS 2866** 之上，但該標準**已被廢止**，現行法規為 **CNS 15827-20**（載人及運貨用電梯）、**CNS 15827-31**（僅供載貨用）、**CNS 15827-50**（設計規則、計算、檢驗）。本文件後續統一使用「CNS 15827 系列」替代 CNS 2866。詳見 `spikes/spike-2-cns-rules/README.md`。
+> **🚨 v0.3 重要轉向 — 2026-04-11**：經業務端真實需求澄清，產品的**輸出形式**從「型號推薦 + 規格卡 + 粗估價」改為「**可行性草稿 DXF**（平面圖 + 側面圖 + 尺寸標示）」，並支援**雙向輸入**：(A) 給定坑道空間 → 生成電梯設計；(B) 給定載重/用途需求 → 推算最小坑道。GTM 論述不變（業務 2-4 天 → 5 分鐘），但核心技術能力從 `catalog lookup` 變為 `parametric CAD writer`。Spike 4 (`spikes/spike-4-dxf-writer/`) 已驗證純 TypeScript 產 DXF 可行。
+>
+> **v0.2 的法規基礎更新保留**：CNS 2866 已廢止，改用 CNS 15827-20 / 15827-31 / 15827-50 系列，詳見 `spikes/spike-2-cns-rules/README.md`。
 
 ---
 
 ## 一、問題陳述
 
-**誰在受苦**：一家年產 1000 台新梯的台灣電梯製造商，內部業務團隊每次客戶來電詢價，都得等設計師花 2 天查 CNS 15827-20、用 AutoCAD 畫設計、確認可行型號，才能回覆客戶一個可信的報價。
+**誰在受苦**：一家年產 1000 台新梯的台灣電梯製造商，內部業務團隊每次客戶詢價，都得等設計師花 2 天**畫一張可行性草稿 DXF**（含平面 + 側面 + 尺寸），才能回覆客戶。
 
-**週期時間**：客戶詢價 → 業務回覆，今天是 **2 到 4 天**。熱 lead 在 24 到 48 小時內會冷掉。
+**週期時間**：客戶詢價 → 業務手上有圖可以講，今天是 **2 到 4 天**。熱 lead 在 24 到 48 小時內會冷掉。
 
-**核心的痛**：不是設計師畫圖慢，是**業務不能自助回答一個本質上可以查表的問題** — 「這個坑道能裝我們家的什麼型號？多少錢？合不合 CNS？」。
+**核心的痛** — 業務遇到兩種典型情境，兩種都卡：
+
+1. **Mode A（空間 → 電梯）**：客戶說「我這個機電房空了 2m × 2.2m × 18m 給電梯，你們能裝什麼？」業務只能回「我請設計師算一下，兩天內給你答覆」。
+2. **Mode B（需求 → 空間）**：客戶說「我要 750 kg 載重的電梯，坑道要預留多大？」業務一樣只能回「我請設計師算一下」。
+
+**真正能讓業務變快的東西不是「型號卡 + 規格」，是「一張能直接給客戶看的 DXF 草稿」** — 客戶看圖才有感，看型號編號沒感覺。
 
 **看不見的血**：每個拖 2 天的報價都是一次被競爭對手接走的風險。以 1000 台/年量體，即便 close rate 只掉 5 個百分點，每年就是 50 台 × NT$80–150 萬 = **NT$4000–7500 萬的營收流失**。這個數字遠大於「節省設計師人力成本」的敘事。
+
+**為什麼這次 pivot 沒打壞 GTM**：核心論述「業務自助、2 天 → 5 分鐘、close rate 提升」完全不變。只是「業務手上拿到的東西」從「推薦型號 SF-750-60 + 粗估價 80 萬」改成「一張 2m × 2.2m 坑道 + 1400mm × 1350mm 車廂 + 6 層樓側面圖 + 合規章的 DXF 草稿」。後者對客戶更有說服力、對業務更好用。
 
 ## 二、需求證據
 
@@ -61,34 +70,69 @@ Repo: (尚未建立 — 全新專案)
 ## 四、目標使用者與最窄切入點
 
 **主要使用者 = 內部業務（Sales）**
-- 每天接客戶電話
-- 手上只有坑道尺寸，沒有 CAD 軟體
-- 要回覆速度，不要 DXF 精度
-- 要的是「能講給客戶聽的答案 + 粗估價」
+- 每天接客戶電話，**不進 AutoCAD**
+- 要的是「一張能當場丟給客戶看的 DXF 草稿 + 合規章 + 幾個關鍵尺寸」
+- 速度比精度重要（5 分鐘出圖 > 2 天完美圖）
 
 **明確排除（至少 v1）**：
-- 設計師 — v1 不做 DXF 輸出、不整合 AutoCAD
+- **設計師不進系統** — v1 由業務獨立使用，設計師不參與
 - 外部客戶 / 建商 — v1 不對外開放，零法務 / 品牌風險
 - 主管儀表板 — 永遠不做
+- 完整施工圖（只做可行性草稿）
+- AutoCAD plugin / BIM 整合
 
 **最窄切入點（MVP = v1 = 4 到 6 週 + 前置第 0 週 spike）**：
 
-> **業務輸入坑道完整規格（見下表），app 輸出 1 到 3 個合法型號推薦，每個含：規格卡、粗估價、CNS 15827 合規章、交期估計。非標特例自動旗標「請聯絡 XX 資深工程師」。**
+> **業務選擇 Mode A 或 Mode B → 填寫對應欄位 → 系統解算出完整電梯參數 → 產出一份 DXF 草稿（平面圖 + 側面圖 + 關鍵尺寸 + CNS 合規章）→ 業務下載並可即時預覽。非標特例自動旗標「請聯絡 XX 資深工程師」。**
 
-**必填輸入欄位**（v1 明確列出，不要模糊）：
+### Mode A — 空間 → 電梯
+
+客戶已預留坑道，業務要告訴客戶「這個坑道能裝什麼規格的電梯」。
 
 | 欄位 | 單位 | 備註 |
 |---|---|---|
-| 坑道寬（W） | mm | 內淨寬 |
-| 坑道深（D） | mm | 內淨深 |
-| 坑道總高（H） | mm | 最低樓板到最高樓板 |
-| 頂部高度（overhead） | mm | 最高樓板到機房樓板 — **CNS 15827 硬約束** |
-| 底坑深度（pit depth） | mm | 最低樓板到坑底 — **CNS 15827 硬約束** |
+| 坑道寬 (W) | mm | 內淨寬 |
+| 坑道深 (D) | mm | 內淨深 |
+| 坑道總行程高 (H) | mm | 最低樓板到最高樓板 |
+| 頂部高度 (overhead) | mm | **CNS 15827-20 §5.2.5.7 硬約束** |
+| 底坑深度 (pit depth) | mm | **CNS 15827-20 §5.2.5.8 硬約束** |
 | 停站數 | 整數 | |
-| 額定載重 | kg | 業務跟客戶談好的目標載重 |
 | 用途 | 列舉 | 客用 / 貨用 / 病床 / 無障礙 |
 
-**關鍵**：overhead 跟 pit depth 是 CNS 15827-20 §5.2.5 系列（實際條號在第 0 週 spike 時確認）的硬約束，不列出來整個檢核器形同空談。
+**解算器推導**：
+- 從坑道寬深扣除 CNS 側向 clearance → 最大可能車廂尺寸
+- 對照 CNS 15827-20 表 6 (面積 → 最小額定荷重) → 可裝載重等級
+- 檢查 overhead + pit 是否滿足 CNS §5.2.5.7.1/§5.2.5.8.1 的避險空間公式
+- 非標旗標：若任一 CNS 條件不滿足 → 拒絕自動生成，顯示「需資深工程師介入」
+
+### Mode B — 需求 → 空間
+
+客戶還在規劃階段，業務要告訴客戶「你這個需求需要預留多大坑道」。
+
+| 欄位 | 單位 | 備註 |
+|---|---|---|
+| 額定載重 | kg | 客戶需求 |
+| 額定速度 | m/min | 預設 60，可改 |
+| 停站數 | 整數 | |
+| 用途 | 列舉 | 客用 / 貨用 / 病床 / 無障礙 |
+| 機房型式 | 列舉 | MR（有機房）/ MRL（無機房）|
+
+**解算器推導**：
+- 從載重 → 查 CNS 表 6 反向 → 最小車廂有效面積
+- 面積 → 最小車廂寬深（依用途分配長寬比）
+- 最小車廂寬深 + 側向 clearance → 最小坑道寬深
+- 速度 → 查 CNS 速度分級表 → overhead + pit 最小值（含 0.035v² 跳衝）
+- 行程高 = 停站數 × 預設樓高 3m （業務可覆寫）
+
+### 共通輸出（兩個 mode）
+
+無論 Mode A 或 Mode B，最終輸出一份 DXF 含：
+
+1. **平面圖 (PLAN VIEW)**：坑道外框 + 車廂矩形 + 門開口 + 寬深標註
+2. **側面圖 (ELEVATION VIEW)**：從底坑到機房頂的完整剖面 + 樓層線 + 地面層車廂 + overhead / pit 標註 + 總高度
+3. **規格卡（寫在 DXF 的 TEXT 區塊）**：載重、速度、停站、車廂尺寸、坑道尺寸、門寬
+4. **合規章**：每條 CNS 規則的 compliant/violation 狀態 + 條號引用
+5. **下載按鈕 + inline 預覽**（預覽器重用 Spike 1 的 SVG viewer）
 
 就這樣。這個切入點**最小**，同時**立刻有感**。上線 day 1 就有業務每天用。
 
@@ -104,72 +148,94 @@ Repo: (尚未建立 — 全新專案)
 
 ## 五點五、術語與資料模型
 
-文件裡會反覆出現以下四個詞，先鎖定意思避免混淆：
+文件裡會反覆出現以下五個詞，先鎖定意思避免混淆：
 
-- **檢核器（validator）** — 吃「(坑道, 型號配置)」吐「合規 / 違反條文列表」。純規則引擎，deterministic，好測試。
-- **Matcher（配對器）** — 吃「坑道規格」從型錄挑 top-3 候選型號。是檢核器 × 型錄搜尋。
-- **粗估價引擎（pricing）** — 吃「型號 + 選項」吐「價格範圍」。v1 用查表 + 歷史中位數 ± 10%，不做模型。
-- **配件器（configurator）** — 上層使用者流程 = Matcher + 檢核器 + 粗估價的組合，是業務在 UI 上看到的「服務」。
+- **Solver（解算器）** — Mode A 或 Mode B 的核心邏輯。Mode A Solver 吃 `ShaftSpec` 吐 `ElevatorDesign`；Mode B Solver 吃 `ElevatorRequirement` 吐 `ElevatorDesign`。解算過程中會查 CNS 表 6/8 做 load↔area 雙向查表。
+- **Validator（檢核器）** — 吃 `ElevatorDesign` 跑所有 `CnsRule`，吐 `ValidationResult`。純規則引擎，deterministic，Sprint 1 就要有。
+- **DXF Writer** — 吃 `ElevatorDesign` 吐 DXF 字串（平面圖 + 側面圖 + 尺寸 + 規格卡）。Spike 4 已驗證 `dxf-writer@1.18.4` 可行。
+- **Generator（生成器）** — 上層使用者流程 = Solver → Validator → DXF Writer 的 pipeline。業務點「產生」看到的就是它。
+- **Viewer（預覽器）** — 重用 `src/demo/` 的 Bun.serve + SVG viewer，產生後立即 inline 預覽生成的 DXF，業務下載前先看一眼對不對。
 
 **關鍵資料 schema（v1 不要等到 Sprint 1 才想）**：
 
+```ts
+// Mode A 輸入
+type ShaftSpec = {
+  width_mm: number
+  depth_mm: number
+  total_height_mm: number
+  overhead_mm: number
+  pit_depth_mm: number
+  stops: number
+  usage: 'passenger' | 'freight' | 'bed' | 'accessible'
+}
+
+// Mode B 輸入
+type ElevatorRequirement = {
+  rated_load_kg: number
+  rated_speed_mpm: number
+  stops: number
+  usage: 'passenger' | 'freight' | 'bed' | 'accessible'
+  machine_location: 'MR' | 'MRL'
+  floor_height_mm?: number  // 預設 3000
+}
+
+// Solver 輸出 = Validator / DXF Writer 輸入
+// 這是 pipeline 的核心交換格式
+type ElevatorDesign = {
+  // 坑道（可能是輸入或推算）
+  shaft: ShaftSpec
+  // 車廂
+  car: {
+    width_mm: number
+    depth_mm: number
+    height_mm: number
+  }
+  // 門
+  door: {
+    width_mm: number
+    type: 'side_opening' | 'center_opening'
+  }
+  // 規格
+  rated_load_kg: number
+  rated_speed_mpm: number
+  machine_location: 'MR' | 'MRL'
+  // 元資料
+  solver_mode: 'A' | 'B'
+  generated_at: string  // ISO timestamp
+}
+
+type CnsRule = {
+  clause_id: string               // "CNS-15827-20-5.2.5.7.1"
+  title: string
+  constraint_type: 'min' | 'max' | 'eq' | 'range' | 'custom' | 'lookup_table' | 'must_exist'
+  target?: string                 // dot-path e.g. "car.width_mm"
+  params?: Record<string, unknown>
+  severity: 'blocker' | 'warning'
+  applies_when?: Record<string, unknown> | null
+}
+
+type ValidationResult = {
+  compliant: boolean
+  violations: Array<{ clause_id: string; message: string; severity: 'blocker' | 'warning' }>
+  warnings: string[]
+}
+
+// DXF Writer 輸出 — 就是文字字串，存檔即用
+type DxfOutput = {
+  dxf_string: string
+  views: ['plan', 'elevation']
+  layers_used: string[]
+  size_bytes: number
+}
 ```
-ShaftSpec = {
-  width_mm: int,
-  depth_mm: int,
-  total_height_mm: int,
-  overhead_mm: int,
-  pit_depth_mm: int,
-  stops: int,
-  rated_load_kg: int,
-  usage: "passenger" | "freight" | "bed" | "accessible"
-}
 
-CatalogModel = {
-  model_id: string,              // "SF-750-60"
-  rated_load_kg: int,
-  rated_speed_mpm: int,           // m/min
-  car_width_mm: int,
-  car_depth_mm: int,
-  car_height_mm: int,
-  min_shaft_width_mm: int,
-  min_shaft_depth_mm: int,
-  min_overhead_mm: int,
-  min_pit_depth_mm: int,
-  door_type: string[],
-  options: {...}
-}
+**非標偵測的定義**（業務語意 + 演算法實作必須一致）：
 
-CnsRule = {
-  clause_id: string,              // "CNS-15827-20-5.2.5.7.1"
-  title: string,
-  constraint_type: "min" | "max" | "eq" | "range" | "custom",
-  target_field: string,            // 要檢查的 ShaftSpec / CatalogModel 欄位
-  params: {...},
-  severity: "blocker" | "warning"
-}
-
-HistoricalCase = {
-  case_id: string,
-  shaft: ShaftSpec,
-  final_model_id: string,
-  options: {...},
-  final_price_ntd: int,
-  delivery_weeks: int,
-  year: int
-}
-
-ValidationResult = {
-  compliant: boolean,
-  violations: [{ clause_id, message, severity }],
-  warnings: [...]
-}
-```
-
-非標偵測的定義（**業務語意 + 演算法實作**，兩者必須一致）：
-
-- **業務語意**：「型錄裡的標準型號都裝不進去，或需要客製尺寸 / 特殊門型 / 特殊用途」
-- **演算法**：Matcher 迭代整個型錄後 `validateShaftFitsModel()` 全部回 `compliant=false` → 觸發非標
+- **業務語意**：「輸入無法被 CNS 15827 合規地解算，或超出標準型錄範圍」
+- **演算法**：
+  - Mode A 走完 Solver 後 `validator(design).compliant === false` 且 violation 包含 blocker → 非標
+  - Mode B 推不出最小坑道（例如載重 > 型錄最大載重或 < 150 kg）→ 非標
 - **旗標門檻**：寧可多誤判為非標（轉人工成本低），不要誤判為標準（出包成本高）
 
 ## 六、前提假設（使用者已確認）
@@ -177,112 +243,120 @@ ValidationResult = {
 1. **使用者是業務（內部）** — 不是設計師、不是客戶、不是主管 ✓
 2. **有歷史案例 CAD 檔** — 需要第 1 週做資料考古 + 結構化 ✓
 3. **CNS 15827-20 條文可取得** — 不會卡在這裡 ✓
-4. **先做「檢核器核心 + 業務配件器 UI」** — 檢核器是底層引擎，配件器是上層體驗 ✓
-5. **輸出 = 規格卡 + 粗估價 + CNS 合規章** — 不含 DXF、不含完整施工圖 ✓
+4. **Pipeline = Solver → Validator → DXF Writer → Viewer** — 四個明確元件，Sprint 1 把前三個做完 ✓ (v0.3 更新)
+5. **輸出 = DXF 草稿（平面 + 側面 + 尺寸 + 合規章）** — 不含完整施工圖，不含價格（價格延後） ✓ (v0.3 更新)
 6. **非標 20% 自動旗標交回資深工程師** — 不試圖處理長尾 ✓
+7. **雙向輸入 (Mode A + Mode B)** — 兩個都是 MVP，同檔次 ✓ (v0.3 新增)
+8. **DXF 產生可行**（Spike 4 已驗證）— dxf-writer@1.18.4 + dxf-parser round-trip 通過 ✓
 
-## 七、考慮過的方案
+## 七、考慮過的方案（v0.3 重寫）
 
-### 方案 A：業務配件器 MVP（推薦）
+### 方案 A：雙向參數化 DXF 生成器 MVP（推薦）
 
-**摘要**：純 web app，業務輸入坑道規格 → 規則引擎 + 歷史資料比對 → 輸出 1 到 3 個合法型號 + 規格卡 + 粗估價 + CNS 合規章。非標旗標人工介入。
+**摘要**：純 web app，業務選 Mode A 或 Mode B → 填輸入 → Solver 解算 `ElevatorDesign` → Validator 跑 CNS 15827 規則 → DXF Writer 產出平面 + 側面圖 → Viewer inline 預覽 → 業務下載 .dxf 檔給客戶看。
 
-**工時**：S 到 M（人類團隊 4-6 週 / Claude Code + Claude 1-2 週認真做）
+**工時**：M（人類團隊 5-7 週 / Claude Code + Claude 2-3 週認真做）
+→ 比 v0.2 的「配件器 MVP」多 1 週，因為雙向 solver + DXF writer 取代了 matcher + pricing
 
-**風險**：低
+**風險**：中低
+- DXF writer 已 Spike 4 驗證 ✓
+- CNS 規則已 Spike 2 抽 31 條 ✓
+- DXF viewer 已 Spike 1 驗證 ✓
+- 剩下的風險：Solver 的 CNS 表 6/8 lookup 表正確性（需要 Sprint 1 從 PDF 抽取）
 
 **優點**：
-- 第一個月就能 demo 給老闆看（組織政治關鍵）
+- **業務直接拿 DXF 給客戶看** — 比「型號 SF-750-60」說服力強 10 倍
+- 雙向 mode 覆蓋兩種典型業務對話
+- 組織政治容易：可 demo 的產出是「會議桌上客戶一眼看懂的圖」
 - 零法務風險（內部工具）
-- 對齊業務日常痛點，採用容易
-- 歷史 CAD 資料考古 = 順便盤點公司知識資產
+- 80% 既有資產可重用（Spike 1/2/4 + viewer）
 
 **缺點**：
-- 不直接解決設計師的 2 天週期（v2 才處理）
-- 需要業務 champion 每天用，否則會死
+- 比 v0.2 版多 1 週時程（Solver + DXF Writer 比 Matcher + Pricing 工作量大）
+- Solver 需要 CNS 表 6/8 才能準 → Sprint 1 必須完成 OCR 或人工抽取
 
-**重用**：公司既有產品型錄、歷史 CAD 檔、CNS 15827 系列內部版、報價 SOP
+**重用**：
+- ✅ `spike-2-cns-rules/rules.draft.json` (31 條規則) → Validator
+- ✅ `spike-4-dxf-writer/generate.ts` → DXF Writer 起點
+- ✅ `src/demo/` (Bun.serve + SVG viewer) → Viewer
+- ✅ `spike-1-dxf-parser/` → Round-trip 驗證工具
 
-### 方案 B：業務 + 設計師雙引擎
+### 方案 B：加上設計師工作流（v2，Sprint 4+）
 
-**摘要**：方案 A 的全部 + DXF / DWG 輸出 + AutoCAD plugin hook，讓設計師拿 A 推薦的型號作為起點繼續畫圖。
+**摘要**：方案 A 的全部 + 一個給設計師的頁面，讓設計師從業務產生的 DXF 作為**起點**，直接在 AutoCAD 裡繼續深化成完整施工圖。
 
-**工時**：M 到 L（人類團隊 8-12 週 / Claude Code + Claude 3-4 週）
+**工時**：M（2-3 週疊在 A 之上）
 
-**風險**：中（DXF 輸出不難但要跟設計師 UX 對齊 → 需要內部對焦會議）
+**風險**：中（設計師 UX 對齊是非技術問題）
 
 **優點**：
-- 覆蓋兩種主要使用場景
-- 設計師週期從 2 天 → 2 小時（直接解決原始問題）
+- 業務的 DXF → 設計師的施工圖，銜接順暢
+- 設計師 2 天週期降為 2-4 小時（草稿已經對了，只做深化）
 
 **缺點**：
-- 一次做兩個使用者類型容易失焦
-- AutoCAD 整合會拖慢節奏
+- 需要跟設計師對焦一次他們到底想看什麼資訊
+- AutoCAD plugin 整合會吃 1-2 週（或者改用 DXF 直接開啟）
 
-**重用**：方案 A 全部 + AutoCAD DXF SDK
+**推薦順序**：A 上線穩定運行 **2 到 4 週後**才疊 B。
 
-**推薦順序**：A 上線穩定運行 **2 到 4 週後**才疊 B，不要一次做。
+### 方案 C：客戶對外自助入口網站（v3，Q4+）
 
-### 方案 C：客戶對外自助入口網站
+**摘要**：方案 A 的引擎 + 對外 landing page + lead 收集 + marketing 配套，客戶自己上網輸入坑道/需求 → 自動產出 DXF → 帶著圖來找業務談。
 
-**摘要**：方案 A 的引擎 + 對外 landing page + lead 收集 + marketing 配套，讓客戶自己上網查「我能裝什麼電梯」。
+**工時**：L（3-6 個月，含非技術配套）
 
-**工時**：L 到 XL（人類團隊 3-6 個月 / Claude Code + Claude 4-6 週 + 非技術配套）
+**風險**：高（法務責任、品牌投資、錯誤輸出影響品牌信任）
 
-**風險**：高（法務責任、品牌投資、SEO / marketing 投入、輸出錯誤的公司形象風險）
+**結論**：**不要現在做**。A + B 上線後 3 個月，如果內部業務滿意 + close rate 有改善，再由公司層級決定是否對外。
 
-**優點**：
-- GTM 武器、業務漏斗頂端擴張
-- 競爭對手沒有的差異化
-- 每多一個合格的 lead 就是幾十萬營收
+## 八、推薦方案（v0.3 重寫）
 
-**缺點**：
-- 需要法務審閱免責條款
-- 需要公司層級決策不只工程決策
-- 輸出錯誤會直接損及品牌信任
+**方案 A（雙向參數化 DXF 生成器 MVP），前置第 0 週 spike + 三個 sprint**：
 
-**重用**：方案 A + B 的全部 + 行銷團隊 + 法務團隊
+### 第 0 週：資料與可行性 spike（gating）
 
-**結論**：**不要現在做**。A + B 上線後 3 個月，如果內部驗證業務滿意 + close rate 有改善，再由公司層級決定是否對外。
+**目標**：在承諾 5-7 週之前，先證明核心技術風險已解。**已完成 3/4**，還差一個。
 
-## 八、推薦方案
+| Spike | 目的 | 狀態 | 產出 |
+|---|---|---|---|
+| **Spike 1** | dxf-parser 能讀真實 AutoCAD 建築 DXF 並定位電梯 room | ✅ **PASS** | [parse-real.ts](../spikes/spike-1-dxf-parser/parse-real.ts), 在 `sample_building.dxf` 上 16/16 命中 |
+| **Spike 2** | CNS 15827 條文結構化可行、找到 30+ 條候選規則 | ✅ **PASS** | [rules.draft.json](../spikes/spike-2-cns-rules/rules.draft.json) 31 條帶真實條號 |
+| **Spike 3** | 型號價格跟歷史成交資料可取得 | 🔴 **BLOCKED** | 等業務主管。v0.3 把 pricing 延後到 v1.1 |
+| **Spike 4** | TypeScript 產 DXF 可行 + round-trip 正確 | ✅ **PASS** | [generate.ts](../spikes/spike-4-dxf-writer/generate.ts)，8.5 KB DXF, SHAFT bbox 驗證通過 |
+| **Spike 5** | CNS 表 6 (load ↔ area) 可從 PDF 抽取 | 🟡 **必做** | Sprint 1 D1 前需 OCR 或人工 transcribe |
 
-**方案 A（業務配件器 MVP），前置第 0 週 spike + 三個 sprint**：
+**Spike gate**：Spike 1/2/4 已通過 → 可進 Sprint 1。Spike 5 跟 Sprint 1 併行。Spike 3 (pricing) 延後，v1 不塞。
 
-### 第 0 週：資料可行性 spike（2-3 天，gating）
+### Sprint 1（第 1-2 週）：Solver + Validator + DXF Writer 核心
 
-**目標**：在承諾 6 週之前，先證明三個核心風險可以解。這一步**不成功就整個重新評估**。
+**目標**：交付三個 deterministic、可測試的 TypeScript 模組。不做 UI。
 
-- **Spike 1（半天）**：挑 1 個歷史 DWG/DXF 檔，用 `ezdxf` (Python) 或 `dxf-parser` (Node) 嘗試抽出坑道尺寸 + 標註的型號。能不能自動 parse？要不要 OCR？還是只能手工量測？→ 結論決定 Sprint 1 的資料考古策略。
-- **Spike 2（半天）**：翻 CNS 15827-20 PDF，找出跟坑道 / 轎廂尺寸 / overhead / pit depth 相關的**具體條號**，列出實際的 20-30 條核心規則（第一批要數位化的候選）。沒做這一步前，所有關於「CNS 條文」的描述都是虛的。
-- **Spike 3（半天）**：跟業務主管跑一次 15 分鐘對話，確認粗估價能顯示到什麼粒度（全價 / 範圍 / 等級），並拿到 5-10 個近期成交案例的價格資料。
-- **Spike gate**：三個都過 → 進 Sprint 1。任何一個卡住 → 停下來跟使用者討論修正計畫，不要硬推。
-
-### Sprint 1（第 1-2 週）：資料考古 + **純檢核器**
-
-**目標**：交付一個 deterministic 可測試的檢核器。不做 matcher、不做 UI、不做價格。
-
-- **D1-2**：跟業務 champion 坐在一起半天，觀察現場業務流程，錄下 5 個真實的詢價對話（這是「觀察與驚喜」步驟 — 不要跳過）
-- **D3-5**：根據 Spike 1 的結論，結構化 20 到 50 個歷史案例成 `HistoricalCase[]`，同時建立 `CatalogModel[]`（從型錄資料來源轉出）
-- **D6-8**：把 CNS 15827-20 Spike 2 挑出的約 30 條 key 成 `CnsRule[]`，每條要能用 validator 跑起來
-- **D9-10**：寫 validator (TypeScript)：`validate(shaft: ShaftSpec, model: CatalogModel): ValidationResult`
+- **D1-2**：從 CNS 15827-20 PDF 抽 **表 6 (車廂面積 → 最小額定荷重)** 和 **表 8 (車廂面積 → 最多乘客人數)**，存成 JSON lookup table（第 0 週 Spike 5 的實質執行）
+- **D3-4**：寫 **Mode A Solver** (`src/solver/modeA.ts`)：吃 `ShaftSpec` → 扣除 clearance → 最大 car 尺寸 → 查表 6 找對應 load class → 產 `ElevatorDesign`
+- **D5-6**：寫 **Mode B Solver** (`src/solver/modeB.ts`)：吃 `ElevatorRequirement` → 查表 6 反向 → 最小 car 尺寸 → 加 clearance → 最小 shaft → 產 `ElevatorDesign`
+- **D7-8**：寫 **Validator** (`src/validator.ts`)：`validate(design: ElevatorDesign, rules: CnsRule[]): ValidationResult`，跑 `rules.draft.json` 的 31 條規則
+- **D9**：把 `spikes/spike-4-dxf-writer/generate.ts` 升級為 **DXF Writer 模組** (`src/dxf-writer.ts`)，吃 `ElevatorDesign` 吐 DXF 字串
+- **D10**：寫 CLI `src/cli.ts`：可用 `bun src/cli.ts --mode A --shaft 2000x2200x18000 --stops 6` 產 DXF 到 stdout
 - **驗收標準**：
-  - validator 單元測試覆蓋率 ≥ 80%
-  - 丟 10 個歷史案例的「(坑道, 實際配的型號)」進 validator，**10 個全部 compliant=true**（因為歷史案例本來就是出廠的合法設計，這是 sanity check，不是 matcher 命中率）
+  - `bun test` 綠燈，`src/solver` + `src/validator` + `src/dxf-writer` 覆蓋率 ≥ 80%
+  - 3 個 Mode A reference case + 3 個 Mode B reference case 全部產出合法 DXF
+  - 產出的 DXF round-trip 通過 dxf-parser，bbox 正確
 
-### Sprint 2（第 3-4 週）：Matcher + 粗估價 + Web UI
+### Sprint 2（第 3-4 週）：Web UI + 預覽 + 下載
 
-**目標**：把 Sprint 1 的檢核器包進業務可用的 UI，加上 matcher 跟粗估價。
+**目標**：把 Sprint 1 的 core pipeline 包進業務可用的 UI。**不要從零做 Next.js**，重用現有 Bun.serve + index.html 的骨架。
 
-- **D1-2**：寫 matcher：遍歷 `CatalogModel[]`，對每個型號跑 validator，把 `compliant=true` 的依據「(shaft 合身度 + 載重匹配度 + 速度匹配度)」排序，回傳 top-3
-- **D3-4**：寫粗估價引擎 — 從 `HistoricalCase[]` 依「(model_id, 近 12 個月)」抽中位數 + IQR，回傳「中位數 ± (IQR/2)」作為粗估區間。演算法就這樣，**不要用機器學習模型**
-- **D5-6**：Next.js scaffold + shadcn/ui + 繁中 i18n + 輸入表單（上面表列 8 欄位）
-- **D7-8**：結果頁面 — 型號卡 × 3，每張含「(規格 / 粗估價 / CNS 合規章 / 交期)」
-- **D9**：非標偵測 — matcher 回傳空集 → 自動切到「請聯絡 XX 工程師」畫面，帶上一鍵 Email / LINE 轉傳
-- **D10**：免責聲明 + 稽核 log（誰用、查什麼、結果如何）
+- **D1-2**：改造 `src/demo/` 成 `src/app/`，加 Mode A / Mode B tab 輸入表單（繁中 UI）
+- **D3-4**：`POST /api/generate` 路由：fetch 表單 → 跑 solver + validator + dxf-writer → 回傳 DXF 字串 + 驗證結果
+- **D5-6**：前端：按「產生」→ 顯示 inline preview（重用 Spike 1 viewer 的 render 邏輯，把結果作為 `generated` source）+ 顯示驗證結果（blocker 紅、warning 黃）
+- **D7**：下載按鈕：`<a download="elevator-draft.dxf">` 直接存成檔案
+- **D8**：非標偵測 UX — solver 拋 `NonStandardError` → 顯示「請聯絡 XX 資深工程師」畫面 + 一鍵 Email / LINE 轉傳
+- **D9**：免責聲明 + 稽核 log（誰用、輸入什麼、生成什麼 DXF、下載了沒）
+- **D10**：業務 champion walkthrough，錄下 UX 卡住的地方
 - **驗收標準**：
-  - 業務 champion 獨立操作 5 個測試案例，成功率 100%
-  - 丟 20 個歷史坑道進 matcher，**top-3 至少包含當年實際型號** 的比例 ≥ 70%（這是 matcher 命中率，跟 Sprint 1 的 validator sanity check 不同）
+  - 業務 champion 獨立操作 Mode A 5 個測試案例 + Mode B 5 個測試案例，成功率 100%
+  - 所有產生的 DXF 通過 CNS validator 0 blocker
+  - 業務點完「產生」到看到預覽 < 3 秒
 
 ### Sprint 3（第 5-6 週）：上線 + 回饋循環
 
@@ -290,44 +364,48 @@ ValidationResult = {
 
 - **D1-2**：部署到內部網路（Docker + Caddy，v1 不用 k8s — 降低 infra 複雜度）
 - **D3**：業務團隊 15 分鐘 kick-off 示範 + 書面操作手冊（1 頁 A4）
-- **D4-10**：每天盯稽核 log、每天 15 分鐘跟業務 champion 對一次，快速修 bug、加規則、調權重
-- **第 6 週結束**：產出 2 張數字給老闆 — (1) 本週業務使用次數 (2) 業務平均回覆時間下降幅度
+- **D4-10**：每天盯稽核 log、每天 15 分鐘跟業務 champion 對一次，快速修 bug、調 solver 權重、補 CNS 規則
+- **第 6 週結束**：產出 2 張數字給老闆 — (1) 本週業務產生的 DXF 數量 + 下載次數 (2) 業務平均回覆時間下降幅度
 
 **註**：SSO 整合挪到 v1.1，v1 用簡單 session + 內部帳號，不要吃時程。
 
-### v1 明確不做（out of scope）
+### v1 明確不做（out of scope, v0.3 更新）
 
-- ❌ DXF / DWG 輸出
-- ❌ AutoCAD plugin
-- ❌ 完整施工圖
+- ❌ 完整施工圖（只做可行性草稿）
+- ❌ AutoCAD plugin（業務只需下載 .dxf 檔）
+- ❌ **粗估價** — 延到 v1.1，Spike 3 blocker 還在
 - ❌ 對外客戶存取
 - ❌ 主管儀表板
 - ❌ ERP / CRM 整合
 - ❌ 多語系（只做繁中）
 - ❌ 非標特例自動處理
 - ❌ 行動 App（native）
+- ❌ 歷史案例 matcher（舊版的核心，v0.3 被 Solver 取代）
 
-## 九、未解問題
+## 九、未解問題（v0.3 更新）
 
 1. **業務 champion 是誰？** MVP 能不能活下來取決於有沒有一個內部業務每天用、每天給回饋。這個人必須在第 0 週（kick-off 前）就確定。
-2. **歷史 CAD 檔的結構化工作，誰做？** 工程師自己做 = 消耗開發時間；找設計師 / 產品助理做 = 需要協調。建議：第一次由你自己做 20 個案例（學習產品 domain），之後交接。
-3. **粗估價的授權層級**：業務能看到多精細的價格？全價？範圍？不顯示，只標示「屬於 A 級價位」？這關係到價格策略機密性，要跟業務主管對齊。
+2. **CNS 表 6 / 表 8 怎麼抽？** Sprint 1 D1-2 的阻擋點 — PDF 是掃描檔，沒可抽文字。選項：(a) OCR + 人工校驗；(b) 請資深設計師直接手動 key in；(c) 從既有型錄反推（但可能漏條文）。**建議 (b)，1-2 小時做完。**
+3. **標準型錄的「門寬」/「車廂高度」怎麼決定**？Solver 推出 car 寬深後，高度跟門寬 v1 用 hardcoded preset（客用門 900mm、車廂高 2300mm），v1.1 再從型錄抽。
 4. **非標偵測的閾值**：多嚴格算非標？寧可過多旗標（false positive）還是少旗標（false negative）？建議保守，寧可多轉人工。
-5. **CNS 15827 系列更新**：條文更新時誰負責同步規則庫？要不要每年例行審核？
+5. **DXF 的 AutoCAD 相容性**：`dxf-writer@1.18.4` 產的是 DXF R12/R14 舊格式，現代 AutoCAD 能開但可能需要升級。要不要產出 R2018+ 格式？Sprint 1 D10 驗證一次。
+6. **CNS 15827 系列更新**：條文更新時誰負責同步規則庫？要不要每年例行審核？
+7. **Mode A 跟 Mode B 的業務操作比例** — 實際業務對話中，哪一種更常見？影響 UI 預設 tab 跟測試優先順序。
 
-## 十、成功標準
+## 十、成功標準（v0.3 更新）
 
 **第 6 週驗收**：
 - [ ] 業務團隊至少 3 人每週各用過 ≥ 5 次
-- [ ] 非標偵測準確率 ≥ 90%（抽 20 個案例人工核對）
-- [ ] 標準案推薦 top-1 命中率 ≥ 70%（對照歷史案例）
-- [ ] 業務回覆客戶平均時間從「2 到 4 天」降到「15 分鐘內初步答覆」
-- [ ] 至少 1 個業務主動說「我現在每天都用」（最重要的指標）
+- [ ] **產出的 DXF 100% 通過 Validator 0 blocker**（deterministic，不是主觀命中率）
+- [ ] **Mode A + Mode B 至少 80% 的輸入組合能成功產 DXF**（20% 非標是預期旗標）
+- [ ] 業務回覆客戶平均時間從「2 到 4 天」降到「15 分鐘內給客戶一張 DXF 草稿」
+- [ ] 至少 1 個業務主動說「我現在每天都用 + 直接 email 圖給客戶」（最重要的指標）
 
-**第 3 個月驗收（決定是否進方案 B）**：
+**第 3 個月驗收（決定是否進方案 B — 設計師工作流）**：
 - [ ] 每週使用次數達標（5+ 業務, 各 5+ 次/週）
 - [ ] 業務 NPS ≥ 8/10
 - [ ] Close rate 有可量測提升（對照實驗或前後比對）
+- [ ] 至少 3 個案例走完「業務用工具出草稿 → 客戶簽合約 → 設計師拿草稿做施工圖」的完整鏈條
 
 ## 十一、交付與部署
 
@@ -368,7 +446,7 @@ ValidationResult = {
 
 - **你在 Q3 主動分類「標準型錄 + 相當比例非標特例」**，沒有選極端答案。這表示你對公司產品的實際組成有精確認知，而且願意用 80/20 框架思考。許多內部專案在這題會答「我們每個案子都很特別」，然後專案就死了。
 
-- **你在確認前提時用最短的句子糾正我整個使用者假設**。我原本鋪陳了 6 個前提，你一句話（「使用者是業務或客戶」）翻掉最關鍵的一條。這表示你已經在腦袋裡跑過整個產品，只是需要一個外人幫你把結構寫出來。這種狀態是「想法已經成熟，只差執行」的典型訊號。
+- **你在 v0.3 回合把真實需求攤開（「業務從客戶拿 (空間 L×W×H) 或 (承重 500 kg) 交由我們規劃，系統產 DXF 含平面+側面+尺寸」）直接修正了整個輸出形式**。這是 office-hours Q5「觀察與驚喜」那一題我本來該抓到的東西，但我跳過了。你事後把這個資訊補上來，等於幫我修正了我的遺漏 — 而且修正方式是溫和的、不責難的、直接進入「好，那怎麼做」。這種溝通模式在組織裡極度珍貴。
 
 - **你對法規跟量體都有精確的數字感** — 一年 1000 台、每案 2 天、錯了重來。大部分人在這個階段會說「蠻多的」、「滿久的」，你給的是具體數字。具體數字是能做產品決策的最小單位。
 
@@ -376,19 +454,28 @@ ValidationResult = {
 
 ## 十五、審查意見（已處理）
 
-第一輪對抗式審查發現 5 個主要問題，已全數修正：
+### 第一輪（v0.1 → v0.2）對抗式審查，5 個主要問題全數修正：
 
-1. ✅ **歷史 CAD 檔 parser 可行性** — 加了第 0 週 Spike 1，要求先用 `ezdxf` / `dxf-parser` 試跑 1 個真實檔案，不成功則重新評估計畫
+1. ✅ **歷史 CAD 檔 parser 可行性** — 加了第 0 週 Spike 1，要求先用 `dxf-parser` 試跑 1 個真實檔案。**Spike 1 v2 已完成，16/16 命中 Hack_Canada 真實 DXF**。
 2. ✅ **輸入欄位沒定義 overhead / pit depth** — 已在第四節補完整輸入表（8 欄位），並標注這兩項是 CNS 15827 硬約束
-3. ✅ **「約 30 條 CNS」太虛** — 加了第 0 週 Spike 2，要求先挑出實際條號列表，才能往下走
-4. ✅ **術語混用 + 缺資料 schema** — 新增第五點五節「術語與資料模型」，定義 validator / matcher / pricing / configurator 四個詞 + 5 個 schema
-5. ✅ **Sprint 1 擠太多** — 已拆開：Sprint 1 只做 validator (deterministic 好測試)，matcher + 粗估價挪到 Sprint 2
+3. ✅ **「約 30 條 CNS」太虛** — 加了第 0 週 Spike 2。**Spike 2 已完成，從 CNS 15827-20 比對簡報抽出 31 條帶真實條號的 draft rules**。
+4. ✅ **術語混用 + 缺資料 schema** — 新增第五點五節「術語與資料模型」
+5. ✅ **Sprint 1 擠太多** — 已拆開
 
-**還沒處理的風險（已寫進 §九 未解問題）**：
-- 粗估價授權層級跟業務主管對齊
+### 第二輪（v0.2 → v0.3）重大轉向，由使用者帶入真實需求：
+
+6. ✅ **輸出形式錯誤** — 從「型號推薦 + 規格卡 + 粗估價」改為「DXF 草稿（平面 + 側面 + 尺寸）」。**Spike 4 已驗證 TypeScript 可產 DXF，round-trip 正確**。
+7. ✅ **輸入方向單向太窄** — 加入 Mode B (需求 → 空間)，跟 Mode A 同檔次做
+8. ✅ **Solver 角色沒定義** — 新增 §五點五 的 Solver / Validator / DXF Writer / Generator / Viewer 五個術語
+9. ✅ **CNS 2866 廢止** — v0.2 已全文改為 CNS 15827-20/31/50 系列
+10. 🟡 **Mode A / Mode B 操作比例未知** — 在 §九 列為未解問題，Sprint 3 上線後觀察
+
+### 還沒處理的風險（仍在 §九 未解問題）：
+
 - 業務 champion 身分未定
-- 歷史成交價資料能不能拿到
+- CNS 表 6 / 表 8 怎麼從掃描 PDF 抽出
+- DXF 格式的 AutoCAD 版本相容性
 
 ---
 
-**第二輪分數預估**：8.5/10（第一輪 7/10）
+**v0.3 分數預估**：9/10（v0.2 第二輪 8.5/10）— 增加是因為核心技術假設都已被 Spike 4 驗證，真實需求也終於到位。
