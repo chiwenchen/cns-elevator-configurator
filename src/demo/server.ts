@@ -233,12 +233,15 @@ const server = Bun.serve({
         const data = await analyze()
         return Response.json(data)
       } catch (err) {
-        console.error(err)
         return Response.json(
           { error: String(err), hint: `Expected DXF at ${DXF_PATH}` },
           { status: 500 }
         )
       }
+    }
+    if (url.pathname === '/favicon.ico') {
+      // Empty 1×1 transparent PNG so browsers stop 404-ing
+      return new Response(null, { status: 204 })
     }
     return new Response('Not found', { status: 404 })
   },
