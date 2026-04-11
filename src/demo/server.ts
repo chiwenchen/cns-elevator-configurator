@@ -90,28 +90,60 @@ async function analyze() {
     })
   }
 
-  // All WALL layer polylines (for richer background context)
-  const walls: Point[][] = []
-  const wallLayers = ['A-WALL-STRC', 'A-WALL-EXTR', 'A-WALL-PART']
-  for (const e of dxf.entities) {
-    if (!wallLayers.includes(e.layer)) continue
-    if (e.type !== 'LWPOLYLINE' && e.type !== 'POLYLINE' && e.type !== 'LINE') continue
+  // Helper: extract polyline vertices from an entity regardless of shape
+  const extractVertices = (e: any): Point[] => {
     if (e.type === 'LINE') {
       if (e.vertices && e.vertices.length >= 2) {
-        walls.push(e.vertices.map((v: any) => ({ x: v.x, y: v.y })))
-      } else if (e.startPoint && e.endPoint) {
-        walls.push([
+        return e.vertices.map((v: any) => ({ x: v.x, y: v.y }))
+      }
+      if (e.startPoint && e.endPoint) {
+        return [
           { x: e.startPoint.x, y: e.startPoint.y },
           { x: e.endPoint.x, y: e.endPoint.y },
-        ])
+        ]
       }
-    } else if (Array.isArray(e.vertices)) {
-      walls.push(
-        e.vertices
-          .filter((v: any) => typeof v.x === 'number' && typeof v.y === 'number')
-          .map((v: any) => ({ x: v.x, y: v.y }))
-      )
+      return []
     }
+    if (Array.isArray(e.vertices)) {
+      return e.vertices
+        .filter((v: any) => typeof v.x === 'number' && typeof v.y === 'number')
+        .map((v: any) => ({ x: v.x, y: v.y }))
+    }
+    return []
+  }
+
+  // Layer categories we render as polygons/polylines
+  const wallLayers = new Set(['A-WALL-STRC', 'A-WALL-EXTR', 'A-WALL-PART'])
+  const doorLayers = new Set(['A-DOOR'])
+  const windowLayers = new Set(['A-WINDOW'])
+  const columnLayers = new Set(['S-COLS'])
+  const balconyLayers = new Set(['A-BALCONY'])
+
+  const walls: Point[][] = []
+  const doors: Point[][] = []
+  const windows: Point[][] = []
+  const columns: Point[][] = []
+  const balconies: Point[][] = []
+  const inserts: Array<{ layer: string; position: Point; name: string }> = []
+
+  for (const e of dxf.entities) {
+    const layer = e.layer || ''
+    if (e.type === 'INSERT' && e.position) {
+      inserts.push({
+        layer,
+        position: { x: e.position.x, y: e.position.y },
+        name: e.name || '',
+      })
+      continue
+    }
+    if (!['LWPOLYLINE', 'POLYLINE', 'LINE'].includes(e.type)) continue
+    const vs = extractVertices(e)
+    if (vs.length === 0) continue
+    if (wallLayers.has(layer)) walls.push(vs)
+    else if (doorLayers.has(layer)) doors.push(vs)
+    else if (windowLayers.has(layer)) windows.push(vs)
+    else if (columnLayers.has(layer)) columns.push(vs)
+    else if (balconyLayers.has(layer)) balconies.push(vs)
   }
 
   // Elevator labels
@@ -201,6 +233,11 @@ async function analyze() {
     entity_count: dxf.entities.length,
     room_count: rooms.length,
     wall_count: walls.length,
+    door_count: doors.length,
+    window_count: windows.length,
+    column_count: columns.length,
+    balcony_count: balconies.length,
+    insert_count: inserts.length,
     elevator_label_count: elevLabels.length,
     matched_room_count: matchedRooms.length,
     building_bbox: buildingBbox,
@@ -210,6 +247,11 @@ async function analyze() {
       is_elevator: matchedRoomIds.has(r.id),
     })),
     walls,
+    doors,
+    windows,
+    columns,
+    balconies,
+    inserts,
     elevator_labels: elevLabels,
     shaft_groups: shaftGroups,
   }
