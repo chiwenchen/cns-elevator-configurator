@@ -294,8 +294,16 @@
       <div class="source">
         <label style="font-size:11px;color:var(--fg-muted);margin-right:8px;text-transform:uppercase;letter-spacing:0.08em">資料來源</label>
         <select id="source-select" style="background:var(--bg-panel);color:var(--fg);border:1px solid var(--border-strong);font-family:var(--mono);font-size:12px;padding:4px 8px;">
-          <option value="hack-canada">Hack_Canada 真實建築 DXF（讀取驗證）</option>
-          <option value="generated">Spike 4 參數化生成 DXF（寫入驗證）</option>
+          <optgroup label="讀取驗證">
+            <option value="hack-canada">Hack_Canada 真實建築 DXF</option>
+          </optgroup>
+          <optgroup label="寫入驗證">
+            <option value="generated">Spike 4 — 硬編碼參數生成</option>
+          </optgroup>
+          <optgroup label="Solver Demo">
+            <option value="solver-mode-a">Mode A — 空間 → 電梯 (2m×2.2m×18m 坑道)</option>
+            <option value="solver-mode-b">Mode B — 需求 → 空間 (500 kg 客用)</option>
+          </optgroup>
         </select>
         <span id="unit-badge" style="margin-left:12px">—</span>
       </div>
@@ -392,6 +400,26 @@
           footerAlgo: '演算法：dxf-writer@1.18.4 → 文字 DXF → dxf-parser 驗證 (Spike 4)',
           legend: 'generated',
         },
+        'solver-mode-a': {
+          subtitle: 'Solver Mode A — 空間 → 電梯',
+          vizTitle: '輸入坑道 2000×2200×18000 · Solver 推算出最大車廂 + 載重',
+          labelsLabel: 'CAR 多邊形',
+          shaftTitle: '坑道 → 解算結果',
+          matchTitle: '解算管線檢查',
+          matchLabel: 'ISO 8100 Table 6 查表',
+          footerAlgo: '演算法：坑道 − clearance → 車廂面積 → ISO 8100-1 Table 6 → 最大載重',
+          legend: 'generated',
+        },
+        'solver-mode-b': {
+          subtitle: 'Solver Mode B — 需求 → 空間',
+          vizTitle: '輸入載重 500 kg · Solver 推算出最小坑道 + 車廂',
+          labelsLabel: 'CAR 多邊形',
+          shaftTitle: '需求 → 最小坑道',
+          matchTitle: '解算管線檢查',
+          matchLabel: 'ISO 8100 Table 6 反查',
+          footerAlgo: '演算法：載重 → ISO 8100-1 Table 6 → 最大車廂面積 → + clearance → 最小坑道',
+          legend: 'generated',
+        },
       }
 
       function applyCopy(mode) {
@@ -457,7 +485,8 @@
         document.getElementById('m-entities').textContent = data.entity_count.toLocaleString()
         document.getElementById('m-filesize').textContent = data.file_kb + ' KB'
         document.getElementById('m-rooms').textContent = data.room_count
-        if (source === 'generated') {
+        const isGenerated = source === 'generated' || source === 'solver-mode-a' || source === 'solver-mode-b'
+        if (isGenerated) {
           document.getElementById('m-labels').textContent = data.matched_room_count
           document.getElementById('m-matched').textContent =
             data.shaft_groups.length + ' / ' + data.shaft_groups.length + '（通過）'

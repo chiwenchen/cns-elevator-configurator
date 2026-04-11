@@ -19,20 +19,24 @@ type Bbox = { minX: number; minY: number; maxX: number; maxY: number }
 const SOURCE_PATHS: Record<string, string> = {
   'hack-canada': join(homedir(), 'cns-data', 'sample_building.dxf'),
   generated: join(homedir(), 'cns-data', 'spike4-generated.dxf'),
+  'solver-mode-a': join(homedir(), 'cns-data', 'demo-modeA.dxf'),
+  'solver-mode-b': join(homedir(), 'cns-data', 'demo-modeB.dxf'),
 }
 const DEFAULT_SOURCE = 'hack-canada'
 
 // ---- Router ----
 
 async function analyze(source: string = DEFAULT_SOURCE) {
-  if (source === 'generated') return analyzeGenerated()
+  if (source === 'generated') return analyzeGenerated('generated')
+  if (source === 'solver-mode-a') return analyzeGenerated('solver-mode-a')
+  if (source === 'solver-mode-b') return analyzeGenerated('solver-mode-b')
   return analyzeHackCanada(source)
 }
 
-// ---- Analysis: generated Spike 4 DXF (simpler — render by layer) ----
+// ---- Analysis: generated DXF (Spike 4 or solver demos, simpler — render by layer) ----
 
-async function analyzeGenerated() {
-  const filePath = SOURCE_PATHS.generated
+async function analyzeGenerated(sourceKey: string) {
+  const filePath = SOURCE_PATHS[sourceKey] || SOURCE_PATHS.generated
   const dxfText = await Bun.file(filePath).text()
   const parser = new DxfParser()
   const dxf: any = parser.parseSync(dxfText)
@@ -102,7 +106,7 @@ async function analyzeGenerated() {
     })
 
   return {
-    source: 'generated',
+    source: sourceKey,
     file: filePath,
     file_kb: Math.round(dxfText.length / 1024),
     unit: 'Millimeters',
