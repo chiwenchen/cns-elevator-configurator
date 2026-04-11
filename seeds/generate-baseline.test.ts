@@ -152,12 +152,32 @@ describe('buildBaselineRules — specific spec rules present', () => {
     expect(r.value).toBe('0.035')
     expect(r.mandatory).toBe(1)
     expect(r.source).toBe('cns')
+    expect(r.unit).toBeNull()
   })
 
   test('shaft.min_width_mm and shaft.min_depth_mm exist', () => {
     const map = byKey()
     expect(map.get('shaft.min_width_mm')!.value).toBe('1400')
     expect(map.get('shaft.min_depth_mm')!.value).toBe('1500')
+  })
+
+  test('car aspect ratio rules have no unit', () => {
+    const map = byKey()
+    const ratioKeys = [
+      'car.aspect_ratio.passenger.w',
+      'car.aspect_ratio.passenger.d',
+      'car.aspect_ratio.accessible.w',
+      'car.aspect_ratio.accessible.d',
+      'car.aspect_ratio.bed.w',
+      'car.aspect_ratio.bed.d',
+      'car.aspect_ratio.freight.w',
+      'car.aspect_ratio.freight.d',
+    ]
+    for (const key of ratioKeys) {
+      const r = map.get(key)
+      expect(r).toBeDefined()
+      expect(r!.unit).toBeNull()
+    }
   })
 
   test('usage.accessible.min_car_width_mm is 1100, cns, mandatory', () => {

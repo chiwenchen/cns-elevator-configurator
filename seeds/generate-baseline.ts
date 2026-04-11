@@ -59,7 +59,7 @@ const num = (
   type: 'number',
   value: String(value),
   default_value: String(value),
-  unit: opts.unit ?? 'mm',
+  unit: opts.unit !== undefined ? opts.unit : 'mm',
   baseline_min: opts.min ?? null,
   baseline_max: opts.max ?? null,
   baseline_choices: null,
