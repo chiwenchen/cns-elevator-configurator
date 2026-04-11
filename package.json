@@ -1,0 +1,13 @@
+{
+  "name": "cns-elevator-configurator",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest",
+    "dxf-parser": "^1.1.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,300 @@
+{
+  "$schema": "./schema.draft.json",
+  "version": "0.1.0-draft",
+  "source": "DRAFT CANDIDATE LIST — clause IDs are placeholders pending verification against actual CNS 2866",
+  "generated_by": "spike-2-cns-rules",
+  "warning": "所有 clause_id 以及具體數值為候選占位，Sprint 1 必須對照真實 CNS 2866 條文逐條核對才能上 production",
+  "rules": [
+    {
+      "clause_id": "CNS-2866-5.1.1",
+      "title": "坑道內淨寬最小值",
+      "description": "坑道淨寬不得小於轎廂寬 + 配重間隙 + 結構 clearance",
+      "constraint_type": "min_relation",
+      "evaluate": "shaft.width_mm >= model.min_shaft_width_mm",
+      "severity": "blocker",
+      "applies_when": null,
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-5.1.2",
+      "title": "坑道內淨深最小值",
+      "description": "坑道淨深不得小於轎廂深 + 導軌 + 緩衝器 clearance",
+      "constraint_type": "min_relation",
+      "evaluate": "shaft.depth_mm >= model.min_shaft_depth_mm",
+      "severity": "blocker",
+      "applies_when": null,
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-5.2.1",
+      "title": "頂部安全距離 (overhead)",
+      "description": "最頂樓板到機房樓板之距離不得小於型號規定之最小 overhead",
+      "constraint_type": "min_relation",
+      "evaluate": "shaft.overhead_mm >= model.min_overhead_mm",
+      "severity": "blocker",
+      "applies_when": null,
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-5.2.2",
+      "title": "底坑深度 (pit depth)",
+      "description": "最低樓板到坑底之距離不得小於型號規定之最小 pit depth",
+      "constraint_type": "min_relation",
+      "evaluate": "shaft.pit_depth_mm >= model.min_pit_depth_mm",
+      "severity": "blocker",
+      "applies_when": null,
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-6.1.1",
+      "title": "轎廂最小淨寬（客用）",
+      "description": "客用電梯轎廂淨內寬不得小於 900 mm",
+      "constraint_type": "min",
+      "target": "model.car_width_mm",
+      "params": { "value": 900 },
+      "severity": "blocker",
+      "applies_when": { "shaft.usage": "passenger" },
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-6.1.2",
+      "title": "轎廂最小淨深（客用）",
+      "description": "客用電梯轎廂淨內深不得小於 1100 mm",
+      "constraint_type": "min",
+      "target": "model.car_depth_mm",
+      "params": { "value": 1100 },
+      "severity": "blocker",
+      "applies_when": { "shaft.usage": "passenger" },
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-6.1.3",
+      "title": "轎廂最小淨高",
+      "description": "轎廂淨內高不得小於 2000 mm",
+      "constraint_type": "min",
+      "target": "model.car_height_mm",
+      "params": { "value": 2000 },
+      "severity": "blocker",
+      "applies_when": null,
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-6.2.1",
+      "title": "轎廂最大地板面積 vs 額定載重",
+      "description": "轎廂地板面積不得大於額定載重對照表所允許值（防超載）",
+      "constraint_type": "lookup_table",
+      "table": "car_area_vs_rated_load",
+      "severity": "blocker",
+      "applies_when": null,
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-7.1.1",
+      "title": "額定速度與載重對應",
+      "description": "每個額定載重級有允許的速度範圍",
+      "constraint_type": "lookup_table",
+      "table": "speed_vs_load",
+      "severity": "warning",
+      "applies_when": null,
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-8.1.1",
+      "title": "停站數與行程對應",
+      "description": "行程距離與停站數須合理對應（防單一停站超長）",
+      "constraint_type": "custom",
+      "severity": "warning",
+      "applies_when": null,
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-9.1.1",
+      "title": "轎廂門最小淨寬（客用）",
+      "description": "客用電梯轎廂門淨寬不得小於 800 mm",
+      "constraint_type": "min",
+      "target": "model.door_width_mm",
+      "params": { "value": 800 },
+      "severity": "blocker",
+      "applies_when": { "shaft.usage": "passenger" },
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-9.1.2",
+      "title": "轎廂門最小淨高",
+      "description": "轎廂門淨高不得小於 2000 mm",
+      "constraint_type": "min",
+      "target": "model.door_height_mm",
+      "params": { "value": 2000 },
+      "severity": "blocker",
+      "applies_when": null,
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-10.1.1",
+      "title": "鋼索安全係數",
+      "description": "曳引鋼索安全係數不得小於 12",
+      "constraint_type": "min",
+      "target": "model.rope_safety_factor",
+      "params": { "value": 12 },
+      "severity": "blocker",
+      "applies_when": null,
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-10.2.1",
+      "title": "鋼索最少條數",
+      "description": "曳引鋼索最少條數不得少於 3",
+      "constraint_type": "min",
+      "target": "model.rope_count",
+      "params": { "value": 3 },
+      "severity": "blocker",
+      "applies_when": null,
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-11.1.1",
+      "title": "限速器動作速度",
+      "description": "限速器動作速度不得大於額定速度之 1.4 倍",
+      "constraint_type": "ratio_max",
+      "evaluate": "model.governor_trip_speed_mpm / model.rated_speed_mpm <= 1.4",
+      "severity": "blocker",
+      "applies_when": null,
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-12.1.1",
+      "title": "緩衝器型式 vs 速度",
+      "description": "額定速度 > 60 m/min 須用油壓緩衝器，否則可用彈簧",
+      "constraint_type": "custom",
+      "severity": "blocker",
+      "applies_when": null,
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-13.1.1",
+      "title": "樓層標示牌",
+      "description": "轎廂內須標示額定載重與最大容量（人）",
+      "constraint_type": "must_exist",
+      "target": "model.has_load_plate",
+      "severity": "warning",
+      "applies_when": null,
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-14.1.1",
+      "title": "緊急照明",
+      "description": "停電時須有至少 1 小時之緊急照明",
+      "constraint_type": "min",
+      "target": "model.emergency_light_duration_min",
+      "params": { "value": 60 },
+      "severity": "blocker",
+      "applies_when": null,
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-15.1.1",
+      "title": "緊急通話裝置",
+      "description": "轎廂內須設有與外部雙向通話裝置",
+      "constraint_type": "must_exist",
+      "target": "model.has_intercom",
+      "severity": "blocker",
+      "applies_when": null,
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-16.1.1",
+      "title": "停層準確度",
+      "description": "停層準確度不得超過 ± 10 mm",
+      "constraint_type": "max_abs",
+      "target": "model.leveling_accuracy_mm",
+      "params": { "value": 10 },
+      "severity": "warning",
+      "applies_when": null,
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-13627-3.1.1",
+      "title": "無障礙轎廂最小尺寸",
+      "description": "無障礙電梯轎廂淨內尺寸不得小於 1100 × 1400 mm",
+      "constraint_type": "min_both",
+      "targets": ["model.car_width_mm", "model.car_depth_mm"],
+      "params": { "values": [1100, 1400] },
+      "severity": "blocker",
+      "applies_when": { "shaft.usage": "accessible" },
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-13627-3.1.2",
+      "title": "無障礙轎廂門最小淨寬",
+      "description": "無障礙電梯轎廂門淨寬不得小於 900 mm",
+      "constraint_type": "min",
+      "target": "model.door_width_mm",
+      "params": { "value": 900 },
+      "severity": "blocker",
+      "applies_when": { "shaft.usage": "accessible" },
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-13627-3.2.1",
+      "title": "無障礙操作盤高度",
+      "description": "無障礙電梯操作盤最高按鈕高度不得超過地板 1200 mm",
+      "constraint_type": "max",
+      "target": "model.panel_max_height_mm",
+      "params": { "value": 1200 },
+      "severity": "blocker",
+      "applies_when": { "shaft.usage": "accessible" },
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-13627-3.3.1",
+      "title": "無障礙語音提示",
+      "description": "無障礙電梯須具備樓層語音提示",
+      "constraint_type": "must_exist",
+      "target": "model.has_voice_announcer",
+      "severity": "blocker",
+      "applies_when": { "shaft.usage": "accessible" },
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-17.1.1",
+      "title": "貨用電梯最大載重標示",
+      "description": "貨用電梯須明顯標示最大載重",
+      "constraint_type": "must_exist",
+      "target": "model.has_freight_load_plate",
+      "severity": "warning",
+      "applies_when": { "shaft.usage": "freight" },
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-18.1.1",
+      "title": "病床電梯最小深度",
+      "description": "病床電梯轎廂淨深不得小於 2400 mm",
+      "constraint_type": "min",
+      "target": "model.car_depth_mm",
+      "params": { "value": 2400 },
+      "severity": "blocker",
+      "applies_when": { "shaft.usage": "bed" },
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-19.1.1",
+      "title": "機房最小高度 (MR 型)",
+      "description": "機房高度不得小於 2000 mm",
+      "constraint_type": "min",
+      "target": "model.machine_room_height_mm",
+      "params": { "value": 2000 },
+      "severity": "blocker",
+      "applies_when": { "model.type": "MR" },
+      "requires_verification": true
+    },
+    {
+      "clause_id": "CNS-2866-20.1.1",
+      "title": "機房最小面積 (MR 型)",
+      "description": "機房面積不得小於 2 倍坑道水平投影面積",
+      "constraint_type": "custom",
+      "severity": "warning",
+      "applies_when": { "model.type": "MR" },
+      "requires_verification": true
+    }
+  ]
+}
