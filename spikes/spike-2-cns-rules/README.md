@@ -1,93 +1,134 @@
-# Spike 2: CNS 2866 Rule Schema 草稿
+# Spike 2: CNS 2866 → **CNS 15827 系列** Rule Schema 草稿
 
-## 問題
+## 🚨 關鍵發現 — CNS 2866 已廢止
 
-Validator 的核心是**結構化的 CNS 2866 規則庫**。Sprint 1 D6-8 要把大約 30 條最常用的條文 key 成 `CnsRule[]`。本 spike 先驗證：
+**這是本 spike 最重要的發現**。在網路公開資料搜尋過程中發現：
 
-1. **Schema 設計合不合理** — 能不能表達 CNS 實際會出現的各種約束類型？
-2. **候選條文列表** — 實際需要覆蓋的規則領域有哪些？
-3. **Sprint 1 要做的具體工作量** — 28 條不是 30 條，預估工時能不能對齊 3 天？
+> **CNS 2866 已被廢止**，由以下標準取代：
+> - **CNS 15827-20** — 電梯製造與安裝之安全規範：**人員及貨物運輸用電梯**（第 20 部：乘客電梯及運貨用電梯）
+> - **CNS 15827-31** — 電梯製造與安裝之安全規範：**僅供運送貨物用升降機**
+> - **CNS 15827-50** — 電梯製造與安裝之安全規範：**檢驗及測試**（部件設計規則、計算、檢驗及試驗）
+> - **CNS 15930-1** 與 **CNS 15930-2** — 手扶梯/自動步道（與本專案無關）
 
-## 範圍
+**原設計文件 `docs/DESIGN.md` 全文引用 CNS 2866 — 這需要全面修正。** 所有 production 開發要建立在 CNS 15827 系列之上，不是 CNS 2866。
 
-**驗證**：
-- [x] 設計一個能涵蓋 min / max / ratio / lookup_table / must_exist / custom 各類約束的 schema
-- [x] 列出 28 條候選規則覆蓋核心領域（坑道、轎廂、鋼索、安全、無障礙、機房、緩衝器⋯）
-- [x] 所有規則標記 `requires_verification: true` 以強制 Sprint 1 逐條核對
+資料來源：
+- [內政部營建署解釋令](https://www.cpami.gov.tw/%E6%9C%80%E6%96%B0%E6%B6%88%E6%81%AF/%E8%A7%A3%E9%87%8B%E5%87%BD%E5%BD%99%E7%B7%A8-1/159-%E5%BB%BA%E7%AF%89%E7%AE%A1%E7%90%86%E7%AF%87-2/35604-*.html) — 確認新舊標準關係
+- [中華民國建築物昇降暨機械停車設備協會](https://www.elevator-parking.org.tw/index0402.htm) — 提供 CNS 15827 系列 PDF 下載
+- [CNS 15827-20 vs CNS 2866 比對簡報 (林進岸, 2020)](http://www.parking.org.tw/document/meeting/03.CNS%2015827-20%E8%88%87CNS%202866%E6%AF%94%E4%B8%80%E6%AF%94-%E6%9E%97%E9%80%B2%E5%B2%B8.pdf) — 桃園市昇降設備安全檢查員研習的差異分析
 
-**本 spike 不驗證**（留給 Sprint 1）：
-- ❌ 條文內容本身正確 — 所有 clause_id 跟數值都是**候選占位**
-- ❌ 規則優先級 / 互斥關係
-- ❌ 條文更新追蹤（CNS 會改版）
-- ❌ 多國標準對照（ISO 4190 / EN 81 / JIS A 4301 parity）
+## PDFs 已下載
 
-## ⚠️ 重要聲明
+四個 PDF 已下載到 `/tmp/`（**不要提交 git**，公開資料但單獨管理）：
 
-**本草稿中所有 clause_id (CNS-2866-5.1.1 etc.) 與具體數值 (900mm, 1100mm, 安全係數 12 etc.) 皆為 placeholder，不代表 CNS 2866 實際條文內容。**
-
-Sprint 1 D6-8 的工作是：
-
-1. 取得 CNS 2866 實際條文（PDF / DOC / 內部整理版）
-2. **逐條核對**：每個 placeholder rule 對應到真實 clause_id，修正數值
-3. 補上 draft 漏掉的條文類別（本 spike 28 條只是候選框架）
-4. 加上條文原文引用（legal traceability）
-5. 把 `requires_verification` 全部翻成 `false`
-
-**在這個核對完成前，validator 不能上 production，不能給業務做報價決策。**
-
-## Schema 說明
-
-```ts
-type CnsRule = {
-  clause_id: string              // e.g., "CNS-2866-5.2.1"
-  title: string                   // 簡短中文標題
-  description: string             // 條文要求描述
-  constraint_type:
-    | "min"                       // target >= value
-    | "max"                       // target <= value
-    | "min_relation"              // e.g., shaft >= model.min_shaft
-    | "min_both"                  // 兩個 target 都要 >= 兩個 value
-    | "max_abs"                   // |target| <= value
-    | "ratio_max"                 // computed ratio <= bound
-    | "lookup_table"              // 查表驗證（載重 vs 面積）
-    | "must_exist"                // boolean 必須為 true
-    | "custom"                    // 邏輯複雜，要寫專用 TypeScript function
-  target?: string                 // dot-path to ShaftSpec or CatalogModel field
-  targets?: string[]              // 多欄位版本
-  evaluate?: string               // 人類可讀的 constraint 表達式（Sprint 1 轉 TS function）
-  params?: Record<string, unknown>
-  severity: "blocker" | "warning"
-  applies_when: Record<string, unknown> | null  // 條件啟用
-  requires_verification: boolean
-}
+```
+/tmp/cns-comparison.pdf     16 MB  256 頁  (有可抽文字)
+/tmp/cns15827-20.pdf        20 MB          (DocuWorks 掃描, 無文字)
+/tmp/cns15827-31.pdf        39 MB          (DocuWorks 掃描, 無文字)
+/tmp/cns15827-50.pdf        10 MB          (DocuWorks 掃描, 無文字)
 ```
 
-## 候選規則統計
+**重要**：原文 CNS 15827-20/31/50 都是**掃描 PDF**，沒有可抽取文字。本 spike 的 rule draft 主要依賴「比對簡報」的可讀文字 + 條文編號對照。Sprint 1 要完整核對，需要 OCR 或資深工程師逐頁人工閱讀。
 
-- **總條數**: 28
-- **核心坑道尺寸**: 4 條 (clause 5.1.1 / 5.1.2 / 5.2.1 / 5.2.2)
-- **轎廂尺寸 + 用途**: 6 條 (clause 6.x)
-- **速度 / 載重對應**: 2 條 (clause 7-8)
-- **門 + 安全**: 6 條 (clause 9-12)
-- **標示 / 緊急 / 停層**: 4 條 (clause 13-16)
-- **特殊用途 (無障礙/貨用/病床)**: 6 條 (CNS 13627 + CNS 2866 17-18)
-- **機房**: 2 條 (clause 19-20)
+## 規則草稿（v0.2.0-cns15827）
 
-**severity 分布**:
-- blocker: 22 條 (78%)
-- warning: 6 條 (22%)
+見 `rules.draft.json`，31 條規則，涵蓋：
+
+| 領域 | 條數 | 主要章節 |
+|---|---|---|
+| 車廂頂/機坑避險空間 | 6 | §5.2.5.7.1, §5.2.5.8.1 |
+| 機坑通道/梯子/停止裝置 | 4 | §5.2.5.8 |
+| 機房/機器空間 | 4 | §5.2.6.3 |
+| 車廂面積 vs 載重 vs 人數 | 2 | §5.3.1 + 表6 + 表8 |
+| 門(檻/間隙) + 車廂緊急門 | 5 | §5.4 |
+| 鋼索 + 補償裝置 | 3 | §5.5.1, §5.5 |
+| 調速機 + 安全鉗 | 2 | §5.6 |
+| 隔離柵欄(相鄰/配重) | 2 | §5.2.5.5 |
+| 懸吊點 + 通風 | 2 | §5.2.5 + §5.2.6 |
+| 其他機房空間細節 | 1 | §5.2.6.3.2.1 |
+
+**severity 分布**：blocker 27 (87%)，warning 4 (13%)
+
+### 還沒取得的關鍵資料 (Sprint 1 必須補)
+
+以下表格是 configurator 的**核心約束**，但需要從 CNS 15827-20 原文 PDF 擷取（可能要 OCR）：
+
+- [ ] **表 3** — 車廂頂避險空間（姿勢 vs 最小尺寸 W × D × H）
+- [ ] **表 4** — 機坑避險空間（姿勢 vs 最小尺寸 W × D × H）
+- [ ] **表 6** — 車廂最大有效面積 vs 額定荷重 ← **最關鍵，決定型號能不能裝**
+- [ ] **表 8** — 車廂最小有效面積 vs 乘客人數
+- [ ] **表 9** — 玻璃車廂牆壁擺錘衝擊試驗
+- [ ] **表 10** — 牽引輪/滑輪/調速機滑輪/張力輪防護尺寸
+
+從比對簡報抽到的**例子**（作為表6 結構的推估）：
+
+> 車廂最大有效面積 3.40 m² → 額定荷重至少 1500 kg → 最多 22 人 (每人 75 kg)
+> 可以標示額定荷重 1600 kg (1600 ÷ 75 ≈ 21 人, ≤ 22 人 OK)
+
+這意味著表6 是離散階梯：`area → min_load`，area 從約 0.8 m²（1 人電梯）到 5+ m²（大貨梯）。
+
+## 額定速率分級（從比對簡報抽出）
+
+比對簡報中出現的速率邊界（對應不同的安全鉗、補償裝置、緩衝器要求）：
+
+| 速率 (m/min) | 速率 (m/s) | 觸發的規則 |
+|---|---|---|
+| ≤ 30 | ≤ 0.50 | 可使用最寬鬆安全鉗 |
+| ≤ 37.8 | ≤ 0.63 | 瞬間作動安全鉗 / 非漸進式 |
+| ≤ 42 | ≤ 0.70 | 滾柱式瞬間作動 (配重側) |
+| ≤ 48 | ≤ 0.80 | 直接液壓可用 |
+| ≤ 52 | ≤ 0.87 | 配重側滾柱式 |
+| ≤ 60 | ≤ 1.00 | 配重安全鉗非必要 |
+| ≤ 105 | ≤ 1.75 | 補償裝置無張力限制 |
+| ≤ 150 | ≤ 2.50 | 能量回饋可顯著降溫 |
+| ≤ 180 | ≤ 3.00 | 可用鏈條/鋼索/鋼帶補償 |
+| ≤ 210 | ≤ 3.50 | 須補償鋼索 |
+| > 210 | > 3.50 | 補償鋼索 + 張力輪 + 減行程緩衝器監控 |
+
+這個表格本身就是 configurator 的一個 lookup table，Sprint 1 D7 要寫成資料。
+
+## 照度要求（從比對簡報抽出，§5.2.6.3.1 + §5.2.5.x）
+
+| 位置 | 最小照度 (lx) |
+|---|---|
+| 無機房上置式主機工作區 | 200 |
+| 車廂頂 | 50 |
+| 機坑 | 50 |
+| 升降路 | 20 |
+
+## 驗收
+
+**v0.2.0 狀態：DRAFT (大幅改善)**
+
+- [x] 發現 CNS 2866 已廢止、找到現行 CNS 15827 系列
+- [x] 下載三個 CNS 15827 PDF + 差異比對 PDF
+- [x] 從比對簡報抽出 31 條帶條號的 rule draft
+- [x] 標出 6 張還需要補的關鍵 lookup tables
+- [x] 標出額定速率分級邊界
+- [ ] **Sprint 1 待辦**：OCR cns15827-20.pdf 完整版 + 人工核對 31 條 + 補齊表3/4/6/8
+- [ ] **Sprint 1 待辦**：`requires_verification: true` 全部翻成 `false`
+
+## 對 Sprint 1 的衝擊
+
+**原估**：D6-D8 花 3 天 key 30 條規則
+**修正估**：
+- D6: OCR 處理 cns15827-20.pdf (1 天, 如果 tesseract + 中文模型設定好了)
+- D7: 核對 31 條現有 draft + 補充（2 天）
+- D8: 擷取表 3/4/6/8 lookup tables（1-2 天，需要人工對照 PDF 頁面）
+- **總計：4-5 天**（原估 3 天過於樂觀）
+
+**建議**：延長 Sprint 1 到 3 週，或把 warning 類規則放到 Sprint 2。
+
+## 對設計文件的衝擊
+
+`docs/DESIGN.md` 全文引用 `CNS 2866`。下一個 commit 要做 find-replace：
+- `CNS 2866` → `CNS 15827 系列 (原 CNS 2866，已廢止)`
+- 前提假設 3「CNS 2866 條文可取得」→ 改為「CNS 15827-20/50 公開 PDF 可取得，但為掃描檔，需 OCR 或人工逐頁」
+
+---
 
 ## 結論
 
-**PASS（有保留）** — schema 設計可涵蓋預期的規則類別。候選列表提供 Sprint 1 一個明確的工作結構，28 條規則在 3 個工作天內可對照 CNS 2866 完成核對。
+**PASS** — 從「虛構的 CNS 2866 placeholder 規則」進化到「基於真實 CNS 15827 比對文件的 31 條帶條號草稿」。雖然原文 PDF 是掃描檔需要進一步處理，但 schema 設計與規則骨架已經有了，Sprint 1 不會從零開始。
 
-**但 Sprint 1 的 D6-8 工時預估可能低估**：
-- 原本設計文件寫「3 天 key 約 30 條」
-- 若包含**逐條原文核對 + 數值修正 + 補漏條文**，實際需要 **4-5 天**
-- 建議 Sprint 1 規劃階段把這部分延長 1-2 天，或把部分 warning 條放到 Sprint 2
-
-## 下一步
-
-- [ ] 取得 CNS 2866 條文原文（user 說「不是問題」，第 0 週結束前需要拿到）
-- [ ] 找一位電梯設計資深工程師花 1 小時 review 這份草稿，標出漏掉的條文類別
-- [ ] 決定 Sprint 1 D6-8 要延長幾天
+**但這個 PASS 帶著一個大的 sub-finding**：設計文件的法規基礎需要更新。
