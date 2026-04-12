@@ -137,3 +137,34 @@ export interface ValidationReport {
   }
   items: ValidationItem[]
 }
+
+// ---- Audit + Commit (Milestone 1c) ----
+
+export type AuditSource = 'migration' | 'ai' | 'user' | 'admin'
+
+export interface CommitResult {
+  applied: Array<{
+    key: string
+    old_value: string
+    new_value: string
+    audit_id: number
+  }>
+  skipped: Array<{
+    key: string
+    reason: 'rule_deleted' | 'baseline_violation' | 'unchanged' | 'unknown_key'
+  }>
+}
+
+export class RuleNotFoundError extends Error {
+  constructor(public readonly key: string) {
+    super(`Rule not found: ${key}`)
+    this.name = 'RuleNotFoundError'
+  }
+}
+
+export class RuleMandatoryError extends Error {
+  constructor(public readonly key: string) {
+    super(`Cannot delete mandatory rule: ${key}`)
+    this.name = 'RuleMandatoryError'
+  }
+}
