@@ -44,10 +44,13 @@ describe('solver + DXF geometry consistency under case override', () => {
     const depthDelta = overridden.design.shaft.depth_mm - baseline.design.shaft.depth_mm
     expect(depthDelta).toBe(50)
 
-    // 2. DXF should label the front gap as "200" not "150"
-    // (the dimension text is "${frontGap}" in plan.ts, produces a TEXT entity)
-    expect(overridden.dxf_string).not.toContain('\n150\n')
-    expect(overridden.dxf_string).toContain('200')
+    // 2. DXF should carry the shaft-depth dimension TEXT ("D <depth>") derived
+    //    from plan.ts — proving config drift propagates to the drawing.
+    //    Using the "D " prefix is robust: TEXT entity values with "D " cannot
+    //    collide with DXF handles, layer names, or numeric group codes.
+    expect(baseline.dxf_string).toContain(`D ${baseline.design.shaft.depth_mm}`)
+    expect(overridden.dxf_string).toContain(`D ${overridden.design.shaft.depth_mm}`)
+    expect(overridden.dxf_string).not.toContain(`D ${baseline.design.shaft.depth_mm}`)
   })
 
   test('changing cwt.width_mm affects DXF CWT rectangle', async () => {
