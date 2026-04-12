@@ -8,6 +8,7 @@
 import { describe, test, expect } from 'bun:test'
 import { drawPlanProfessional } from './plan-professional'
 import { drawElevationProfessional } from './elevation-professional'
+import { generateElevatorDXF } from './generate'
 import type { ElevatorDesign } from '../solver/types'
 import type { EffectiveConfig, ProfessionalConfig } from '../config/types'
 
@@ -382,5 +383,71 @@ describe('drawElevationProfessional', () => {
         c.args[4].includes('PROFESSIONAL'),
     )
     expect(titleCalls.length).toBe(1)
+  })
+})
+
+// ---- generateElevatorDXF Integration Tests ----
+
+describe('generateElevatorDXF integration', () => {
+  const DESIGN: ElevatorDesign = {
+    shaft: {
+      width_mm: 2000,
+      depth_mm: 2200,
+      total_height_mm: 18000,
+      overhead_mm: 4200,
+      pit_depth_mm: 1600,
+      stops: 6,
+      usage: 'passenger',
+    },
+    car: {
+      width_mm: 1400,
+      depth_mm: 1500,
+      height_mm: 2400,
+      area_m2: 2.1,
+    },
+    door: {
+      width_mm: 900,
+      type: 'center_opening',
+    },
+    rated_load_kg: 800,
+    rated_speed_mpm: 60,
+    machine_location: 'MRL',
+    solver_mode: 'A',
+    generated_at: '2026-04-12T00:00:00',
+  }
+
+  const configWithoutPro: EffectiveConfig = makeConfig()
+  // Override to remove professional field
+  const configNoPro: EffectiveConfig = { ...configWithoutPro, professional: undefined }
+
+  const configWithPro: EffectiveConfig = makeConfig()
+
+  test('draft mode does not include professional layers', () => {
+    const dxf = generateElevatorDXF(DESIGN, configNoPro, 'draft')
+    expect(dxf).toContain('SHAFT')
+    expect(dxf).toContain('CAR')
+    expect(dxf).not.toContain('SLING')
+    expect(dxf).not.toContain('BUFFER')
+    expect(dxf).not.toContain('SAFETY')
+    expect(dxf).not.toContain('MACHINE')
+  })
+
+  test('professional mode includes all layers', () => {
+    const dxf = generateElevatorDXF(DESIGN, configWithPro, 'professional')
+    // Draft layers still present
+    expect(dxf).toContain('SHAFT')
+    expect(dxf).toContain('CAR')
+    // Professional layers added
+    expect(dxf).toContain('SLING')
+    expect(dxf).toContain('BUFFER')
+    expect(dxf).toContain('SAFETY')
+    expect(dxf).toContain('ROPE')
+    expect(dxf).toContain('MACHINE')
+    expect(dxf).toContain('LANDING')
+  })
+
+  test('professional mode default is draft when omitted', () => {
+    const dxf = generateElevatorDXF(DESIGN, configNoPro)
+    expect(dxf).not.toContain('SLING')
   })
 })
