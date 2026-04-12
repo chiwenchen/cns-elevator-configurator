@@ -22,15 +22,24 @@ import Drawing from 'dxf-writer'
 import type { ElevatorDesign } from '../solver/types'
 import type { EffectiveConfig } from '../config/types'
 import { drawPlanView } from './plan'
-import { DRAFT_LAYERS, registerLayers } from './layers'
+import { DRAFT_LAYERS, PROFESSIONAL_LAYERS, registerLayers } from './layers'
 import { drawElevationDraft } from './elevation-draft'
 import { drawSpecBlock } from './spec-block'
 
-export function generateElevatorDXF(design: ElevatorDesign, config: EffectiveConfig): string {
+export type DetailLevel = 'draft' | 'professional'
+
+export function generateElevatorDXF(
+  design: ElevatorDesign,
+  config: EffectiveConfig,
+  detailLevel: DetailLevel = 'draft',
+): string {
   const dw = new Drawing()
   dw.setUnits('Millimeters')
 
   registerLayers(dw, DRAFT_LAYERS)
+  if (detailLevel === 'professional') {
+    registerLayers(dw, PROFESSIONAL_LAYERS)
+  }
 
   const { shaft } = design
 
