@@ -24,6 +24,15 @@ import {
 import type { RulesLoader } from '../config/load'
 import type { CaseOverride, ValidationReport } from '../config/types'
 import { buildValidationReport } from '../config/validation'
+import type { AuthUser } from '../auth/middleware'
+import { getWeekStartUtc, getQuotaLimits } from '../config/quota'
+
+export class QuotaExceededError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'QuotaExceededError'
+  }
+}
 
 // ---- Request body validation ----
 
@@ -191,7 +200,7 @@ export function parseSolveBody(raw: unknown): ValidatedSolveBody {
 
 export interface SolveResponse {
   design: ReturnType<typeof solveModeA>
-  dxf_string: string
+  dxf_string?: string
   dxf_kb: number
   analysis: ReturnType<typeof analyzeGeneratedDxf>
   validation_report: ValidationReport
@@ -200,6 +209,8 @@ export interface SolveResponse {
 export async function handleSolve(
   rawBody: unknown,
   loader: RulesLoader,
+  user: AuthUser | null = null,
+  db: any = null,
 ): Promise<SolveResponse> {
   // 0. Validate request body
   const body = parseSolveBody(rawBody)
@@ -242,6 +253,7 @@ export async function handleSolve(
 
   // 4. Generate DXF
   const dxfString = generateElevatorDXF(design, config, body.detail_level)
+  const dxfKb = Number((dxfString.length / 1024).toFixed(1))
   const analysis = analyzeGeneratedDxf(
     dxfString,
     `solver-${body.mode.toLowerCase()}`,
@@ -254,10 +266,78 @@ export async function handleSolve(
     body.caseOverride,
   )
 
+  // 6. Auth-gated DXF return + quota check + auto-save
+  if (!user) {
+    // Anonymous: return everything except dxf_string
+    return {
+      design,
+      dxf_kb: dxfKb,
+      analysis,
+      validation_report,
+    }
+  }
+
+  // Authenticated: check DXF quota
+  if (db) {
+    const weekStart = getWeekStartUtc()
+    let members: Array<{ role: string }>
+    if (user.company_id) {
+      const result = await db.prepare(
+        `SELECT role FROM users WHERE company_id = ?`
+      ).bind(user.company_id).all()
+      members = result.results as Array<{ role: string }>
+    } else {
+      members = [{ role: user.role }]
+    }
+    const limits = getQuotaLimits(members)
+
+    let dxfUsed: number
+    if (user.company_id) {
+      const row = await db.prepare(
+        `SELECT COUNT(*) as count FROM saved_designs WHERE created_at >= ? AND user_id IN (SELECT id FROM users WHERE company_id = ?)`
+      ).bind(weekStart, user.company_id).first()
+      dxfUsed = row?.count ?? 0
+    } else {
+      const row = await db.prepare(
+        `SELECT COUNT(*) as count FROM saved_designs WHERE created_at >= ? AND user_id = ?`
+      ).bind(weekStart, user.id).first()
+      dxfUsed = row?.count ?? 0
+    }
+
+    if (dxfUsed >= limits.dxf_limit) {
+      throw new QuotaExceededError(
+        `本週 DXF 圖紙下載次數已達上限（${limits.dxf_limit} 次），將於下週一重置。`
+      )
+    }
+
+    // Auto-save to saved_designs
+    const designId = crypto.randomUUID()
+    const usageLabel =
+      body.usage === 'passenger' ? '客用' :
+      body.usage === 'freight' ? '貨用' :
+      body.usage === 'bed' ? '病床' : '無障礙'
+    const name = `${usageLabel}電梯 — ${body.stops}F / ${body.rated_load_kg ?? ''}kg`
+
+    await db.prepare(
+      `INSERT INTO saved_designs (id, user_id, company_id, name, solver_input, case_overrides, detail_level, dxf_string, dxf_kb, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      designId,
+      user.id,
+      user.company_id,
+      name,
+      JSON.stringify(rawBody),
+      JSON.stringify(body.caseOverride),
+      body.detail_level,
+      dxfString,
+      dxfKb,
+      new Date().toISOString(),
+    ).run()
+  }
+
   return {
     design,
     dxf_string: dxfString,
-    dxf_kb: Number((dxfString.length / 1024).toFixed(1)),
+    dxf_kb: dxfKb,
     analysis,
     validation_report,
   }
