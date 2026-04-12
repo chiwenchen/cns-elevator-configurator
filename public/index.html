@@ -55,9 +55,21 @@
       }
       header h1 {
         margin: 0;
-        font-size: 16px;
+        font-size: 20px;
         font-weight: 600;
         letter-spacing: -0.01em;
+      }
+      .vera-shimmer {
+        display: inline-block;
+        background: linear-gradient(90deg, #e8734e 0%, #e8734e 40%, #ffa060 48%, #ffd54f 50%, #ffa060 52%, #e8734e 60%, #e8734e 100%);
+        background-size: 300% 100%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: vera-sweep 6s linear infinite;
+      }
+      @keyframes vera-sweep {
+        0% { background-position: 200% 0; }
+        100% { background-position: -100% 0; }
       }
       header h1 small {
         color: var(--fg-muted);
@@ -700,7 +712,7 @@
         -webkit-mask-composite: xor;
         mask-composite: exclude;
         animation: border-rotate 3s linear infinite;
-        opacity: 0.6;
+        opacity: 0.85;
         transition: opacity 0.3s;
       }
       .ai-btn:hover::before {
@@ -1163,7 +1175,7 @@
     <header>
       <div class="header-top">
         <h1>
-          Vera Plot
+          <span class="vera-shimmer">Vera</span> Plot
           <small id="demo-subtitle">電梯設計規劃系統</small>
         </h1>
         <div class="source" style="display:none;">

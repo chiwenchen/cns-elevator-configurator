@@ -98,12 +98,9 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('角色')
   })
 
-  test('contains forbidden actions early in prompt (before allowed actions)', () => {
-    const forbiddenIdx = prompt.indexOf('禁止事項')
-    const allowedIdx = prompt.indexOf('允許的動作')
-    // 禁止事項應出現在 prompt 中（允許的動作之後也可以，只要存在即可）
-    expect(forbiddenIdx).toBeGreaterThan(-1)
-    expect(allowedIdx).toBeGreaterThan(-1)
+  test('contains limitations section', () => {
+    expect(prompt).toContain('限制')
+    expect(prompt).toContain('不可提議超出 baseline 範圍')
   })
 
   test('contains rule schema columns', () => {
@@ -122,24 +119,27 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('eng')
   })
 
-  test('contains mandatory/deletable explanation', () => {
+  test('contains mandatory explanation', () => {
     expect(prompt).toContain('必要')
-    expect(prompt).toContain('不可刪除')
   })
 
-  test('contains allowed actions (4 tools)', () => {
-    expect(prompt).toContain('允許的動作')
+  test('contains actions (4 tools)', () => {
+    expect(prompt).toContain('動作')
     expect(prompt).toContain('propose_update')
     expect(prompt).toContain('propose_soft_delete')
     expect(prompt).toContain('ask_clarification')
     expect(prompt).toContain('out_of_scope')
   })
 
-  test('contains forbidden actions list', () => {
-    expect(prompt).toContain('禁止事項')
+  test('contains limitations', () => {
     expect(prompt).toContain('不可提議超出 baseline 範圍')
     expect(prompt).toContain('不可提議刪除 mandatory=1')
     expect(prompt).toContain('不可建立新的規則 key')
+  })
+
+  test('instructs to use Chinese rule names, not keys', () => {
+    expect(prompt).toContain('中文名稱')
+    expect(prompt).toContain('name 欄位')
   })
 
   test('specifies Traditional Chinese as response language', () => {
