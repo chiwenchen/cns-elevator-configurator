@@ -374,7 +374,7 @@ export async function handleChat(
   let response: AnthropicResponse
   try {
     response = await caller({
-      model: 'claude-sonnet-4-6-20250514',
+      model: 'claude-sonnet-4-5-20241022',
       max_tokens: 1024,
       system: systemPrompt,
       tools: CHAT_TOOLS,
