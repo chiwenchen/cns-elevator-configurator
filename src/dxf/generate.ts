@@ -22,22 +22,13 @@ import Drawing from 'dxf-writer'
 import type { ElevatorDesign } from '../solver/types'
 import type { EffectiveConfig } from '../config/types'
 import { drawPlanView } from './plan'
+import { DRAFT_LAYERS, registerLayers } from './layers'
 
 export function generateElevatorDXF(design: ElevatorDesign, config: EffectiveConfig): string {
   const dw = new Drawing()
   dw.setUnits('Millimeters')
 
-  dw.addLayer('SHAFT', Drawing.ACI.WHITE, 'CONTINUOUS')
-  dw.addLayer('WALL', 8, 'CONTINUOUS')
-  dw.addLayer('CAR', Drawing.ACI.RED, 'CONTINUOUS')
-  dw.addLayer('CWT', Drawing.ACI.GREEN, 'CONTINUOUS')
-  dw.addLayer('RAIL_CAR', Drawing.ACI.BLUE, 'CONTINUOUS')
-  dw.addLayer('RAIL_CWT', Drawing.ACI.CYAN, 'CONTINUOUS')
-  dw.addLayer('DOOR', Drawing.ACI.MAGENTA, 'CONTINUOUS')
-  dw.addLayer('CENTER', Drawing.ACI.RED, 'DASHED')
-  dw.addLayer('DIMS', Drawing.ACI.YELLOW, 'CONTINUOUS')
-  dw.addLayer('TEXT', Drawing.ACI.WHITE, 'CONTINUOUS')
-  dw.addLayer('STOP', Drawing.ACI.GREEN, 'CONTINUOUS')
+  registerLayers(dw, DRAFT_LAYERS)
 
   const { shaft, car, rated_load_kg, rated_speed_mpm, machine_location } = design
 
