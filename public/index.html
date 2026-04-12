@@ -2491,17 +2491,19 @@
       })
 
       // ---- Commit team button ----
+      let commitModalOpen = false
+
       function showCommitChecklist() {
         const keys = Object.keys(caseOverrideState)
-        if (keys.length === 0) return
+        if (keys.length === 0 || commitModalOpen) return
+        commitModalOpen = true
 
-        // Build checklist modal
         const overlay = document.createElement('div')
-        overlay.className = 'modal-overlay'
+        overlay.className = 'modal-backdrop'
         overlay.innerHTML = `
-          <div class="modal-content" style="max-width:420px">
-            <h3 style="margin-bottom:12px">選擇要存入團隊指引的項目</h3>
-            <div style="margin-bottom:16px;max-height:300px;overflow-y:auto">
+          <div class="modal">
+            <h3>選擇要存入團隊指引的項目</h3>
+            <div class="modal-body" style="max-height:300px;overflow-y:auto">
               ${keys.map(k => `
                 <label style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border)">
                   <input type="checkbox" checked data-key="${k}" style="accent-color:var(--accent);width:16px;height:16px">
@@ -2510,7 +2512,7 @@
                 </label>
               `).join('')}
             </div>
-            <div style="display:flex;gap:8px;justify-content:flex-end">
+            <div class="modal-actions">
               <button class="modal-btn" id="commit-cancel">取消</button>
               <button class="modal-btn primary" id="commit-confirm">確認存入</button>
             </div>
@@ -2518,12 +2520,15 @@
         `
         document.body.appendChild(overlay)
 
-        overlay.querySelector('#commit-cancel').onclick = () => overlay.remove()
+        function closeModal() { overlay.remove(); commitModalOpen = false }
+
+        overlay.querySelector('#commit-cancel').onclick = closeModal
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal() })
         overlay.querySelector('#commit-confirm').onclick = async () => {
           const checked = overlay.querySelectorAll('input[type="checkbox"]:checked')
           const selected = {}
           checked.forEach(cb => { selected[cb.dataset.key] = caseOverrideState[cb.dataset.key] })
-          overlay.remove()
+          closeModal()
           if (Object.keys(selected).length === 0) return
           await doCommit(selected)
         }
