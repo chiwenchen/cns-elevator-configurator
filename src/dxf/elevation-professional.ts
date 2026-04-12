@@ -218,17 +218,26 @@ export function drawElevationProfessional(
   const ropeCarX2 = ox + carInsetX + carDrawW * 0.6
   const cwtRopeX = ox + sw * 0.75
 
-  // Bottom segment: car top → zigzag break
+  // Bottom zone: car top → zigzag (vertical)
   dw.drawLine(ropeCarX1, carTop, ropeCarX1, zigBot - 100)
   dw.drawLine(ropeCarX2, carTop, ropeCarX2, zigBot - 100)
-  // Top segment: zigzag → sheave → CWT side
-  dw.drawLine(ropeCarX1, zigTop + 100, sheaveCx - 10, sheaveCy)
-  dw.drawLine(ropeCarX2, zigTop + 100, sheaveCx + 10, sheaveCy)
-  dw.drawLine(sheaveCx - 10, sheaveCy, cwtRopeX - 10, zigTop + 100)
-  dw.drawLine(sheaveCx + 10, sheaveCy, cwtRopeX + 10, zigTop + 100)
-  // CWT rope below zigzag
+  // CWT side bottom zone (vertical)
   dw.drawLine(cwtRopeX - 10, zigBot - 100, cwtRopeX - 10, carTop)
   dw.drawLine(cwtRopeX + 10, zigBot - 100, cwtRopeX + 10, carTop)
+
+  // Top zone: vertical from zigzag up to sheave height, then jog to sheave
+  const ropeTopBase = zigTop + 100
+  // Car side: vertical up, then short angle to sheave
+  dw.drawLine(ropeCarX1, ropeTopBase, ropeCarX1, sheaveCy - sheaveR)
+  dw.drawLine(ropeCarX2, ropeTopBase, ropeCarX2, sheaveCy - sheaveR)
+  // Over the sheave (short connecting lines)
+  dw.drawLine(ropeCarX1, sheaveCy - sheaveR, sheaveCx - 10, sheaveCy)
+  dw.drawLine(ropeCarX2, sheaveCy - sheaveR, sheaveCx + 10, sheaveCy)
+  // CWT side: sheave down vertical
+  dw.drawLine(sheaveCx - 10, sheaveCy, cwtRopeX - 10, sheaveCy - sheaveR)
+  dw.drawLine(sheaveCx + 10, sheaveCy, cwtRopeX + 10, sheaveCy - sheaveR)
+  dw.drawLine(cwtRopeX - 10, sheaveCy - sheaveR, cwtRopeX - 10, ropeTopBase)
+  dw.drawLine(cwtRopeX + 10, sheaveCy - sheaveR, cwtRopeX + 10, ropeTopBase)
 
   // Traveling cable
   const tcX = ox + carInsetX + 30
