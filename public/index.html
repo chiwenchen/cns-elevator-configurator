@@ -16,6 +16,11 @@
         --border-strong: #333a45;
         --accent: #e8734e;
         --accent-soft: rgba(232, 115, 78, 0.18);
+        --accent-hover: #f58662;
+        --success: #7ee787;
+        --success-soft: rgba(46, 160, 67, 0.12);
+        --error: #ff8a80;
+        --error-soft: rgba(248, 81, 73, 0.12);
         --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
         --sans: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang TC",
           "Microsoft JhengHei", sans-serif;
@@ -220,7 +225,7 @@
         margin-top: 8px;
       }
       .btn-primary:hover {
-        background: #f58662;
+        background: var(--accent-hover);
       }
       .btn-primary:disabled {
         opacity: 0.4;
@@ -252,15 +257,15 @@
       }
       .solver-status.success {
         display: block;
-        background: rgba(46, 160, 67, 0.12);
+        background: var(--success-soft);
         border-left: 3px solid #3fb950;
-        color: #7ee787;
+        color: var(--success);
       }
       .solver-status.error {
         display: block;
-        background: rgba(248, 81, 73, 0.12);
+        background: var(--error-soft);
         border-left: 3px solid #f85149;
-        color: #ff8a80;
+        color: var(--error);
         white-space: pre-wrap;
       }
       .viz {
@@ -937,6 +942,166 @@
         pointer-events: none;
       }
       .pro-info:hover .tooltip { display: block; }
+
+      /* ---- Nav Auth Area ---- */
+      .nav-auth {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .nav-auth .auth-login-btn {
+        padding: 4px 12px;
+        background: transparent;
+        color: var(--fg);
+        border: 1px solid var(--border-strong);
+        font-family: var(--sans);
+        font-size: 12px;
+        cursor: pointer;
+        border-radius: 4px;
+      }
+      .nav-auth .auth-login-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .nav-auth .auth-quota {
+        font-family: var(--mono);
+        color: var(--fg-muted);
+        font-size: 11px;
+      }
+      .nav-auth .auth-email {
+        color: var(--fg-muted);
+      }
+      .nav-auth .auth-logout-btn {
+        color: var(--fg-dim);
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-family: var(--sans);
+        font-size: 11px;
+        padding: 2px 4px;
+      }
+      .nav-auth .auth-logout-btn:hover {
+        color: var(--fg);
+      }
+      .nav-auth .pro-badge {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 9px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        background: linear-gradient(135deg, #3a4a5e 0%, #5a6a80 100%);
+        color: var(--fg);
+      }
+      .nav-link.dimmed {
+        opacity: 0.4;
+        cursor: default;
+      }
+
+      /* ---- Login Modal ---- */
+      .login-step { display: none; }
+      .login-step.active { display: block; }
+      .login-modal-input {
+        width: 100%;
+        padding: 10px 12px;
+        background: var(--bg);
+        color: var(--fg);
+        border: 1px solid var(--border-strong);
+        border-radius: 4px;
+        font-family: var(--sans);
+        font-size: 14px;
+        margin-bottom: 12px;
+      }
+      .login-modal-input:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+      .otp-boxes {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        margin-bottom: 12px;
+      }
+      .otp-box {
+        width: 44px;
+        height: 52px;
+        text-align: center;
+        font-family: var(--mono);
+        font-size: 22px;
+        background: var(--bg);
+        color: var(--accent);
+        border: 1px solid var(--border-strong);
+        border-radius: 6px;
+        outline: none;
+      }
+      .otp-box:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px var(--accent-soft);
+      }
+      .otp-helper {
+        text-align: center;
+        font-size: 11px;
+        color: var(--fg-dim);
+        margin-bottom: 8px;
+      }
+      .otp-resend {
+        text-align: center;
+        font-size: 12px;
+        margin-top: 8px;
+      }
+      .otp-resend button {
+        background: none;
+        border: none;
+        color: var(--accent);
+        cursor: pointer;
+        font-family: var(--sans);
+        font-size: 12px;
+        padding: 0;
+      }
+      .otp-resend button:disabled {
+        color: var(--fg-dim);
+        cursor: not-allowed;
+      }
+      .onboarding-benefits {
+        list-style: none;
+        padding: 0;
+        margin: 12px 0;
+        font-size: 12px;
+        color: var(--fg-muted);
+      }
+      .onboarding-benefits li {
+        padding: 4px 0;
+      }
+      .onboarding-benefits li::before {
+        content: "- ";
+        color: var(--fg-dim);
+      }
+      .onboarding-skip {
+        display: block;
+        text-align: center;
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--fg-dim);
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-family: var(--sans);
+      }
+      .onboarding-skip:hover {
+        color: var(--fg-muted);
+      }
+      .login-error {
+        color: var(--error);
+        font-size: 12px;
+        margin-bottom: 8px;
+        display: none;
+      }
+      .login-error.visible {
+        display: block;
+      }
     </style>
   </head>
   <body>
@@ -953,11 +1118,16 @@
           </select>
           <span id="unit-badge" style="margin-left:12px">—</span>
         </div>
-        <button class="ai-btn" id="ai-chat-btn">AI 設計助理</button>
       </div>
-      <nav class="app-nav">
-        <a href="#/configurator" class="nav-link" data-view="configurator">配件器</a>
-        <a href="#/rules" class="nav-link" data-view="rules">規則管理</a>
+      <nav class="app-nav" style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;gap:16px;align-items:center;">
+          <a href="#/configurator" class="nav-link" data-view="configurator">設計出圖</a>
+          <a href="javascript:void(0)" class="nav-link" id="nav-ai-btn" data-view="ai">AI 設計助理</a>
+          <a href="#/rules" class="nav-link" data-view="rules">規則管理</a>
+          <a href="/designs.html" class="nav-link dimmed" id="nav-my-designs">我的圖紙</a>
+          <a href="/admin.html" class="nav-link" id="nav-admin" style="display:none;" data-view="admin">用戶管理</a>
+        </div>
+        <div class="nav-auth" id="nav-auth"></div>
       </nav>
     </header>
 
@@ -1233,6 +1403,74 @@
       </section>
     </main>
 
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal-backdrop hidden">
+      <div class="modal" style="max-width:400px;">
+        <!-- Step 1: Email -->
+        <div class="login-step active" id="login-step-email">
+          <h3>登入 Vera Plot</h3>
+          <div class="modal-body">輸入您的 email 即可開始使用。</div>
+          <div class="login-error" id="login-email-error"></div>
+          <input type="email" class="login-modal-input" id="login-email-input" placeholder="you@company.com" autocomplete="email" />
+          <button class="btn-primary" id="login-send-otp-btn" style="margin-top:0;">寄送驗證碼</button>
+        </div>
+        <!-- Step 2: OTP -->
+        <div class="login-step" id="login-step-otp">
+          <h3>輸入驗證碼</h3>
+          <div class="modal-body">驗證碼已寄送至 <strong id="login-otp-email-display"></strong></div>
+          <div class="login-error" id="login-otp-error"></div>
+          <div class="otp-boxes" id="otp-boxes">
+            <input type="text" class="otp-box" maxlength="1" inputmode="numeric" data-idx="0" />
+            <input type="text" class="otp-box" maxlength="1" inputmode="numeric" data-idx="1" />
+            <input type="text" class="otp-box" maxlength="1" inputmode="numeric" data-idx="2" />
+            <input type="text" class="otp-box" maxlength="1" inputmode="numeric" data-idx="3" />
+            <input type="text" class="otp-box" maxlength="1" inputmode="numeric" data-idx="4" />
+            <input type="text" class="otp-box" maxlength="1" inputmode="numeric" data-idx="5" />
+          </div>
+          <div class="otp-helper">輸入完成後自動驗證</div>
+          <div class="otp-resend">
+            <button id="otp-resend-btn" disabled>重新寄送 (<span id="otp-countdown">60</span>s)</button>
+          </div>
+        </div>
+        <!-- Step 3: Onboarding (new users) -->
+        <div class="login-step" id="login-step-onboarding">
+          <h3>歡迎加入 Vera Plot！</h3>
+          <ul class="onboarding-benefits">
+            <li>公司成員共享設計規則與案例庫</li>
+            <li>每週 DXF / AI 額度由公司統一管理</li>
+            <li>跨專案的規則版本紀錄與回溯</li>
+          </ul>
+          <div class="login-error" id="login-onboarding-error"></div>
+          <input type="text" class="login-modal-input" id="login-company-input" placeholder="公司名稱" />
+          <button class="btn-primary" id="login-create-company-btn" style="margin-top:0;">建立公司</button>
+          <button class="onboarding-skip" id="login-skip-onboarding-btn">之後再說</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature Gate: Login Required -->
+    <div id="gate-login-modal" class="modal-backdrop hidden">
+      <div class="modal" style="max-width:400px;">
+        <h3>需要登入</h3>
+        <div class="modal-body">登入後即可輸出 DXF 圖紙並使用 AI 設計助理。您目前的設計參數會完整保留。</div>
+        <div class="modal-actions">
+          <button class="modal-btn" id="gate-login-cancel">取消</button>
+          <button class="modal-btn primary" id="gate-login-confirm">登入</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature Gate: Quota Exceeded -->
+    <div id="gate-quota-modal" class="modal-backdrop hidden">
+      <div class="modal" style="max-width:400px;">
+        <h3>本週額度已用完</h3>
+        <div class="modal-body" id="gate-quota-message"></div>
+        <div class="modal-actions">
+          <button class="modal-btn" id="gate-quota-close">知道了</button>
+        </div>
+      </div>
+    </div>
+
     <div class="toast-container" id="toast-container"></div>
 
     <footer>
@@ -1241,6 +1479,367 @@
     </footer>
 
     <script>
+      // ---- Auth State ----
+      let currentUser = null // { user: {...}, quota: {...} }
+
+      async function checkAuth() {
+        try {
+          const res = await fetch('/api/auth/me')
+          if (res.ok) {
+            currentUser = await res.json()
+            renderAuthenticatedNav()
+          } else {
+            currentUser = null
+            renderAnonymousNav()
+          }
+        } catch {
+          currentUser = null
+          renderAnonymousNav()
+        }
+      }
+
+      function renderAnonymousNav() {
+        const authEl = document.getElementById('nav-auth')
+        authEl.innerHTML = '<button class="auth-login-btn" id="nav-login-btn">登入</button>'
+        document.getElementById('nav-login-btn').onclick = () => openLoginModal()
+        // Dim "my designs" link
+        const myDesigns = document.getElementById('nav-my-designs')
+        if (myDesigns) {
+          myDesigns.classList.add('dimmed')
+          myDesigns.onclick = (e) => { e.preventDefault(); openLoginModal() }
+        }
+        // Hide admin link
+        const adminLink = document.getElementById('nav-admin')
+        if (adminLink) adminLink.style.display = 'none'
+      }
+
+      function renderAuthenticatedNav() {
+        if (!currentUser) return renderAnonymousNav()
+        const u = currentUser.user || {}
+        const q = currentUser.quota || {}
+        const authEl = document.getElementById('nav-auth')
+
+        let parts = []
+        // PRO badge + company
+        if (u.plan === 'pro' && u.company_name) {
+          parts.push('<span class="pro-badge">PRO</span>')
+        }
+        // Quota display
+        const dxfUsed = q.dxf_used != null ? q.dxf_used : 0
+        const dxfLimit = q.dxf_limit != null ? q.dxf_limit : 0
+        const aiUsed = q.ai_used != null ? q.ai_used : 0
+        const aiLimit = q.ai_limit != null ? q.ai_limit : 0
+        parts.push(`<span class="auth-quota">DXF ${dxfUsed}/${dxfLimit} · AI ${aiUsed}/${aiLimit}</span>`)
+        // Email or company name
+        if (u.company_name) {
+          parts.push(`<span class="auth-email">${escapeHtml(u.company_name)}</span>`)
+        } else {
+          parts.push(`<span class="auth-email">${escapeHtml(u.email || '')}</span>`)
+        }
+        // Logout
+        parts.push('<button class="auth-logout-btn" id="nav-logout-btn">登出</button>')
+        authEl.innerHTML = parts.join('')
+
+        document.getElementById('nav-logout-btn').onclick = handleLogout
+
+        // Enable "my designs" link
+        const myDesigns = document.getElementById('nav-my-designs')
+        if (myDesigns) {
+          myDesigns.classList.remove('dimmed')
+          myDesigns.onclick = null
+        }
+        // Admin link
+        const adminLink = document.getElementById('nav-admin')
+        if (adminLink) {
+          adminLink.style.display = u.role === 'admin' ? '' : 'none'
+        }
+      }
+
+      async function handleLogout() {
+        try {
+          await fetch('/api/auth/logout', { method: 'POST' })
+        } catch { /* ignore */ }
+        currentUser = null
+        renderAnonymousNav()
+      }
+
+      // ---- Login Modal ----
+      let loginEmail = ''
+      let otpCountdownTimer = null
+
+      function openLoginModal() {
+        const modal = document.getElementById('login-modal')
+        modal.classList.remove('hidden')
+        showLoginStep('email')
+        document.getElementById('login-email-input').focus()
+      }
+
+      function closeLoginModal() {
+        document.getElementById('login-modal').classList.add('hidden')
+        clearOtpCountdown()
+      }
+
+      function showLoginStep(step) {
+        document.querySelectorAll('.login-step').forEach((el) => el.classList.remove('active'))
+        const stepEl = document.getElementById('login-step-' + step)
+        if (stepEl) stepEl.classList.add('active')
+      }
+
+      function showLoginError(stepId, msg) {
+        const el = document.getElementById('login-' + stepId + '-error')
+        if (el) {
+          el.textContent = msg
+          el.classList.add('visible')
+        }
+      }
+
+      function clearLoginError(stepId) {
+        const el = document.getElementById('login-' + stepId + '-error')
+        if (el) el.classList.remove('visible')
+      }
+
+      // Step 1: Send OTP
+      document.getElementById('login-send-otp-btn').onclick = async () => {
+        const emailInput = document.getElementById('login-email-input')
+        const email = emailInput.value.trim()
+        if (!email || !email.includes('@')) {
+          showLoginError('email', '請輸入有效的 email')
+          return
+        }
+        clearLoginError('email')
+        const btn = document.getElementById('login-send-otp-btn')
+        btn.disabled = true
+        btn.textContent = '寄送中...'
+        try {
+          const res = await fetch('/api/auth/request-otp', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ email }),
+          })
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}))
+            showLoginError('email', err.message || '寄送失敗，請稍後再試')
+            return
+          }
+          loginEmail = email
+          document.getElementById('login-otp-email-display').textContent = email
+          showLoginStep('otp')
+          startOtpCountdown()
+          // Focus first OTP box
+          const firstBox = document.querySelector('.otp-box[data-idx="0"]')
+          if (firstBox) firstBox.focus()
+        } catch (e) {
+          showLoginError('email', '網路錯誤，請稍後再試')
+        } finally {
+          btn.disabled = false
+          btn.textContent = '寄送驗證碼'
+        }
+      }
+
+      document.getElementById('login-email-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          document.getElementById('login-send-otp-btn').click()
+        }
+      })
+
+      // Step 2: OTP input
+      function getOtpCode() {
+        const boxes = document.querySelectorAll('.otp-box')
+        return Array.from(boxes).map((b) => b.value).join('')
+      }
+
+      document.querySelectorAll('.otp-box').forEach((box) => {
+        box.addEventListener('input', (e) => {
+          const val = e.target.value.replace(/\D/g, '')
+          e.target.value = val.slice(0, 1)
+          if (val && e.target.dataset.idx < 5) {
+            const next = document.querySelector(`.otp-box[data-idx="${Number(e.target.dataset.idx) + 1}"]`)
+            if (next) next.focus()
+          }
+          // Auto-submit when all 6 digits filled
+          const code = getOtpCode()
+          if (code.length === 6) {
+            verifyOtp(code)
+          }
+        })
+        box.addEventListener('keydown', (e) => {
+          if (e.key === 'Backspace' && !e.target.value && e.target.dataset.idx > 0) {
+            const prev = document.querySelector(`.otp-box[data-idx="${Number(e.target.dataset.idx) - 1}"]`)
+            if (prev) { prev.value = ''; prev.focus() }
+          }
+        })
+        // Handle paste
+        box.addEventListener('paste', (e) => {
+          e.preventDefault()
+          const pasted = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 6)
+          const boxes = document.querySelectorAll('.otp-box')
+          for (let i = 0; i < pasted.length && i < 6; i++) {
+            boxes[i].value = pasted[i]
+          }
+          if (pasted.length === 6) verifyOtp(pasted)
+          else if (pasted.length > 0) {
+            const next = document.querySelector(`.otp-box[data-idx="${Math.min(pasted.length, 5)}"]`)
+            if (next) next.focus()
+          }
+        })
+      })
+
+      async function verifyOtp(code) {
+        clearLoginError('otp')
+        // Disable boxes during verify
+        document.querySelectorAll('.otp-box').forEach((b) => b.disabled = true)
+        try {
+          const res = await fetch('/api/auth/verify-otp', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ email: loginEmail, code }),
+          })
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}))
+            showLoginError('otp', err.message || '驗證碼錯誤，請重新輸入')
+            // Clear boxes and re-enable
+            document.querySelectorAll('.otp-box').forEach((b) => { b.value = ''; b.disabled = false })
+            document.querySelector('.otp-box[data-idx="0"]')?.focus()
+            return
+          }
+          const data = await res.json()
+          currentUser = { user: data.user, quota: data.quota || {} }
+          if (data.is_new) {
+            showLoginStep('onboarding')
+          } else {
+            closeLoginModal()
+            renderAuthenticatedNav()
+          }
+        } catch (e) {
+          showLoginError('otp', '網路錯誤，請稍後再試')
+          document.querySelectorAll('.otp-box').forEach((b) => b.disabled = false)
+        }
+      }
+
+      function startOtpCountdown() {
+        clearOtpCountdown()
+        let seconds = 60
+        const display = document.getElementById('otp-countdown')
+        const btn = document.getElementById('otp-resend-btn')
+        btn.disabled = true
+        display.textContent = seconds
+        otpCountdownTimer = setInterval(() => {
+          seconds--
+          display.textContent = seconds
+          if (seconds <= 0) {
+            clearOtpCountdown()
+            btn.disabled = false
+            btn.textContent = '重新寄送'
+          }
+        }, 1000)
+      }
+
+      function clearOtpCountdown() {
+        if (otpCountdownTimer) { clearInterval(otpCountdownTimer); otpCountdownTimer = null }
+      }
+
+      document.getElementById('otp-resend-btn').onclick = async () => {
+        if (!loginEmail) return
+        const btn = document.getElementById('otp-resend-btn')
+        btn.disabled = true
+        try {
+          await fetch('/api/auth/request-otp', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ email: loginEmail }),
+          })
+          startOtpCountdown()
+          // Clear boxes
+          document.querySelectorAll('.otp-box').forEach((b) => { b.value = ''; b.disabled = false })
+          document.querySelector('.otp-box[data-idx="0"]')?.focus()
+        } catch { /* ignore */ }
+      }
+
+      // Step 3: Onboarding
+      document.getElementById('login-create-company-btn').onclick = async () => {
+        const name = document.getElementById('login-company-input').value.trim()
+        if (!name) {
+          showLoginError('onboarding', '請輸入公司名稱')
+          return
+        }
+        clearLoginError('onboarding')
+        const btn = document.getElementById('login-create-company-btn')
+        btn.disabled = true
+        try {
+          const res = await fetch('/api/company', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ name }),
+          })
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}))
+            showLoginError('onboarding', err.message || '建立失敗')
+            return
+          }
+          // Re-check auth to get updated user info
+          await checkAuth()
+          closeLoginModal()
+        } catch (e) {
+          showLoginError('onboarding', '網路錯誤')
+        } finally {
+          btn.disabled = false
+        }
+      }
+
+      document.getElementById('login-skip-onboarding-btn').onclick = () => {
+        closeLoginModal()
+        renderAuthenticatedNav()
+      }
+
+      // Close login modal by clicking backdrop
+      document.getElementById('login-modal').addEventListener('click', (e) => {
+        if (e.target.id === 'login-modal') closeLoginModal()
+      })
+
+      // ---- Feature Gating ----
+      function requireAuth(featureType) {
+        // featureType: 'dxf' or 'ai'
+        if (!currentUser) {
+          document.getElementById('gate-login-modal').classList.remove('hidden')
+          return false
+        }
+        // Check quota
+        const q = currentUser.quota || {}
+        if (featureType === 'dxf') {
+          const used = q.dxf_used != null ? q.dxf_used : 0
+          const limit = q.dxf_limit != null ? q.dxf_limit : 0
+          if (limit > 0 && used >= limit) {
+            document.getElementById('gate-quota-message').textContent =
+              `您本週已使用 ${used}/${limit} 次 DXF 輸出額度。`
+            document.getElementById('gate-quota-modal').classList.remove('hidden')
+            return false
+          }
+        } else if (featureType === 'ai') {
+          const used = q.ai_used != null ? q.ai_used : 0
+          const limit = q.ai_limit != null ? q.ai_limit : 0
+          if (limit > 0 && used >= limit) {
+            document.getElementById('gate-quota-message').textContent =
+              `您本週已使用 ${used}/${limit} 次 AI 設計助理額度。`
+            document.getElementById('gate-quota-modal').classList.remove('hidden')
+            return false
+          }
+        }
+        return true
+      }
+
+      // Gate modal event listeners
+      document.getElementById('gate-login-cancel').onclick = () => {
+        document.getElementById('gate-login-modal').classList.add('hidden')
+      }
+      document.getElementById('gate-login-confirm').onclick = () => {
+        document.getElementById('gate-login-modal').classList.add('hidden')
+        openLoginModal()
+      }
+      document.getElementById('gate-quota-close').onclick = () => {
+        document.getElementById('gate-quota-modal').classList.add('hidden')
+      }
+
       // ---- Hash router ----
       function currentRoute() {
         const hash = window.location.hash || '#/configurator'
@@ -1273,7 +1872,10 @@
       }
 
       window.addEventListener('hashchange', renderRoute)
-      window.addEventListener('DOMContentLoaded', renderRoute)
+      window.addEventListener('DOMContentLoaded', () => {
+        renderRoute()
+        checkAuth()
+      })
 
       // 根據 source 調整 UI 文案
       const copyByMode = {
@@ -1498,6 +2100,7 @@
       }
 
       function downloadDxf(d, dxfString) {
+        if (!requireAuth('dxf')) return
         const blob = new Blob([dxfString], { type: 'application/dxf' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
@@ -1515,10 +2118,12 @@
 
       formA.addEventListener('submit', (e) => {
         e.preventDefault()
+        if (!requireAuth('dxf')) return
         submitSolve('A', formToObject(formA))
       })
       formB.addEventListener('submit', (e) => {
         e.preventDefault()
+        if (!requireAuth('dxf')) return
         submitSolve('B', formToObject(formB))
       })
 
@@ -2203,7 +2808,7 @@
         if (!chatState.sessionId) chatState.sessionId = generateSessionId()
         document.getElementById('chat-sidebar').classList.add('open')
         document.getElementById('view-configurator').classList.add('chat-open')
-        document.getElementById('ai-chat-btn').classList.add('active')
+        document.getElementById('nav-ai-btn').classList.add('active')
         document.getElementById('chat-input').disabled = false
         document.getElementById('chat-send-btn').disabled = false
         document.getElementById('chat-input').focus()
@@ -2213,7 +2818,7 @@
         chatState.status = 'idle'
         document.getElementById('chat-sidebar').classList.remove('open')
         document.getElementById('view-configurator').classList.remove('chat-open')
-        document.getElementById('ai-chat-btn').classList.remove('active')
+        document.getElementById('nav-ai-btn').classList.remove('active')
         document.getElementById('chat-input').disabled = true
         document.getElementById('chat-send-btn').disabled = true
       }
@@ -2430,8 +3035,10 @@
       }
 
       // ---- Chat event listeners ----
-      document.getElementById('ai-chat-btn').addEventListener('click', () => {
+      document.getElementById('nav-ai-btn').addEventListener('click', (e) => {
+        e.preventDefault()
         if (chatState.status === 'idle') {
+          if (!requireAuth('ai')) return
           openChat()
         } else {
           closeChat()

@@ -8,6 +8,8 @@ import { describe, test, expect } from 'bun:test'
 import { handleSolve } from './solve'
 import { StaticRulesLoader } from '../config/load'
 
+const TEST_USER = { id: 'test', email: 't@t.com', raw_email: 't@t.com', role: 'user', company_id: null as string | null, session_id: 's1' }
+
 describe('solve-snapshot: Mode B 500kg passenger regression', () => {
   test('design output matches golden values (excluding timestamp)', async () => {
     const loader = new StaticRulesLoader()
@@ -67,16 +69,18 @@ describe('solve-snapshot: Mode B 500kg passenger regression', () => {
         caseOverride: {},
       },
       loader,
+      TEST_USER,
+      null,
     )
 
-    expect(result.dxf_string).toContain('SHAFT')
-    expect(result.dxf_string).toContain('CAR')
-    expect(result.dxf_string).toContain('CWT')
-    expect(result.dxf_string).toContain('RAIL_CAR')
-    expect(result.dxf_string).toContain('RAIL_CWT')
-    expect(result.dxf_string).toContain('DOOR')
-    expect(result.dxf_string).toContain('PLAN VIEW')
-    expect(result.dxf_string).toContain('ELEVATION VIEW')
+    expect(result.dxf_string!).toContain('SHAFT')
+    expect(result.dxf_string!).toContain('CAR')
+    expect(result.dxf_string!).toContain('CWT')
+    expect(result.dxf_string!).toContain('RAIL_CAR')
+    expect(result.dxf_string!).toContain('RAIL_CWT')
+    expect(result.dxf_string!).toContain('DOOR')
+    expect(result.dxf_string!).toContain('PLAN VIEW')
+    expect(result.dxf_string!).toContain('ELEVATION VIEW')
   })
 
   test('validation_report returns real shape with 46 items', async () => {

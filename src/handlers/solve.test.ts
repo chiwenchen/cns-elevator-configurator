@@ -240,6 +240,7 @@ describe('handleSolve — integration with validation', () => {
 
   test('still works on valid mode B body', async () => {
     const loader = new StaticRulesLoader()
+    const fakeUser = { id: 'u1', email: 't@t.com', raw_email: 't@t.com', role: 'user', company_id: null, session_id: 's1' }
     const result = await handleSolve(
       {
         mode: 'B',
@@ -249,8 +250,11 @@ describe('handleSolve — integration with validation', () => {
         machine_location: 'MR',
       },
       loader,
+      fakeUser,
+      null,
     )
     expect(result.design).toBeDefined()
-    expect(result.dxf_string.length).toBeGreaterThan(0)
+    expect(result.dxf_string).toBeDefined()
+    expect(result.dxf_string!.length).toBeGreaterThan(0)
   })
 })

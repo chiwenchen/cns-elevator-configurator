@@ -44,3 +44,5 @@ historical-cases/
 model-prices/
 /secrets/
 
+.gstack/
+.superpowers/
