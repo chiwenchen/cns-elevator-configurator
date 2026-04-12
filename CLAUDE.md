@@ -41,6 +41,22 @@
 - Conventional commits: `feat(scope): ...`, `fix(scope): ...`, `docs: ...`, `spike: ...`
 - 所有 PR 開到 `main`，禁止直接 push main（protect rules after repo creation）
 
+## Deploy 流程（強制，無例外）
+
+無論改動多小（即使只改一行 CSS），都必須嚴格遵守以下步驟：
+
+1. `git checkout main && git pull --rebase`
+2. `git checkout -b <feature-branch>`
+3. 開發 + 測試（`bun test` 全部通過，coverage ≥ 90%）
+4. `git push -u origin <branch>` + `gh pr create` + 等待 merge 完成
+5. `git checkout main && git pull --rebase`
+6. `wrangler deploy`
+
+**絕對禁止：**
+- 在 main branch 上直接 commit
+- 在 PR merge 之前 deploy
+- 跳過任何一個步驟
+
 ## 不要
 
 - ❌ 不要寫 DXF 輸出（v1 out of scope）
