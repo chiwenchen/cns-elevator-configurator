@@ -28,6 +28,12 @@ import {
   RuleMandatoryError,
 } from '../handlers/rules'
 import { D1RulesLoader, D1RulesStore } from '../config/load'
+import {
+  handleChat,
+  createAnthropicCaller,
+  InvalidChatBodyError,
+  ChatApiError,
+} from '../handlers/chat'
 
 interface D1Database {
   prepare(query: string): {
@@ -38,6 +44,7 @@ interface D1Database {
 interface Env {
   ASSETS: { fetch: (request: Request) => Promise<Response> }
   DB: D1Database
+  ANTHROPIC_API_KEY?: string
 }
 
 // Cache the hack-canada DXF text for the lifetime of the isolate.
@@ -186,6 +193,39 @@ export default {
         } catch (err) {
           return handleRulesError(err)
         }
+      }
+    }
+
+    if (url.pathname === '/api/chat' && request.method === 'POST') {
+      if (!env.ANTHROPIC_API_KEY) {
+        return jsonResponse(
+          { error: 'not_configured', message: 'AI 功能尚未啟用（缺少 API key）' },
+          { status: 503 },
+        )
+      }
+      try {
+        const body = await request.json()
+        const loader = new D1RulesLoader(env.DB)
+        const caller = createAnthropicCaller(env.ANTHROPIC_API_KEY)
+        const result = await handleChat(body, loader, caller)
+        return jsonResponse(result)
+      } catch (err) {
+        if (err instanceof InvalidChatBodyError) {
+          return jsonResponse(
+            { error: 'invalid_request', message: err.message },
+            { status: 400 },
+          )
+        }
+        if (err instanceof ChatApiError) {
+          return jsonResponse(
+            { error: 'ai_unavailable', message: err.message },
+            { status: 503 },
+          )
+        }
+        return jsonResponse(
+          { error: 'chat_failed', message: String(err) },
+          { status: 500 },
+        )
       }
     }
 

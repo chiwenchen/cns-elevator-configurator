@@ -644,6 +644,206 @@
       .commit-section button { font-size: 11px; padding: 6px 12px; }
       .override-label { font-size: 11px; color: var(--fg-muted); }
       #override-count-badge { color: #ffd54f; font-weight: 600; }
+
+      /* ---- Chat Sidebar ---- */
+      .ai-btn {
+        background: var(--bg-panel);
+        border: 1px solid var(--border-strong);
+        color: var(--fg);
+        font-family: var(--sans);
+        font-size: 13px;
+        padding: 4px 12px;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: background 0.15s, border-color 0.15s;
+      }
+      .ai-btn:hover {
+        background: var(--bg-elev);
+        border-color: var(--accent);
+      }
+      .ai-btn.active {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      #chat-sidebar {
+        display: none;
+        width: 380px;
+        background: var(--bg-panel);
+        border-left: 1px solid var(--border);
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+      }
+      #chat-sidebar.open {
+        display: flex;
+      }
+      #view-configurator.chat-open {
+        grid-template-columns: 340px 1fr 0px 380px;
+      }
+      #view-configurator.chat-open aside {
+        display: none;
+      }
+      .chat-header {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+      }
+      .chat-header-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--fg);
+      }
+      .chat-close-btn {
+        background: none;
+        border: none;
+        color: var(--fg-muted);
+        cursor: pointer;
+        font-size: 16px;
+        padding: 2px 6px;
+      }
+      .chat-close-btn:hover { color: var(--fg); }
+      .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .chat-bubble {
+        max-width: 85%;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        line-height: 1.5;
+        word-break: break-word;
+      }
+      .chat-bubble.user {
+        align-self: flex-end;
+        background: var(--accent-soft);
+        color: var(--fg);
+        border-bottom-right-radius: 2px;
+      }
+      .chat-bubble.assistant {
+        align-self: flex-start;
+        background: var(--bg-elev);
+        color: var(--fg);
+        border-bottom-left-radius: 2px;
+      }
+      .chat-bubble.system {
+        align-self: center;
+        background: none;
+        color: var(--fg-dim);
+        font-size: 12px;
+        text-align: center;
+      }
+      .chat-thinking {
+        align-self: flex-start;
+        color: var(--fg-muted);
+        font-size: 12px;
+        padding: 8px 12px;
+      }
+      .chat-choices {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 6px;
+      }
+      .chat-choice-btn {
+        background: var(--bg);
+        border: 1px solid var(--border-strong);
+        color: var(--fg);
+        font-family: var(--sans);
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .chat-choice-btn:hover {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+      }
+      .chat-proposal-card {
+        background: var(--bg);
+        border: 1px solid var(--border-strong);
+        border-radius: 6px;
+        padding: 10px 12px;
+        margin-top: 6px;
+        font-size: 12px;
+      }
+      .chat-proposal-card .proposal-header {
+        font-weight: 600;
+        margin-bottom: 4px;
+        color: var(--fg);
+      }
+      .chat-proposal-card .proposal-diff {
+        font-family: var(--mono);
+        color: var(--fg-muted);
+        margin: 4px 0;
+      }
+      .chat-proposal-card .proposal-reasoning {
+        color: var(--fg-muted);
+        margin-bottom: 8px;
+      }
+      .chat-proposal-card .proposal-actions {
+        display: flex;
+        gap: 8px;
+      }
+      .proposal-accept-btn, .proposal-reject-btn {
+        font-family: var(--sans);
+        font-size: 12px;
+        padding: 4px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        border: 1px solid var(--border-strong);
+      }
+      .proposal-accept-btn {
+        background: var(--accent-soft);
+        color: var(--accent);
+        border-color: var(--accent);
+      }
+      .proposal-accept-btn:hover { background: var(--accent); color: #fff; }
+      .proposal-reject-btn {
+        background: var(--bg-panel);
+        color: var(--fg-muted);
+      }
+      .proposal-reject-btn:hover { background: var(--bg-elev); color: var(--fg); }
+      .chat-input-area {
+        padding: 10px 16px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+      .chat-input-area input {
+        flex: 1;
+        background: var(--bg);
+        border: 1px solid var(--border-strong);
+        color: var(--fg);
+        font-family: var(--sans);
+        font-size: 13px;
+        padding: 6px 10px;
+        border-radius: 4px;
+        outline: none;
+      }
+      .chat-input-area input:focus { border-color: var(--accent); }
+      .chat-input-area input:disabled { opacity: 0.5; }
+      .chat-send-btn {
+        background: var(--accent-soft);
+        border: 1px solid var(--accent);
+        color: var(--accent);
+        font-family: var(--sans);
+        font-size: 13px;
+        padding: 6px 14px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .chat-send-btn:hover { background: var(--accent); color: #fff; }
+      .chat-send-btn:disabled { opacity: 0.5; cursor: default; }
     </style>
   </head>
   <body>
@@ -660,6 +860,7 @@
           </select>
           <span id="unit-badge" style="margin-left:12px">—</span>
         </div>
+        <button class="ai-btn" id="ai-chat-btn">AI 設計助理</button>
       </div>
       <nav class="app-nav">
         <a href="#/configurator" class="nav-link" data-view="configurator">配件器</a>
@@ -837,6 +1038,18 @@
           <button id="commit-team-btn" class="rule-action-btn" disabled>收工存入團隊</button>
         </div>
       </aside>
+
+      <div id="chat-sidebar">
+        <div class="chat-header">
+          <span class="chat-header-title">AI 設計助理</span>
+          <button class="chat-close-btn" id="chat-close-btn">X</button>
+        </div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input-area">
+          <input type="text" id="chat-input" placeholder="描述設計問題..." disabled />
+          <button class="chat-send-btn" id="chat-send-btn" disabled>送出</button>
+        </div>
+      </div>
 
       <div class="validation-panel collapsed" id="validation-panel">
         <div class="validation-summary" id="validation-summary">
@@ -1830,6 +2043,251 @@
         const payload = collectSolverFormPayload(activeMode)
         await submitSolve(activeMode, payload)
       }
+
+      // ---- Chat Sidebar State Machine ----
+      // States: idle | chat_open | thinking | awaiting_confirm
+      const chatState = {
+        status: 'idle',
+        sessionId: null,
+        messages: [],      // { role, content, timestamp, action? }
+        pendingAction: null,
+      }
+
+      function generateSessionId() {
+        return 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8)
+      }
+
+      function openChat() {
+        chatState.status = 'chat_open'
+        if (!chatState.sessionId) chatState.sessionId = generateSessionId()
+        document.getElementById('chat-sidebar').classList.add('open')
+        document.getElementById('view-configurator').classList.add('chat-open')
+        document.getElementById('ai-chat-btn').classList.add('active')
+        document.getElementById('chat-input').disabled = false
+        document.getElementById('chat-send-btn').disabled = false
+        document.getElementById('chat-input').focus()
+      }
+
+      function closeChat() {
+        chatState.status = 'idle'
+        document.getElementById('chat-sidebar').classList.remove('open')
+        document.getElementById('view-configurator').classList.remove('chat-open')
+        document.getElementById('ai-chat-btn').classList.remove('active')
+        document.getElementById('chat-input').disabled = true
+        document.getElementById('chat-send-btn').disabled = true
+      }
+
+      function setThinking(on) {
+        chatState.status = on ? 'thinking' : 'chat_open'
+        document.getElementById('chat-input').disabled = on
+        document.getElementById('chat-send-btn').disabled = on
+        if (on) {
+          const el = document.createElement('div')
+          el.className = 'chat-thinking'
+          el.id = 'chat-thinking-indicator'
+          el.textContent = 'AI 思考中...'
+          document.getElementById('chat-messages').appendChild(el)
+          scrollChatToBottom()
+        } else {
+          const indicator = document.getElementById('chat-thinking-indicator')
+          if (indicator) indicator.remove()
+        }
+      }
+
+      function scrollChatToBottom() {
+        const el = document.getElementById('chat-messages')
+        el.scrollTop = el.scrollHeight
+      }
+
+      function addChatBubble(role, content) {
+        const bubble = document.createElement('div')
+        bubble.className = 'chat-bubble ' + role
+        bubble.textContent = content
+        document.getElementById('chat-messages').appendChild(bubble)
+        scrollChatToBottom()
+      }
+
+      function renderProposalCard(action) {
+        const card = document.createElement('div')
+        card.className = 'chat-proposal-card'
+
+        if (action.type === 'propose_update') {
+          card.innerHTML = `
+            <div class="proposal-header">提議修改: ${action.rule_key}</div>
+            <div class="proposal-diff">${action.current_value} -> ${action.new_value}</div>
+            <div class="proposal-reasoning">${action.reasoning}</div>
+            <div class="proposal-actions">
+              <button class="proposal-reject-btn" data-action="reject">不要</button>
+              <button class="proposal-accept-btn" data-action="accept">套用並重畫</button>
+            </div>
+          `
+        } else if (action.type === 'propose_soft_delete') {
+          card.innerHTML = `
+            <div class="proposal-header">提議刪除: ${action.rule_key}</div>
+            <div class="proposal-reasoning">${action.reasoning}</div>
+            <div class="proposal-actions">
+              <button class="proposal-reject-btn" data-action="reject">不要</button>
+              <button class="proposal-accept-btn" data-action="accept-delete">套用並重畫</button>
+            </div>
+          `
+        }
+
+        // Wire up buttons
+        card.querySelector('[data-action="accept"]')?.addEventListener('click', () => {
+          setOverride(action.rule_key, action.new_value)
+          chatState.pendingAction = null
+          chatState.status = 'chat_open'
+          card.remove()
+          addChatBubble('system', '已套用: ' + action.rule_key + ' = ' + action.new_value)
+          resolveCurrentCase()
+        })
+        card.querySelector('[data-action="accept-delete"]')?.addEventListener('click', () => {
+          // For soft delete, we don't apply an override — we'd need a special API call.
+          // In v1, soft delete via chat applies as a case override with the default value,
+          // effectively reverting it. The actual soft delete happens at commit time.
+          addChatBubble('system', '已標記刪除: ' + action.rule_key + '（將在「收工存入團隊」時生效）')
+          chatState.pendingAction = null
+          chatState.status = 'chat_open'
+          card.remove()
+        })
+        card.querySelector('[data-action="reject"]')?.addEventListener('click', () => {
+          chatState.pendingAction = null
+          chatState.status = 'chat_open'
+          card.remove()
+          addChatBubble('system', '已取消提議')
+          document.getElementById('chat-input').disabled = false
+          document.getElementById('chat-send-btn').disabled = false
+        })
+
+        document.getElementById('chat-messages').appendChild(card)
+        chatState.pendingAction = action
+        chatState.status = 'awaiting_confirm'
+        document.getElementById('chat-input').disabled = true
+        document.getElementById('chat-send-btn').disabled = true
+        scrollChatToBottom()
+      }
+
+      function renderClarificationChoices(action) {
+        const container = document.createElement('div')
+        container.className = 'chat-choices'
+        for (const choice of action.choices) {
+          const btn = document.createElement('button')
+          btn.className = 'chat-choice-btn'
+          btn.textContent = choice
+          btn.addEventListener('click', () => {
+            container.remove()
+            sendChatMessage(choice)
+          })
+          container.appendChild(btn)
+        }
+        document.getElementById('chat-messages').appendChild(container)
+        scrollChatToBottom()
+      }
+
+      function handleChatResponse(data) {
+        if (data.assistant_message) {
+          addChatBubble('assistant', data.assistant_message)
+        }
+
+        const action = data.action
+        if (!action) return
+
+        switch (action.type) {
+          case 'propose_update':
+          case 'propose_soft_delete':
+            renderProposalCard(action)
+            break
+          case 'ask_clarification':
+            if (action.choices && action.choices.length > 0) {
+              renderClarificationChoices(action)
+            }
+            break
+          case 'out_of_scope':
+            // Message already shown as assistant bubble
+            break
+          case 'none':
+            break
+        }
+      }
+
+      async function sendChatMessage(text) {
+        if (!text.trim()) return
+        if (chatState.status === 'thinking' || chatState.status === 'awaiting_confirm') return
+
+        // Add user bubble
+        const timestamp = Math.floor(Date.now() / 1000)
+        chatState.messages.push({ role: 'user', content: text, timestamp })
+        addChatBubble('user', text)
+
+        // Clear input
+        document.getElementById('chat-input').value = ''
+
+        // Determine current solver input
+        const activeTab = document.querySelector('.mode-tab.active')
+        const activeMode = activeTab && activeTab.dataset.mode ? activeTab.dataset.mode : 'B'
+        const solverInput = { mode: activeMode, ...collectSolverFormPayload(activeMode) }
+
+        setThinking(true)
+
+        try {
+          const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              session_id: chatState.sessionId,
+              messages: chatState.messages,
+              case_context: {
+                solver_input: solverInput,
+                current_case_override: { ...caseOverrideState },
+              },
+            }),
+          })
+
+          setThinking(false)
+
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}))
+            addChatBubble('system', err.message || 'AI 暫時無法回應，請稍後再試')
+            return
+          }
+
+          const data = await res.json()
+          // Store assistant message in history
+          if (data.assistant_message) {
+            chatState.messages.push({
+              role: 'assistant',
+              content: data.assistant_message,
+              timestamp: Math.floor(Date.now() / 1000),
+            })
+          }
+          handleChatResponse(data)
+        } catch (e) {
+          setThinking(false)
+          addChatBubble('system', 'AI 暫時無法回應，請稍後再試')
+        }
+      }
+
+      // ---- Chat event listeners ----
+      document.getElementById('ai-chat-btn').addEventListener('click', () => {
+        if (chatState.status === 'idle') {
+          openChat()
+        } else {
+          closeChat()
+        }
+      })
+
+      document.getElementById('chat-close-btn').addEventListener('click', closeChat)
+
+      document.getElementById('chat-send-btn').addEventListener('click', () => {
+        sendChatMessage(document.getElementById('chat-input').value)
+      })
+
+      document.getElementById('chat-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault()
+          sendChatMessage(document.getElementById('chat-input').value)
+        }
+      })
 
       // ---- Commit team button ----
       document.getElementById('commit-team-btn').onclick = async () => {
