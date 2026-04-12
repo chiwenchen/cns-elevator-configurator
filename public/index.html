@@ -1653,14 +1653,17 @@
         const route = ev.detail.route
         if (route === 'rules' || route === 'rules-deleted') {
           if (rulesState.rules.length === 0) fetchRules()
-          // Handle #/rules/deleted — switch to deleted filter
-          if (route === 'rules-deleted') {
-            rulesState.filters.status = 'deleted'
-            document.querySelectorAll('[data-filter="status"]').forEach((b) => {
-              b.classList.toggle('active', b.dataset.value === 'deleted')
-            })
-            renderRulesList()
-          }
+          // Reset status filter based on route — prevents stale 'deleted'
+          // filter when user navigates from #/rules/deleted back to #/rules.
+          rulesState.filters.status =
+            route === 'rules-deleted' ? 'deleted' : 'active'
+          document.querySelectorAll('[data-filter="status"]').forEach((b) => {
+            b.classList.toggle(
+              'active',
+              b.dataset.value === rulesState.filters.status,
+            )
+          })
+          renderRulesList()
         }
       })
 
@@ -1681,11 +1684,12 @@
         const guideline_pass = summary.guideline_pass || 0
         const guideline_warning = summary.guideline_warning || 0
         const cns_pass = summary.cns_pass || 0
+        const cns_warning = summary.cns_warning || 0
         const total_fail = summary.total_fail || 0
         container.innerHTML = `
           <span class="count-pass">PASS ${guideline_pass + cns_pass}</span>
-          <span class="count-warning">WARN ${guideline_warning}</span>
-          <span class="count-cns">CNS ${cns_pass}</span>
+          <span class="count-warning">WARN ${guideline_warning + cns_warning}</span>
+          <span class="count-cns">CNS ${cns_pass}${cns_warning > 0 ? ' (' + cns_warning + ' 微調)' : ''}</span>
           ${total_fail > 0 ? `<span class="count-fail">FAIL ${total_fail}</span>` : ''}
         `
         renderValidationBody(report)

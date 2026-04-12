@@ -147,7 +147,6 @@ export interface CommitResult {
     key: string
     old_value: string
     new_value: string
-    audit_id: number
   }>
   skipped: Array<{
     key: string

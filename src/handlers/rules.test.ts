@@ -241,4 +241,15 @@ describe('handleCommit', () => {
       handleCommit(store, { no: 'case_override' }),
     ).rejects.toThrow(InvalidRulesBodyError)
   })
+
+  test('skips rule_deleted when key refers to a soft-deleted rule', async () => {
+    await handleDeleteRule(store, 'cwt.position')
+    const result = await handleCommit(store, {
+      case_override: { 'cwt.position': 'back_center' },
+    })
+    expect(result.applied).toHaveLength(0)
+    expect(result.skipped).toHaveLength(1)
+    expect(result.skipped[0]!.key).toBe('cwt.position')
+    expect(result.skipped[0]!.reason).toBe('rule_deleted')
+  })
 })

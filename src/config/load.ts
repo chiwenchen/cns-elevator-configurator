@@ -240,17 +240,36 @@ export class D1RulesStore extends D1RulesLoader implements RulesStore {
     override: CaseOverride,
     source: AuditSource,
   ): Promise<CommitResult> {
-    const rules = await this.loadActiveRules()
-    const byKey = new Map(rules.map((r) => [r.key, r]))
+    // Include deleted rules so we can distinguish unknown_key vs rule_deleted.
+    const allRowsResult = await this.writeDb
+      .prepare(
+        `SELECT id, key, name, description, type, value, default_value, unit,
+                baseline_min, baseline_max, baseline_choices, category, mandatory, source, deleted_at
+         FROM rules
+         ORDER BY category, key`,
+      )
+      .all<RawRuleRow & { deleted_at: number | null }>()
+    const byKey = new Map<string, { rule: TeamRule; deleted: boolean }>()
+    for (const row of allRowsResult.results) {
+      byKey.set(row.key, {
+        rule: parseRuleRow(row),
+        deleted: row.deleted_at !== null,
+      })
+    }
     const applied: CommitResult['applied'] = []
     const skipped: CommitResult['skipped'] = []
 
     for (const [key, newValue] of Object.entries(override)) {
-      const rule = byKey.get(key)
-      if (!rule) {
+      const entry = byKey.get(key)
+      if (!entry) {
         skipped.push({ key, reason: 'unknown_key' })
         continue
       }
+      if (entry.deleted) {
+        skipped.push({ key, reason: 'rule_deleted' })
+        continue
+      }
+      const rule = entry.rule
       if (newValue === rule.value) {
         skipped.push({ key, reason: 'unchanged' })
         continue
@@ -282,7 +301,6 @@ export class D1RulesStore extends D1RulesLoader implements RulesStore {
         key,
         old_value: rule.value,
         new_value: newValue,
-        audit_id: 0, // D1 batch doesn't give us row IDs; acceptable for v1
       })
     }
 
@@ -442,8 +460,12 @@ export class InMemoryRulesStore implements RulesStore {
 
     for (const [key, newValue] of Object.entries(override)) {
       const rule = this.rules.get(key)
-      if (!rule || rule.deleted_at !== null) {
+      if (!rule) {
         skipped.push({ key, reason: 'unknown_key' })
+        continue
+      }
+      if (rule.deleted_at !== null) {
+        skipped.push({ key, reason: 'rule_deleted' })
         continue
       }
       if (newValue === rule.value) {
@@ -475,7 +497,7 @@ export class InMemoryRulesStore implements RulesStore {
         source,
         timestamp: now,
       })
-      applied.push({ key, old_value: oldValue, new_value: newValue, audit_id: auditId })
+      applied.push({ key, old_value: oldValue, new_value: newValue })
     }
 
     return { applied, skipped }
