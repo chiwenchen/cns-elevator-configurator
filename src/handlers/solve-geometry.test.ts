@@ -62,6 +62,8 @@ function assertDimsTextLabel(dxf: string, expectedValue: string): void {
   expect(dimsTextValues).toContain(expectedValue)
 }
 
+const TEST_USER = { id: 'test', email: 't@t.com', raw_email: 't@t.com', role: 'user', company_id: null as string | null, session_id: 's1' }
+
 describe('solver + DXF geometry consistency under case override', () => {
   test('changing clearance.front_mm affects shaft depth AND DXF front gap label', async () => {
     const loader = new StaticRulesLoader()
@@ -77,6 +79,8 @@ describe('solver + DXF geometry consistency under case override', () => {
         caseOverride: {},
       },
       loader,
+      TEST_USER,
+      null,
     )
 
     // Override request: front clearance 200 (within baseline 100-300)
@@ -90,6 +94,8 @@ describe('solver + DXF geometry consistency under case override', () => {
         caseOverride: { 'clearance.front_mm': '200' },
       },
       loader,
+      TEST_USER,
+      null,
     )
 
     // 1. Shaft depth should differ by exactly 50 mm (200 - 150)
@@ -100,9 +106,9 @@ describe('solver + DXF geometry consistency under case override', () => {
     //    from plan.ts — proving config drift propagates to the drawing.
     //    Using the "D " prefix is robust: TEXT entity values with "D " cannot
     //    collide with DXF handles, layer names, or numeric group codes.
-    expect(baseline.dxf_string).toContain(`D ${baseline.design.shaft.depth_mm}`)
-    expect(overridden.dxf_string).toContain(`D ${overridden.design.shaft.depth_mm}`)
-    expect(overridden.dxf_string).not.toContain(`D ${baseline.design.shaft.depth_mm}`)
+    expect(baseline.dxf_string!).toContain(`D ${baseline.design.shaft.depth_mm}`)
+    expect(overridden.dxf_string!).toContain(`D ${overridden.design.shaft.depth_mm}`)
+    expect(overridden.dxf_string!).not.toContain(`D ${baseline.design.shaft.depth_mm}`)
 
     // 3. Regression guard: the "D <depth>" label comes from solver output
     //    (design.shaft.depth_mm), not from plan.ts's internal frontGap. If
@@ -114,8 +120,8 @@ describe('solver + DXF geometry consistency under case override', () => {
     //    plan.ts:279 draws `${frontGap}` as a TEXT entity on the DIMS layer.
     //    When overridden to 200, the string "\n200\n" appears in the DXF as
     //    a TEXT group-1 value.
-    assertDimsTextLabel(overridden.dxf_string, '200')
-    assertDimsTextLabel(baseline.dxf_string, '150')
+    assertDimsTextLabel(overridden.dxf_string!, '200')
+    assertDimsTextLabel(baseline.dxf_string!, '150')
   })
 
   test('changing cwt.width_mm affects DXF CWT rectangle', async () => {
@@ -130,6 +136,8 @@ describe('solver + DXF geometry consistency under case override', () => {
         machine_location: 'MR',
       },
       loader,
+      TEST_USER,
+      null,
     )
 
     const overridden = await handleSolve(
@@ -142,10 +150,12 @@ describe('solver + DXF geometry consistency under case override', () => {
         caseOverride: { 'cwt.width_mm': '900' },
       },
       loader,
+      TEST_USER,
+      null,
     )
 
     // DXF strings must differ (different CWT dimensions)
-    expect(overridden.dxf_string).not.toEqual(baseline.dxf_string)
+    expect(overridden.dxf_string!).not.toEqual(baseline.dxf_string!)
 
     // Design output (shaft/car/door) should be IDENTICAL — cwt width is a
     // drawing-only value, doesn't affect structural calculation
@@ -168,6 +178,8 @@ describe('solver + DXF geometry consistency under case override', () => {
           caseOverride: { 'clearance.side_mm': '50' }, // below min 150
         },
         loader,
+        TEST_USER,
+        null,
       ),
     ).rejects.toThrow(/Baseline violation on clearance.side_mm/)
   })
@@ -184,6 +196,8 @@ describe('solver + DXF geometry consistency under case override', () => {
         machine_location: 'MR',
       },
       loader,
+      TEST_USER,
+      null,
     )
 
     const overridden = await handleSolve(
@@ -196,6 +210,8 @@ describe('solver + DXF geometry consistency under case override', () => {
         caseOverride: { 'cwt.position': 'back_center' },
       },
       loader,
+      TEST_USER,
+      null,
     )
 
     // cwt.position is now honored by plan.ts (Finding 1 fix). Overriding
@@ -208,6 +224,6 @@ describe('solver + DXF geometry consistency under case override', () => {
     expect(overridden.design.car).toEqual(baseline.design.car)
     expect(overridden.design.door).toEqual(baseline.design.door)
     // DXF strings must differ because CWT rectangle moved.
-    expect(overridden.dxf_string).not.toEqual(baseline.dxf_string)
+    expect(overridden.dxf_string!).not.toEqual(baseline.dxf_string!)
   })
 })
