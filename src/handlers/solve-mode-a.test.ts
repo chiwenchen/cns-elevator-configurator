@@ -52,10 +52,10 @@ describe('handleSolve Mode A path', () => {
     expect(result.design.rated_speed_mpm).toBe(90)
   })
 
-  test('unknown mode throws', async () => {
+  test('unknown mode throws InvalidSolveBodyError', async () => {
     const loader = new StaticRulesLoader()
     await expect(
-      handleSolve({ mode: 'X', stops: 5 }, loader),
-    ).rejects.toThrow(/Unknown mode/)
+      handleSolve({ mode: 'X', stops: 5, usage: 'passenger' }, loader),
+    ).rejects.toThrow(/Invalid mode: X/)
   })
 })

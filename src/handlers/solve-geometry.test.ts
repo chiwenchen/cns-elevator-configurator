@@ -26,28 +26,29 @@ function assertDimsTextLabel(dxf: string, expectedValue: string): void {
   // Walk pairs, tracking the currently open entity, and collect the (1) value
   // of every TEXT entity whose (8) layer is DIMS.
   const lines = dxf.split('\n')
-  let currentType: string | null = null
-  let currentLayer: string | null = null
-  let currentValue: string | null = null
+  let currentType: string | undefined
+  let currentLayer: string | undefined
+  let currentValue: string | undefined
   const dimsTextValues: string[] = []
 
   const commit = (): void => {
-    if (currentType === 'TEXT' && currentLayer === 'DIMS' && currentValue !== null) {
+    if (currentType === 'TEXT' && currentLayer === 'DIMS' && currentValue !== undefined) {
       dimsTextValues.push(currentValue)
     }
   }
 
   for (let i = 0; i + 1 < lines.length; i += 2) {
-    const code = lines[i].trim()
+    const code = lines[i]?.trim()
     const val = lines[i + 1]
+    if (code === undefined || val === undefined) continue
     if (code === '0') {
       commit()
       currentType = val.trim()
-      currentLayer = null
-      currentValue = null
+      currentLayer = undefined
+      currentValue = undefined
       continue
     }
-    if (code === '8' && currentType !== null) {
+    if (code === '8' && currentType !== undefined) {
       currentLayer = val.trim()
       continue
     }
