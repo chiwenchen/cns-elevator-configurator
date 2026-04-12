@@ -482,6 +482,111 @@
       .lyr-DIMS    { fill: none; stroke: #ffd54f; stroke-width: 1; vector-effect: non-scaling-stroke; }
       .lyr-STOP    { fill: none; stroke: #8aa680; stroke-width: 1; vector-effect: non-scaling-stroke; }
       .lyr-TEXT    { fill: #e7e9ec; }
+
+      /* ---- Rules Tab ---- */
+      #view-rules { padding: 20px; max-width: 1200px; margin: 0 auto; }
+      .rules-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+      .rules-title { font-size: 18px; font-weight: 600; }
+
+      .rules-filters {
+        display: flex; gap: 12px; flex-wrap: wrap;
+        padding: 12px; background: var(--bg-panel); border-radius: 6px;
+        margin-bottom: 20px; position: sticky; top: 0; z-index: 10;
+      }
+      .filter-group { display: flex; gap: 4px; align-items: center; }
+      .filter-label { font-size: 11px; color: var(--fg-muted); text-transform: uppercase; }
+      .filter-btn {
+        padding: 4px 10px; font-size: 11px;
+        background: transparent; color: var(--fg-muted);
+        border: 1px solid var(--border); border-radius: 4px;
+        cursor: pointer; font-family: inherit;
+      }
+      .filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+      .rule-category-group { margin-bottom: 24px; }
+      .rule-category-header {
+        font-size: 13px; font-weight: 600; color: var(--fg);
+        margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border);
+      }
+
+      .rule-row {
+        display: grid; grid-template-columns: 1fr auto auto auto;
+        gap: 12px; padding: 10px 12px; margin-bottom: 4px;
+        background: var(--bg-panel); border-radius: 4px;
+        font-size: 12px; align-items: center;
+      }
+      .rule-row.deleted { opacity: 0.6; }
+      .rule-name { font-weight: 500; color: var(--fg); }
+      .rule-key { font-size: 10px; color: var(--fg-muted); font-family: var(--mono); }
+      .rule-meta { display: flex; gap: 6px; align-items: center; font-size: 10px; color: var(--fg-muted); }
+      .source-badge {
+        display: inline-block; padding: 2px 6px; border-radius: 3px;
+        font-size: 9px; text-transform: uppercase; font-weight: 600;
+      }
+      .source-badge.cns { background: #3a4a5e; color: #e7e9ec; }
+      .source-badge.industry { background: #6b5a20; color: #ffd54f; }
+      .source-badge.engineering { background: #3a5233; color: #8aa680; }
+      .mandatory-icon { color: var(--fg-muted); font-size: 11px; }
+
+      .rule-value-input {
+        padding: 4px 8px; font-size: 12px;
+        background: var(--bg); color: var(--fg);
+        border: 1px solid var(--border); border-radius: 3px;
+        width: 100px; font-family: var(--mono);
+      }
+      .rule-value-input:focus { border-color: var(--accent); outline: none; }
+      .rule-value-input.updated { border-color: var(--accent); animation: flash 0.8s; }
+      @keyframes flash {
+        0% { background: rgba(232, 115, 78, 0.3); }
+        100% { background: var(--bg); }
+      }
+
+      .rule-action-btn {
+        padding: 4px 8px; font-size: 10px;
+        background: transparent; color: var(--fg-muted);
+        border: 1px solid var(--border); border-radius: 3px;
+        cursor: pointer; font-family: inherit;
+      }
+      .rule-action-btn:hover:not(:disabled) { color: var(--fg); border-color: var(--accent); }
+      .rule-action-btn:disabled { cursor: not-allowed; opacity: 0.4; }
+      .rule-action-btn.danger:hover:not(:disabled) { color: #e8734e; border-color: #e8734e; }
+
+      /* Modal */
+      .modal-backdrop {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 100;
+      }
+      .modal-backdrop.hidden { display: none; }
+      .modal {
+        background: var(--bg-panel); border-radius: 8px;
+        padding: 24px; max-width: 480px; width: 90%;
+        border: 1px solid var(--border);
+      }
+      .modal h3 { margin: 0 0 12px 0; font-size: 14px; }
+      .modal-body { font-size: 12px; color: var(--fg-muted); margin-bottom: 16px; }
+      .modal-body ul { margin: 8px 0 8px 16px; padding: 0; }
+      .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+      .modal-btn {
+        padding: 8px 16px; font-size: 12px;
+        border: 1px solid var(--border); border-radius: 4px;
+        background: transparent; color: var(--fg); cursor: pointer;
+      }
+      .modal-btn.primary { background: var(--accent); border-color: var(--accent); color: white; }
+      .modal-btn.danger:hover { border-color: #e8734e; color: #e8734e; }
+
+      /* Toast */
+      .toast-container {
+        position: fixed; bottom: 20px; right: 20px; z-index: 200;
+        display: flex; flex-direction: column; gap: 8px;
+      }
+      .toast {
+        padding: 10px 16px; border-radius: 4px; font-size: 12px;
+        background: var(--bg-panel); border-left: 3px solid var(--accent);
+        color: var(--fg); animation: toast-in 0.3s;
+      }
+      .toast.error { border-left-color: #e8734e; }
+      @keyframes toast-in { from { transform: translateX(100%); opacity: 0; } to { transform: none; opacity: 1; } }
     </style>
   </head>
   <body>
@@ -670,7 +775,59 @@
       </aside>
       </section>
 
-      <section id="view-rules" class="view hidden"></section>
+      <section id="view-rules" class="view hidden">
+        <div class="rules-header">
+          <span class="rules-title">規則管理</span>
+          <div>
+            <a href="#/rules/deleted" class="rule-action-btn">查看已刪規則</a>
+          </div>
+        </div>
+
+        <div class="rules-filters">
+          <div class="filter-group">
+            <span class="filter-label">類別</span>
+            <button class="filter-btn active" data-filter="category" data-value="">全部</button>
+            <!-- Filled dynamically -->
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">來源</span>
+            <button class="filter-btn active" data-filter="source" data-value="">全部</button>
+            <button class="filter-btn" data-filter="source" data-value="cns">CNS</button>
+            <button class="filter-btn" data-filter="source" data-value="industry">產業</button>
+            <button class="filter-btn" data-filter="source" data-value="engineering">工程</button>
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">狀態</span>
+            <button class="filter-btn active" data-filter="status" data-value="active">啟用</button>
+            <button class="filter-btn" data-filter="status" data-value="deleted">已刪除</button>
+          </div>
+        </div>
+
+        <div id="rules-list"></div>
+
+        <!-- Delete confirmation modal -->
+        <div id="delete-modal" class="modal-backdrop hidden">
+          <div class="modal">
+            <h3>確認刪除設計指引</h3>
+            <div class="modal-body">
+              <div id="delete-modal-rule-info"></div>
+              <p>刪除後：</p>
+              <ul>
+                <li>此規則立刻從所有案子消失</li>
+                <li>Solver 會 fallback 到系統預設</li>
+                <li>可在「查看已刪規則」頁面還原</li>
+                <li>此動作會記錄到 audit log</li>
+              </ul>
+            </div>
+            <div class="modal-actions">
+              <button class="modal-btn" id="delete-cancel">取消</button>
+              <button class="modal-btn danger" id="delete-confirm">確認刪除</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="toast-container" id="toast-container"></div>
+      </section>
     </main>
 
     <footer>
@@ -1128,6 +1285,305 @@
         container.innerHTML = ''
         container.appendChild(svg)
       }
+
+      // ---- Rules Tab State ----
+      const rulesState = {
+        rules: [],
+        deletedRules: [],
+        categories: [],
+        filters: { category: '', source: '', status: 'active' },
+        pendingDelete: null, // { key, name } when modal open
+      }
+
+      async function fetchRules() {
+        const [activeRes, deletedRes] = await Promise.all([
+          fetch('/api/rules').then((r) => r.json()),
+          fetch('/api/rules/deleted').then((r) => r.json()),
+        ])
+        rulesState.rules = activeRes.rules
+        rulesState.categories = activeRes.categories
+        rulesState.deletedRules = deletedRes.rules
+        populateCategoryFilter()
+        renderRulesList()
+      }
+
+      function populateCategoryFilter() {
+        const filterGroup = document.querySelector('[data-filter="category"]').parentElement
+        // Clear existing category buttons except "全部"
+        Array.from(filterGroup.querySelectorAll('[data-filter="category"]'))
+          .slice(1) // keep "全部"
+          .forEach((btn) => btn.remove())
+        for (const cat of rulesState.categories) {
+          const btn = document.createElement('button')
+          btn.className = 'filter-btn'
+          btn.dataset.filter = 'category'
+          btn.dataset.value = cat.id
+          btn.textContent = cat.display_name
+          filterGroup.appendChild(btn)
+        }
+        // Re-bind all filter buttons (since we added new ones)
+        bindFilters()
+      }
+
+      function bindFilters() {
+        document.querySelectorAll('.filter-btn').forEach((btn) => {
+          btn.onclick = () => {
+            const filter = btn.dataset.filter
+            const value = btn.dataset.value
+            rulesState.filters[filter] = value
+            // Update active state on the same filter group
+            document.querySelectorAll(`[data-filter="${filter}"]`).forEach((b) => {
+              b.classList.toggle('active', b.dataset.value === value)
+            })
+            renderRulesList()
+          }
+        })
+      }
+
+      function renderRulesList() {
+        const container = document.getElementById('rules-list')
+        container.innerHTML = ''
+
+        const source = rulesState.filters.source
+        const category = rulesState.filters.category
+        const status = rulesState.filters.status
+
+        const sourceRules = status === 'active' ? rulesState.rules : rulesState.deletedRules
+        const filtered = sourceRules.filter((r) => {
+          if (source && r.source !== source) return false
+          if (category && r.category !== category) return false
+          return true
+        })
+
+        // Group by category
+        const groups = new Map()
+        for (const rule of filtered) {
+          if (!groups.has(rule.category)) groups.set(rule.category, [])
+          groups.get(rule.category).push(rule)
+        }
+
+        if (groups.size === 0) {
+          container.innerHTML = '<div style="padding:20px;color:var(--fg-muted);">無符合條件的規則</div>'
+          return
+        }
+
+        for (const [categoryId, rules] of groups.entries()) {
+          const catMeta = rulesState.categories.find((c) => c.id === categoryId)
+          const group = document.createElement('div')
+          group.className = 'rule-category-group'
+
+          const header = document.createElement('div')
+          header.className = 'rule-category-header'
+          header.textContent = `${catMeta ? catMeta.display_name : categoryId} (${rules.length})`
+          group.appendChild(header)
+
+          for (const rule of rules) {
+            group.appendChild(renderRuleRow(rule, status === 'deleted'))
+          }
+          container.appendChild(group)
+        }
+      }
+
+      function renderRuleRow(rule, isDeleted) {
+        const row = document.createElement('div')
+        row.className = 'rule-row' + (isDeleted ? ' deleted' : '')
+
+        // Column 1: name + key + meta
+        const info = document.createElement('div')
+        info.innerHTML = `
+          <div class="rule-name">${escapeHtml(rule.name)} ${rule.mandatory ? '<span class="mandatory-icon" title="結構性必要，不可刪">[必]</span>' : ''}</div>
+          <div class="rule-key">${escapeHtml(rule.key)}</div>
+          <div class="rule-meta">
+            <span class="source-badge ${rule.source}">${rule.source}</span>
+            ${baselineDescText(rule)}
+          </div>
+        `
+        row.appendChild(info)
+
+        // Column 2: value editor
+        const valueCell = document.createElement('div')
+        if (isDeleted) {
+          valueCell.innerHTML = `<span class="rule-key">${escapeHtml(rule.value)}${rule.unit ? ' ' + rule.unit : ''}</span>`
+        } else if (rule.type === 'number') {
+          const input = document.createElement('input')
+          input.type = 'number'
+          input.className = 'rule-value-input'
+          input.value = rule.value
+          if (rule.baseline_min !== null && rule.baseline_min !== undefined) input.min = rule.baseline_min
+          if (rule.baseline_max !== null && rule.baseline_max !== undefined) input.max = rule.baseline_max
+          input.onblur = () => handleRuleEdit(rule.key, input.value, input)
+          valueCell.appendChild(input)
+        } else if (rule.type === 'enum') {
+          const select = document.createElement('select')
+          select.className = 'rule-value-input'
+          for (const choice of rule.baseline_choices || []) {
+            const opt = document.createElement('option')
+            opt.value = choice
+            opt.textContent = choice
+            if (choice === rule.value) opt.selected = true
+            select.appendChild(opt)
+          }
+          select.onchange = () => handleRuleEdit(rule.key, select.value, select)
+          valueCell.appendChild(select)
+        }
+        row.appendChild(valueCell)
+
+        // Column 3: reset to factory
+        const resetCell = document.createElement('div')
+        if (!isDeleted && rule.value !== rule.default_value) {
+          const btn = document.createElement('button')
+          btn.className = 'rule-action-btn'
+          btn.textContent = '重設'
+          btn.title = `重設為出廠值 ${rule.default_value}`
+          btn.onclick = () => handleRuleEdit(rule.key, rule.default_value, null)
+          resetCell.appendChild(btn)
+        }
+        row.appendChild(resetCell)
+
+        // Column 4: delete / restore
+        const deleteCell = document.createElement('div')
+        if (isDeleted) {
+          const btn = document.createElement('button')
+          btn.className = 'rule-action-btn'
+          btn.textContent = '還原'
+          btn.onclick = () => handleRestore(rule.key)
+          deleteCell.appendChild(btn)
+        } else {
+          const btn = document.createElement('button')
+          btn.className = 'rule-action-btn danger'
+          btn.textContent = '刪除'
+          btn.disabled = rule.mandatory
+          if (rule.mandatory) btn.title = '此規則為結構性必要，不可刪除'
+          btn.onclick = () => openDeleteModal(rule)
+          deleteCell.appendChild(btn)
+        }
+        row.appendChild(deleteCell)
+
+        return row
+      }
+
+      function baselineDescText(rule) {
+        if (rule.type === 'number') {
+          const unit = rule.unit || ''
+          if (rule.baseline_min !== null && rule.baseline_min !== undefined && rule.baseline_max !== null && rule.baseline_max !== undefined)
+            return `${rule.baseline_min}-${rule.baseline_max} ${unit}`.trim()
+          if (rule.baseline_min !== null && rule.baseline_min !== undefined) return `≥ ${rule.baseline_min} ${unit}`.trim()
+          if (rule.baseline_max !== null && rule.baseline_max !== undefined) return `≤ ${rule.baseline_max} ${unit}`.trim()
+          return ''
+        }
+        return `(${(rule.baseline_choices || []).length} 選項)`
+      }
+
+      function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
+      }
+
+      async function handleRuleEdit(key, newValue, inputEl) {
+        try {
+          const res = await fetch(`/api/rules/${encodeURIComponent(key)}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ value: newValue }),
+          })
+          if (!res.ok) {
+            const err = await res.json()
+            showToast(`更新失敗：${err.message || err.error}`, 'error')
+            return
+          }
+          const data = await res.json()
+          // Update state
+          const idx = rulesState.rules.findIndex((r) => r.key === key)
+          if (idx >= 0) rulesState.rules[idx] = data.rule
+          showToast(`已更新 ${key}`)
+          if (inputEl) {
+            inputEl.classList.add('updated')
+            setTimeout(() => inputEl.classList.remove('updated'), 800)
+          } else {
+            renderRulesList()
+          }
+        } catch (e) {
+          showToast(`錯誤：${e.message}`, 'error')
+        }
+      }
+
+      function openDeleteModal(rule) {
+        rulesState.pendingDelete = rule
+        const modal = document.getElementById('delete-modal')
+        document.getElementById('delete-modal-rule-info').innerHTML = `
+          <div style="background:var(--bg);padding:10px;border-radius:4px;margin-bottom:12px;">
+            <div><strong>${escapeHtml(rule.key)}</strong></div>
+            <div style="font-size:11px;">${escapeHtml(rule.name)}</div>
+            <div style="font-size:11px;color:var(--fg-muted);">目前值：${escapeHtml(rule.value)}</div>
+            <div style="font-size:11px;color:var(--fg-muted);">來源：${rule.source}</div>
+          </div>
+        `
+        modal.classList.remove('hidden')
+      }
+
+      document.getElementById('delete-cancel').onclick = () => {
+        document.getElementById('delete-modal').classList.add('hidden')
+        rulesState.pendingDelete = null
+      }
+
+      document.getElementById('delete-confirm').onclick = async () => {
+        const rule = rulesState.pendingDelete
+        if (!rule) return
+        try {
+          const res = await fetch(`/api/rules/${encodeURIComponent(rule.key)}`, { method: 'DELETE' })
+          if (!res.ok) {
+            const err = await res.json()
+            showToast(`刪除失敗：${err.message || err.error}`, 'error')
+            return
+          }
+          await fetchRules()
+          showToast(`已刪除 ${rule.key}`)
+        } catch (e) {
+          showToast(`錯誤：${e.message}`, 'error')
+        } finally {
+          document.getElementById('delete-modal').classList.add('hidden')
+          rulesState.pendingDelete = null
+        }
+      }
+
+      async function handleRestore(key) {
+        try {
+          const res = await fetch(`/api/rules/${encodeURIComponent(key)}/restore`, { method: 'POST' })
+          if (!res.ok) {
+            const err = await res.json()
+            showToast(`還原失敗：${err.message}`, 'error')
+            return
+          }
+          await fetchRules()
+          showToast(`已還原 ${key}`)
+        } catch (e) {
+          showToast(`錯誤：${e.message}`, 'error')
+        }
+      }
+
+      function showToast(message, variant = 'success') {
+        const container = document.getElementById('toast-container')
+        const toast = document.createElement('div')
+        toast.className = 'toast' + (variant === 'error' ? ' error' : '')
+        toast.textContent = message
+        container.appendChild(toast)
+        setTimeout(() => toast.remove(), 3000)
+      }
+
+      // Fetch rules when entering rules view
+      document.addEventListener('route-change', (ev) => {
+        const route = ev.detail.route
+        if (route === 'rules' || route === 'rules-deleted') {
+          if (rulesState.rules.length === 0) fetchRules()
+          // Handle #/rules/deleted — switch to deleted filter
+          if (route === 'rules-deleted') {
+            rulesState.filters.status = 'deleted'
+            document.querySelectorAll('[data-filter="status"]').forEach((b) => {
+              b.classList.toggle('active', b.dataset.value === 'deleted')
+            })
+            renderRulesList()
+          }
+        }
+      })
     </script>
   </body>
 </html>
