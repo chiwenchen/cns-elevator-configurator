@@ -1,22 +1,56 @@
 /**
- * Professional elevation view — replaces draft elevation entirely.
+ * Professional elevation view — uses same zigzag compression as draft,
+ * but adds professional components in the visible regions:
  *
- * Draws full multi-floor rendering (no zigzag break) with:
- *   1.  Shaft outline (full height)
- *   2.  Multi-floor landings
- *   3.  Car at 1F
- *   4.  Buffers ×2 (spring / oil auto-select)
- *   5.  MRL traction machine + sheave
- *   6.  Overhead breakdown (3-segment)
- *   7.  Rail brackets
- *   8.  Safety gear + governor
- *   9.  Ropes + traveling cable
- *   10. PIT dimension
- *   11. Title
+ * Bottom zone (pit → 1F → car top):
+ *   - Buffers in pit
+ *   - Safety gear below car
+ *   - Car at 1F
+ *   - 1F + 2F landing lines
+ *
+ * Top zone (above zigzag break):
+ *   - MRL traction machine + sheave
+ *   - Governor wheel
+ *   - Overhead breakdown (3-segment)
+ *   - Top floor label
+ *
+ * Both zones:
+ *   - Ropes (car → sheave → CWT)
+ *   - Traveling cable path
+ *   - Rail brackets
+ *   - Wall thickness indicators
+ *
+ * The zigzag break represents omitted middle floors.
+ * This keeps the elevation height proportional to plan view.
  */
 
 import type { ElevatorDesign } from '../solver/types'
 import type { EffectiveConfig, ProfessionalConfig, BufferType } from '../config/types'
+
+function resolveBufferType(speed: number, override: BufferType): 'spring' | 'oil' {
+  if (override !== 'auto') return override
+  return speed <= 60 ? 'spring' : 'oil'
+}
+
+function drawSpringZigzag(
+  dw: any,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): void {
+  const segments = 6
+  const segH = h / segments
+  const midX = x + w / 2
+  const amplitude = w * 0.3
+  for (let i = 0; i < segments; i++) {
+    const y1 = y + i * segH
+    const y2 = y + (i + 1) * segH
+    const x1 = i % 2 === 0 ? midX - amplitude : midX + amplitude
+    const x2 = i % 2 === 0 ? midX + amplitude : midX - amplitude
+    dw.drawLine(x1, y1, x2, y2)
+  }
+}
 
 export function drawElevationProfessional(
   dw: any,
@@ -28,375 +62,236 @@ export function drawElevationProfessional(
   const { shaft, car } = design
   const ox = origin.x
   const oy = origin.y
-
-  const floorHeight = config.height.floor_default_mm
-  const stops = shaft.stops
-
-  // Key vertical positions
-  const pitBottom = oy
-  const firstFloorY = oy + shaft.pit_depth_mm
-  const topFloorY = firstFloorY + (stops - 1) * floorHeight
-  const shaftTop = topFloorY + shaft.overhead_mm
-
-  // Shaft visual width for elevation (use shaft width directly)
   const sw = shaft.width_mm
 
-  // ---- 1. Shaft outline ----
-  drawShaftOutline(dw, ox, pitBottom, sw, shaftTop)
+  // ── Vertical layout (same coordinate system as draft) ──
+  // 1F is at oy, pit extends downward, everything above is upward
+  const firstFloorY = oy
+  const pitBottom = firstFloorY - shaft.pit_depth_mm
+  const carBottom = firstFloorY + 100
+  const carTop = carBottom + car.height_mm
 
-  // ---- 2. Multi-floor landings ----
-  drawLandings(dw, ox, firstFloorY, sw, stops, floorHeight)
+  // Top zone: overhead region rendered above zigzag
+  const BREAK_HEADROOM = 600
+  const BREAK_GAP = 1200
+  const TOP_ZONE_HEIGHT = 2000  // enough room for machine + overhead labels
 
-  // ---- 3. Car at 1F ----
-  drawCarAtFirstFloor(dw, ox, firstFloorY, sw, car)
+  const zigBot = carTop + BREAK_HEADROOM
+  const zigTop = zigBot + BREAK_GAP
+  const topZoneBottom = zigTop
+  const shaftVisualTop = zigTop + TOP_ZONE_HEIGHT
 
-  // ---- 4. Buffers ----
-  drawBuffers(dw, ox, pitBottom, firstFloorY, sw, design.rated_speed_mpm, pro)
+  // Real overhead values (for annotation only — not affecting layout)
+  const floorHeight = config.height.floor_default_mm
+  const topFloorY_real = firstFloorY + (shaft.stops - 1) * floorHeight
+  const oh = config.height.overhead
 
-  // ---- 5. MRL traction machine ----
-  drawMachine(dw, ox, shaftTop, sw, pro)
-
-  // ---- 6. Overhead breakdown ----
-  drawOverheadBreakdown(dw, ox, topFloorY, shaftTop, sw, config, design.rated_speed_mpm)
-
-  // ---- 7. Rail brackets ----
-  drawRailBrackets(dw, ox, pitBottom, shaftTop, sw, pro.rail_bracket_spacing_mm)
-
-  // ---- 8. Safety gear + governor ----
-  drawSafetyAndGovernor(dw, ox, firstFloorY, shaftTop, sw, car, pro)
-
-  // ---- 9. Ropes + traveling cable ----
-  drawRopesAndTC(dw, ox, firstFloorY, shaftTop, sw, car, pro)
-
-  // ---- 10. PIT dimension ----
-  drawPitDimension(dw, ox, pitBottom, firstFloorY, sw, shaft.pit_depth_mm)
-
-  // ---- 11. Title ----
-  dw.setActiveLayer('TEXT')
-  dw.drawText(
-    ox + sw / 2,
-    pitBottom - 600,
-    180,
-    0,
-    'ELEVATION VIEW / 側面圖 (PROFESSIONAL)',
-    'center',
-  )
-}
-
-// ---- Component helpers ----
-
-function drawShaftOutline(
-  dw: any,
-  ox: number,
-  pitBottom: number,
-  sw: number,
-  shaftTop: number,
-): void {
+  // ── 1. Shaft outline (visible range only) ──
   dw.setActiveLayer('SHAFT')
-  dw.drawRect(ox, pitBottom, ox + sw, shaftTop)
-}
+  dw.drawRect(ox, pitBottom, ox + sw, shaftVisualTop)
+  // 1F line
+  dw.drawLine(ox, firstFloorY, ox + sw, firstFloorY)
 
-function drawLandings(
-  dw: any,
-  ox: number,
-  firstFloorY: number,
-  sw: number,
-  stops: number,
-  floorHeight: number,
-): void {
-  dw.setActiveLayer('LANDING')
-  for (let i = 0; i < stops; i++) {
-    const floorY = firstFloorY + i * floorHeight
-    // Floor line
-    dw.drawLine(ox, floorY, ox + sw, floorY)
-    // Door opening indicator (short vertical line on left wall, 2100mm high)
-    dw.drawLine(ox, floorY, ox, floorY + 2100)
-
-    // Floor label
-    dw.setActiveLayer('TEXT')
-    dw.drawText(ox - 250, floorY, 120, 0, `${i + 1}F`)
-    dw.setActiveLayer('LANDING')
+  // ── 2. Zigzag break symbols ──
+  const zigStep = sw / 6
+  for (const baseY of [zigBot, zigTop]) {
+    dw.setActiveLayer('STOP')
+    for (let i = 0; i < 6; i++) {
+      const x1 = ox + i * zigStep
+      const x2 = ox + (i + 1) * zigStep
+      const y1 = baseY + (i % 2 === 0 ? -80 : 80)
+      const y2 = baseY + (i % 2 === 0 ? 80 : -80)
+      dw.drawLine(x1, y1, x2, y2)
+    }
   }
-}
 
-function drawCarAtFirstFloor(
-  dw: any,
-  ox: number,
-  firstFloorY: number,
-  sw: number,
-  car: ElevatorDesign['car'],
-): void {
+  // ── 3. Floor labels (1F, 2F visible; top floor in top zone) ──
+  dw.setActiveLayer('TEXT')
+  dw.drawText(ox - 250, firstFloorY, 140, 0, '1F', 'right')
+  // 2F line (if > 1 stop)
+  if (shaft.stops > 1) {
+    const secondFloorY = firstFloorY + floorHeight
+    // Only draw 2F if it's below the zigzag break
+    if (secondFloorY < zigBot) {
+      dw.setActiveLayer('LANDING')
+      dw.drawLine(ox, secondFloorY, ox + sw, secondFloorY)
+      dw.drawLine(ox, secondFloorY, ox, secondFloorY + 2100)
+      dw.setActiveLayer('TEXT')
+      dw.drawText(ox - 250, secondFloorY, 140, 0, '2F', 'right')
+    }
+  }
+  // Top floor label in top zone
+  dw.setActiveLayer('TEXT')
+  dw.drawText(ox - 250, topZoneBottom + 100, 140, 0, `${shaft.stops}F`, 'right')
+  dw.setActiveLayer('LANDING')
+  dw.drawLine(ox, topZoneBottom + 100, ox + sw, topZoneBottom + 100)
+
+  // 1F landing door indicator
+  dw.setActiveLayer('LANDING')
+  dw.drawLine(ox, firstFloorY, ox, firstFloorY + 2100)
+
+  // ── 4. Car at 1F ──
+  const carInsetX = (sw - car.width_mm) / 2
   dw.setActiveLayer('CAR')
-  const carW = sw * 0.5
-  const carX = ox + (sw - carW) / 2
-  dw.drawRect(carX, firstFloorY + 100, carX + carW, firstFloorY + 100 + car.height_mm)
-}
+  dw.drawRect(ox + carInsetX, carBottom, ox + carInsetX + car.width_mm, carTop)
 
-function resolveBufferType(speed: number, override: BufferType): 'spring' | 'oil' {
-  if (override !== 'auto') return override
-  return speed <= 60 ? 'spring' : 'oil'
-}
-
-function drawBuffers(
-  dw: any,
-  ox: number,
-  pitBottom: number,
-  firstFloorY: number,
-  sw: number,
-  speed: number,
-  pro: ProfessionalConfig,
-): void {
+  // ── 5. Buffers in pit ──
   dw.setActiveLayer('BUFFER')
-
-  const bufferType = resolveBufferType(speed, pro.buffer_type)
-  const bufferH =
-    bufferType === 'spring' ? pro.buffer_height_spring_mm : pro.buffer_height_oil_mm
+  const bufferType = resolveBufferType(design.rated_speed_mpm, pro.buffer_type)
+  const bufferH = bufferType === 'spring' ? pro.buffer_height_spring_mm : pro.buffer_height_oil_mm
   const bufferW = pro.buffer_width_mm
 
-  // Car buffer — centered
+  // Car buffer (centered)
   const carBufX = ox + sw / 2 - bufferW / 2
   dw.drawRect(carBufX, pitBottom, carBufX + bufferW, pitBottom + bufferH)
-
-  // CWT buffer — at 75% width
+  // CWT buffer (at 75% width)
   const cwtBufX = ox + sw * 0.75 - bufferW / 2
   dw.drawRect(cwtBufX, pitBottom, cwtBufX + bufferW, pitBottom + bufferH)
 
   if (bufferType === 'spring') {
-    // Draw zigzag inside both buffer rects
     drawSpringZigzag(dw, carBufX, pitBottom, bufferW, bufferH)
     drawSpringZigzag(dw, cwtBufX, pitBottom, bufferW, bufferH)
   } else {
-    // Solid fill + "OIL" text
     dw.setActiveLayer('TEXT')
     dw.drawText(carBufX + bufferW / 2, pitBottom + bufferH / 2, 60, 0, 'OIL', 'center')
     dw.drawText(cwtBufX + bufferW / 2, pitBottom + bufferH / 2, 60, 0, 'OIL', 'center')
   }
-}
 
-function drawSpringZigzag(
-  dw: any,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-): void {
-  // Zigzag line inside the buffer rectangle
-  const segments = 6
-  const segH = h / segments
-  const midX = x + w / 2
-  const amplitude = w * 0.3
+  // ── 6. Safety gear below car ──
+  dw.setActiveLayer('SAFETY')
+  const sgW = pro.safety_gear_width_mm
+  const sgH = pro.safety_gear_height_mm
+  const carDrawX = ox + carInsetX
+  const carDrawW = car.width_mm
+  const sgY = carBottom - sgH
 
-  for (let i = 0; i < segments; i++) {
-    const y1 = y + i * segH
-    const y2 = y + (i + 1) * segH
-    const x1 = i % 2 === 0 ? midX - amplitude : midX + amplitude
-    const x2 = i % 2 === 0 ? midX + amplitude : midX - amplitude
-    dw.drawLine(x1, y1, x2, y2)
-  }
-}
+  // Left safety gear
+  dw.drawRect(carDrawX, sgY, carDrawX + sgW, sgY + sgH)
+  // Right safety gear
+  dw.drawRect(carDrawX + carDrawW - sgW, sgY, carDrawX + carDrawW, sgY + sgH)
 
-function drawMachine(
-  dw: any,
-  ox: number,
-  shaftTop: number,
-  sw: number,
-  pro: ProfessionalConfig,
-): void {
+  // ── 7. MRL Machine in top zone ──
   dw.setActiveLayer('MACHINE')
-
-  // Machine rectangle at shaft top-right
   const machX = ox + sw - pro.machine_width_mm - 50
-  const machY = shaftTop - pro.machine_height_mm - 50
+  const machY = shaftVisualTop - pro.machine_height_mm - 100
   dw.drawRect(machX, machY, machX + pro.machine_width_mm, machY + pro.machine_height_mm)
-
   // Sheave circle
   const sheaveR = pro.sheave_diameter_mm / 2
   const sheaveCx = machX + pro.machine_width_mm / 2
   const sheaveCy = machY + pro.machine_height_mm / 2
   dw.drawCircle(sheaveCx, sheaveCy, sheaveR)
-
-  // Label
   dw.setActiveLayer('TEXT')
   dw.drawText(machX + pro.machine_width_mm / 2, machY - 80, 60, 0, 'MACHINE (示意)', 'center')
-}
 
-function drawOverheadBreakdown(
-  dw: any,
-  ox: number,
-  topFloorY: number,
-  shaftTop: number,
-  sw: number,
-  config: EffectiveConfig,
-  speed: number,
-): void {
-  dw.setActiveLayer('DIMS')
-
-  const oh = config.height.overhead
-  const refuge = oh.refuge_mm
-  const bounce = Math.round(oh.bounce_coef * speed * speed * 1000)
-  const machineBuf = oh.machine_buffer_mm
-
-  const annotX = ox + sw + 500
-  const seg1Top = topFloorY + refuge
-  const seg2Top = seg1Top + bounce
-  // seg3Top should be shaftTop
-
-  // Tick marks and labels
-  // Segment 1: refuge
-  dw.drawLine(annotX - 50, topFloorY, annotX + 50, topFloorY)
-  dw.drawLine(annotX - 50, seg1Top, annotX + 50, seg1Top)
-  dw.drawLine(annotX, topFloorY, annotX, seg1Top)
-  dw.drawText(annotX + 80, (topFloorY + seg1Top) / 2, 80, 0, `refuge ${refuge}`)
-
-  // Segment 2: bounce
-  dw.drawLine(annotX - 50, seg2Top, annotX + 50, seg2Top)
-  dw.drawLine(annotX, seg1Top, annotX, seg2Top)
-  dw.drawText(annotX + 80, (seg1Top + seg2Top) / 2, 80, 0, `bounce ${bounce}`)
-
-  // Segment 3: machine buffer
-  dw.drawLine(annotX - 50, shaftTop, annotX + 50, shaftTop)
-  dw.drawLine(annotX, seg2Top, annotX, shaftTop)
-  dw.drawText(annotX + 80, (seg2Top + shaftTop) / 2, 80, 0, `machine_buf ${machineBuf}`)
-}
-
-function drawRailBrackets(
-  dw: any,
-  ox: number,
-  pitBottom: number,
-  shaftTop: number,
-  sw: number,
-  spacing: number,
-): void {
-  dw.setActiveLayer('WALL')
-
-  const triSize = 80
-  let y = pitBottom + spacing
-
-  while (y < shaftTop) {
-    // Left wall bracket (triangle pointing right)
-    dw.drawLine(ox, y - triSize / 2, ox + triSize, y)
-    dw.drawLine(ox + triSize, y, ox, y + triSize / 2)
-    dw.drawLine(ox, y + triSize / 2, ox, y - triSize / 2)
-
-    // Right wall bracket (triangle pointing left)
-    dw.drawLine(ox + sw, y - triSize / 2, ox + sw - triSize, y)
-    dw.drawLine(ox + sw - triSize, y, ox + sw, y + triSize / 2)
-    dw.drawLine(ox + sw, y + triSize / 2, ox + sw, y - triSize / 2)
-
-    y += spacing
-  }
-}
-
-function drawSafetyAndGovernor(
-  dw: any,
-  ox: number,
-  firstFloorY: number,
-  shaftTop: number,
-  sw: number,
-  car: ElevatorDesign['car'],
-  pro: ProfessionalConfig,
-): void {
+  // ── 8. Governor in top zone ──
   dw.setActiveLayer('SAFETY')
-
-  const carW = sw * 0.5
-  const carX = ox + (sw - carW) / 2
-
-  // Safety gear blocks at car sling bottom (2 rectangles)
-  const sgW = pro.safety_gear_width_mm
-  const sgH = pro.safety_gear_height_mm
-  const sgY = firstFloorY + 100 - sgH // just below car bottom
-
-  // Left safety gear
-  dw.drawRect(carX, sgY, carX + sgW, sgY + sgH)
-  // Right safety gear
-  dw.drawRect(carX + carW - sgW, sgY, carX + carW, sgY + sgH)
-
-  // Governor wheel at shaft top
   const govR = pro.governor_diameter_mm / 2
-  const govCx = ox + 150 // near left wall
-  const govCy = shaftTop - govR - 50
+  const govCx = ox + 150
+  const govCy = shaftVisualTop - govR - 80
   dw.drawCircle(govCx, govCy, govR)
+  dw.setActiveLayer('TEXT')
+  dw.drawText(govCx + govR + 30, govCy, 60, 0, 'GOV (示意)')
 
-  // Dashed governor rope (vertical line from governor to safety gear)
-  // Draw as series of short segments to simulate dashed
-  const ropeX = govCx
-  const ropeTop = govCy - govR
-  const ropeBottom = sgY + sgH / 2
+  // Governor rope (dashed, from gov down through zigzag to safety gear)
+  // Only draw in visible zones (bottom: sgY to zigBot, top: zigTop to govCy)
+  dw.setActiveLayer('SAFETY')
   const dashLen = 100
   const gapLen = 60
-  let curY = ropeBottom
-
-  while (curY < ropeTop) {
-    const endY = Math.min(curY + dashLen, ropeTop)
-    dw.drawLine(ropeX, curY, ropeX, endY)
+  // Bottom segment: safety gear to zigzag
+  let curY = sgY + sgH / 2
+  while (curY < zigBot - 100) {
+    const endY = Math.min(curY + dashLen, zigBot - 100)
+    dw.drawLine(govCx, curY, govCx, endY)
+    curY = endY + gapLen
+  }
+  // Top segment: zigzag to governor
+  curY = zigTop + 100
+  while (curY < govCy - govR) {
+    const endY = Math.min(curY + dashLen, govCy - govR)
+    dw.drawLine(govCx, curY, govCx, endY)
     curY = endY + gapLen
   }
 
-  // Labels
-  dw.setActiveLayer('TEXT')
-  dw.drawText(govCx + govR + 30, govCy, 60, 0, 'GOV (示意)')
-}
-
-function drawRopesAndTC(
-  dw: any,
-  ox: number,
-  firstFloorY: number,
-  shaftTop: number,
-  sw: number,
-  car: ElevatorDesign['car'],
-  pro: ProfessionalConfig,
-): void {
+  // ── 9. Suspension ropes ──
   dw.setActiveLayer('ROPE')
+  const ropeCarX1 = ox + carInsetX + carDrawW * 0.4
+  const ropeCarX2 = ox + carInsetX + carDrawW * 0.6
+  const cwtRopeX = ox + sw * 0.75
 
-  const carW = sw * 0.5
-  const carX = ox + (sw - carW) / 2
-  const carTop = firstFloorY + 100 + car.height_mm
+  // Bottom segment: car top → zigzag break
+  dw.drawLine(ropeCarX1, carTop, ropeCarX1, zigBot - 100)
+  dw.drawLine(ropeCarX2, carTop, ropeCarX2, zigBot - 100)
+  // Top segment: zigzag → sheave → CWT side
+  dw.drawLine(ropeCarX1, zigTop + 100, sheaveCx - 10, sheaveCy)
+  dw.drawLine(ropeCarX2, zigTop + 100, sheaveCx + 10, sheaveCy)
+  dw.drawLine(sheaveCx - 10, sheaveCy, cwtRopeX - 10, zigTop + 100)
+  dw.drawLine(sheaveCx + 10, sheaveCy, cwtRopeX + 10, zigTop + 100)
+  // CWT rope below zigzag
+  dw.drawLine(cwtRopeX - 10, zigBot - 100, cwtRopeX - 10, carTop)
+  dw.drawLine(cwtRopeX + 10, zigBot - 100, cwtRopeX + 10, carTop)
 
-  // Sheave position (same as machine center)
-  const sheaveX = ox + sw - pro.machine_width_mm / 2 - 50
-  const sheaveY = shaftTop - pro.machine_height_mm / 2 - 50
-
-  // CWT position (at 75% width, approximate)
-  const cwtX = ox + sw * 0.75
-
-  // Suspension rope left line: car top → sheave → CWT
-  const ropeCarX1 = carX + carW * 0.4
-  const ropeCarX2 = carX + carW * 0.6
-
-  // Rope 1
-  dw.drawLine(ropeCarX1, carTop, sheaveX - 10, sheaveY)
-  dw.drawLine(sheaveX - 10, sheaveY, cwtX - 10, carTop)
-  // Rope 2
-  dw.drawLine(ropeCarX2, carTop, sheaveX + 10, sheaveY)
-  dw.drawLine(sheaveX + 10, sheaveY, cwtX + 10, carTop)
-
-  // Traveling cable: car bottom → U-curve down → wall
-  const carBottom = firstFloorY + 100
-  const tcX = carX + 30
-  const tcMidY = firstFloorY - 200 // U-curve dip
+  // Traveling cable
+  const tcX = ox + carInsetX + 30
+  const tcMidY = firstFloorY - 200
   dw.drawLine(tcX, carBottom, tcX, tcMidY)
   dw.drawLine(tcX, tcMidY, ox, tcMidY)
   dw.drawLine(ox, tcMidY, ox, firstFloorY + 500)
-
-  // Label
   dw.setActiveLayer('TEXT')
   dw.drawText(tcX + 50, tcMidY, 60, 0, 'TC (示意)')
-}
 
-function drawPitDimension(
-  dw: any,
-  ox: number,
-  pitBottom: number,
-  firstFloorY: number,
-  sw: number,
-  pitDepth: number,
-): void {
+  // ── 10. Rail brackets (visible zones only) ──
+  dw.setActiveLayer('WALL')
+  const bracketSpacing = pro.rail_bracket_spacing_mm
+  const triSize = 80
+  // Bottom zone brackets
+  for (let y = pitBottom + bracketSpacing; y < zigBot - 200; y += bracketSpacing) {
+    dw.drawLine(ox, y - triSize / 2, ox + triSize, y)
+    dw.drawLine(ox + triSize, y, ox, y + triSize / 2)
+    dw.drawLine(ox, y + triSize / 2, ox, y - triSize / 2)
+    dw.drawLine(ox + sw, y - triSize / 2, ox + sw - triSize, y)
+    dw.drawLine(ox + sw - triSize, y, ox + sw, y + triSize / 2)
+    dw.drawLine(ox + sw, y + triSize / 2, ox + sw, y - triSize / 2)
+  }
+  // Top zone brackets
+  for (let y = zigTop + 200; y < shaftVisualTop - 200; y += bracketSpacing) {
+    dw.drawLine(ox, y - triSize / 2, ox + triSize, y)
+    dw.drawLine(ox + triSize, y, ox, y + triSize / 2)
+    dw.drawLine(ox, y + triSize / 2, ox, y - triSize / 2)
+    dw.drawLine(ox + sw, y - triSize / 2, ox + sw - triSize, y)
+    dw.drawLine(ox + sw - triSize, y, ox + sw, y + triSize / 2)
+    dw.drawLine(ox + sw, y + triSize / 2, ox + sw, y - triSize / 2)
+  }
+
+  // ── 11. Overhead breakdown (annotation to the right) ──
   dw.setActiveLayer('DIMS')
-  dw.drawText(
-    ox + sw + 350,
-    (pitBottom + firstFloorY) / 2,
-    120,
-    0,
-    `PIT ${pitDepth}`,
-  )
+  const annotX = ox + sw + 500
+  const v_mps = design.rated_speed_mpm / 60
+  const refugeVal = oh.refuge_mm
+  const bounceVal = Math.round(oh.bounce_coef * v_mps * v_mps * 1000)
+  const machBufVal = oh.machine_buffer_mm
+
+  // Annotations in top zone (approximate positions)
+  const ohBaseY = topZoneBottom + 200
+  dw.drawLine(annotX - 50, ohBaseY, annotX + 50, ohBaseY)
+  const ohSeg1 = ohBaseY + refugeVal * (TOP_ZONE_HEIGHT - 400) / shaft.overhead_mm
+  dw.drawLine(annotX - 50, ohSeg1, annotX + 50, ohSeg1)
+  dw.drawLine(annotX, ohBaseY, annotX, ohSeg1)
+  dw.drawText(annotX + 80, (ohBaseY + ohSeg1) / 2, 80, 0, `避難 ${refugeVal}`)
+
+  const ohSeg2 = ohSeg1 + bounceVal * (TOP_ZONE_HEIGHT - 400) / shaft.overhead_mm
+  dw.drawLine(annotX - 50, ohSeg2, annotX + 50, ohSeg2)
+  dw.drawLine(annotX, ohSeg1, annotX, ohSeg2)
+  dw.drawText(annotX + 80, (ohSeg1 + ohSeg2) / 2, 80, 0, `彈跳 ${bounceVal}`)
+
+  const ohSeg3 = shaftVisualTop - 100
+  dw.drawLine(annotX - 50, ohSeg3, annotX + 50, ohSeg3)
+  dw.drawLine(annotX, ohSeg2, annotX, ohSeg3)
+  dw.drawText(annotX + 80, (ohSeg2 + ohSeg3) / 2, 80, 0, `機器 ${machBufVal}`)
+
+  // ── 12. PIT dimension ──
+  dw.drawText(annotX, firstFloorY - shaft.pit_depth_mm / 2, 120, 0, `PIT ${shaft.pit_depth_mm}`)
+
+  // ── 13. Title ──
+  dw.setActiveLayer('TEXT')
+  dw.drawText(ox + sw / 2, pitBottom - 600, 180, 0, 'ELEVATION VIEW / 側面圖 (PROFESSIONAL)', 'center')
 }

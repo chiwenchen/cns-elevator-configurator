@@ -307,7 +307,7 @@ describe('drawElevationProfessional', () => {
     expect(bufferLines.length).toBe(12) // zigzag present
   })
 
-  test('multi-floor: draws N floor lines for N stops', () => {
+  test('multi-floor: draws visible floor lines with zigzag compression', () => {
     const stops = 7
     const dw = createMockDw()
     const design = makeDesign({ stops })
@@ -315,11 +315,12 @@ describe('drawElevationProfessional', () => {
     drawElevationProfessional(dw, design, { x: 0, y: 0 }, PRO, config)
 
     const landingLines = getLayerCalls(dw.calls, 'LANDING').filter(c => c.method === 'drawLine')
-    // Each stop: 1 floor line + 1 door indicator = 2 lines per stop
-    expect(landingLines.length).toBe(stops * 2)
+    // Zigzag compression: only 1F, 2F, top floor visible — not all stops
+    expect(landingLines.length).toBeGreaterThanOrEqual(3)
+    expect(landingLines.length).toBeLessThan(stops * 2)
   })
 
-  test('draws floor labels for each stop', () => {
+  test('draws floor labels for visible floors (1F, 2F, top)', () => {
     const stops = 5
     const dw = createMockDw()
     const design = makeDesign({ stops })
@@ -327,9 +328,10 @@ describe('drawElevationProfessional', () => {
     drawElevationProfessional(dw, design, { x: 0, y: 0 }, PRO, config)
 
     const floorLabels = dw.calls.filter(
-      c => c.method === 'drawText' && typeof c.args[4] === 'string' && /^\dF$/.test(c.args[4]),
+      c => c.method === 'drawText' && typeof c.args[4] === 'string' && /^\d+F$/.test(c.args[4]),
     )
-    expect(floorLabels.length).toBe(stops)
+    // Should have 1F, 2F, and top floor (5F) = 3 labels
+    expect(floorLabels.length).toBe(3)
   })
 
   test('draws safety gear + governor on SAFETY layer', () => {
