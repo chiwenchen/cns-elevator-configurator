@@ -10,11 +10,18 @@
  */
 
 import { analyzeArchDxf } from '../handlers/analyze-arch'
-import { handleSolve } from '../handlers/solve'
-import { NonStandardError } from '../solver/types'
+import { handleSolve, BaselineViolationError, NonStandardError } from '../handlers/solve'
+import { D1RulesLoader } from '../config/load'
+
+interface D1Database {
+  prepare(query: string): {
+    all<T = unknown>(): Promise<{ results: T[] }>
+  }
+}
 
 interface Env {
   ASSETS: { fetch: (request: Request) => Promise<Response> }
+  DB: D1Database
 }
 
 // Cache the hack-canada DXF text for the lifetime of the isolate.
@@ -66,9 +73,22 @@ export default {
     if (url.pathname === '/api/solve' && request.method === 'POST') {
       try {
         const body = await request.json()
-        const result = handleSolve(body)
+        const loader = new D1RulesLoader(env.DB)
+        const result = await handleSolve(body, loader)
         return jsonResponse(result)
       } catch (err) {
+        if (err instanceof BaselineViolationError) {
+          return jsonResponse(
+            {
+              error: 'baseline_violation',
+              message: err.message,
+              rule_key: err.ruleKey,
+              attempted_value: err.attemptedValue,
+              baseline: err.baseline,
+            },
+            { status: 400 }
+          )
+        }
         if (err instanceof NonStandardError) {
           return jsonResponse(
             {
