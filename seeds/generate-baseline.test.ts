@@ -13,15 +13,15 @@ import { describe, test, expect } from 'bun:test'
 import { buildBaselineRules, toInsertSql } from './generate-baseline'
 
 const KNOWN_CATEGORIES = new Set([
-  'shaft', 'clearance', 'car', 'cwt', 'rail', 'door', 'height', 'usage',
+  'shaft', 'clearance', 'car', 'cwt', 'rail', 'door', 'height', 'usage', 'professional',
 ])
 const KNOWN_SOURCES = new Set(['cns', 'industry', 'engineering'])
 const KNOWN_TYPES = new Set(['number', 'enum'])
 
 describe('buildBaselineRules — structural', () => {
-  test('returns exactly 46 rules', () => {
+  test('returns exactly 62 rules', () => {
     const rules = buildBaselineRules()
-    expect(rules).toHaveLength(46)
+    expect(rules).toHaveLength(62)
   })
 
   test('all rule keys are unique', () => {

@@ -199,6 +199,37 @@ describe('parseSolveBody — accepts valid input', () => {
   })
 })
 
+describe('parseSolveBody — detail_level', () => {
+  test('parseSolveBody defaults detail_level to draft', () => {
+    const result = parseSolveBody({
+      mode: 'A', stops: 6, usage: 'passenger',
+      width_mm: 2000, depth_mm: 2200, total_height_mm: 18000,
+      overhead_mm: 4200, pit_depth_mm: 1600
+    })
+    expect(result.detail_level).toBe('draft')
+  })
+
+  test('parseSolveBody accepts professional detail_level', () => {
+    const result = parseSolveBody({
+      mode: 'A', stops: 6, usage: 'passenger',
+      width_mm: 2000, depth_mm: 2200, total_height_mm: 18000,
+      overhead_mm: 4200, pit_depth_mm: 1600,
+      detail_level: 'professional'
+    })
+    expect(result.detail_level).toBe('professional')
+  })
+
+  test('parseSolveBody ignores invalid detail_level', () => {
+    const result = parseSolveBody({
+      mode: 'A', stops: 6, usage: 'passenger',
+      width_mm: 2000, depth_mm: 2200, total_height_mm: 18000,
+      overhead_mm: 4200, pit_depth_mm: 1600,
+      detail_level: 'ultra'
+    })
+    expect(result.detail_level).toBe('draft')
+  })
+})
+
 describe('handleSolve — integration with validation', () => {
   test('throws InvalidSolveBodyError on malformed body (before hitting solver)', async () => {
     const loader = new StaticRulesLoader()

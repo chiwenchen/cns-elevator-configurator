@@ -361,6 +361,24 @@ export function buildBaselineRules(): RawRule[] {
       category: 'usage', mandatory: 1, source: 'industry',
       description: '病床電梯最小車廂深度 (容納擔架 + 護理人員)',
     }),
+
+    // ── professional detail parameters ──────────────────────
+    num('pro.sling_offset_mm', '車架外擴距離', 75, { min: 50, max: 120, category: 'professional', mandatory: 0, source: 'engineering', description: '車廂框架（sling）比車廂外擴的距離' }),
+    num('pro.sling_thickness_mm', '車架鋼材寬度', 12, { min: 4, max: 20, category: 'professional', mandatory: 0, source: 'engineering', description: '車架結構鋼材的繪圖寬度' }),
+    num('pro.guide_shoe_width_mm', '導靴寬度', 100, { min: 60, max: 150, category: 'professional', mandatory: 0, source: 'engineering', description: '導靴在平面圖中的寬度（示意）' }),
+    num('pro.guide_shoe_depth_mm', '導靴深度', 60, { min: 30, max: 100, category: 'professional', mandatory: 0, source: 'engineering', description: '導靴在平面圖中的深度（示意）' }),
+    num('pro.wall_thickness_mm', '井道壁厚', 200, { min: 120, max: 300, category: 'professional', mandatory: 0, source: 'engineering', description: '鋼筋混凝土井道壁厚' }),
+    enumRule('pro.buffer_type', '緩衝器類型', 'auto', ['auto', 'spring', 'oil'], { category: 'professional', mandatory: 0, source: 'engineering', description: 'auto = 依速度自動選型（≤60mpm 彈簧，>60 油壓）' }),
+    num('pro.buffer_width_mm', '緩衝器寬度', 200, { min: 100, max: 400, category: 'professional', mandatory: 0, source: 'engineering', description: '緩衝器在側面圖中的寬度' }),
+    num('pro.buffer_height_spring_mm', '彈簧緩衝器高度', 300, { min: 150, max: 500, category: 'professional', mandatory: 0, source: 'engineering', description: '彈簧式緩衝器的高度' }),
+    num('pro.buffer_height_oil_mm', '油壓緩衝器高度', 450, { min: 250, max: 800, category: 'professional', mandatory: 0, source: 'engineering', description: '油壓式緩衝器的高度' }),
+    num('pro.machine_width_mm', '曳引機寬度', 600, { min: 300, max: 1000, category: 'professional', mandatory: 0, source: 'engineering', description: '曳引機在側面圖中的寬度（示意）' }),
+    num('pro.machine_height_mm', '曳引機高度', 400, { min: 200, max: 700, category: 'professional', mandatory: 0, source: 'engineering', description: '曳引機在側面圖中的高度（示意）' }),
+    num('pro.sheave_diameter_mm', '曳引輪直徑', 400, { min: 200, max: 600, category: 'professional', mandatory: 0, source: 'engineering', description: '曳引輪在側面圖中的直徑（示意）' }),
+    num('pro.safety_gear_width_mm', '安全鉗寬度', 150, { min: 80, max: 250, category: 'professional', mandatory: 0, source: 'engineering', description: '安全鉗在側面圖中的寬度（示意）' }),
+    num('pro.safety_gear_height_mm', '安全鉗高度', 80, { min: 40, max: 150, category: 'professional', mandatory: 0, source: 'engineering', description: '安全鉗在側面圖中的高度（示意）' }),
+    num('pro.governor_diameter_mm', '調速器輪直徑', 300, { min: 150, max: 500, category: 'professional', mandatory: 0, source: 'engineering', description: '調速器輪在側面圖中的直徑（示意）' }),
+    num('pro.rail_bracket_spacing_mm', '導軌支架間距', 2500, { min: 1500, max: 3500, category: 'professional', mandatory: 0, source: 'engineering', description: '導軌固定支架在側面圖中的垂直間距' }),
   ]
 }
 

@@ -92,17 +92,17 @@ describe('solve-snapshot: Mode B 500kg passenger regression', () => {
       loader,
     )
 
-    expect(result.validation_report.items).toHaveLength(46)
+    expect(result.validation_report.items).toHaveLength(62)
     expect(result.validation_report.summary.total_fail).toBe(0)
 
     // All items should pass when no case override
     const passed = result.validation_report.items.filter(i => i.status === 'pass')
-    expect(passed).toHaveLength(46)
+    expect(passed).toHaveLength(62)
 
     // Summary counts should sum to total
     const { guideline_pass, guideline_warning, cns_pass, cns_warning } =
       result.validation_report.summary
-    expect(guideline_pass + guideline_warning + cns_pass + cns_warning).toBe(46)
+    expect(guideline_pass + guideline_warning + cns_pass + cns_warning).toBe(62)
   })
 
   test('validation_report summary counts cns_warning when cns rule overridden', async () => {

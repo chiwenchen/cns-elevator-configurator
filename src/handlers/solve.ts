@@ -35,6 +35,7 @@ export interface ValidatedSolveBody {
   caseOverride: CaseOverride
   stops: number
   usage: Usage
+  detail_level: 'draft' | 'professional'
   // Mode A fields
   width_mm?: number
   depth_mm?: number
@@ -104,11 +105,19 @@ export function parseSolveBody(raw: unknown): ValidatedSolveBody {
     caseOverride = body.caseOverride as CaseOverride
   }
 
+  const VALID_DETAIL_LEVELS = ['draft', 'professional'] as const
+  const rawDetail = (body as any).detail_level
+  const detail_level: 'draft' | 'professional' =
+    typeof rawDetail === 'string' && (VALID_DETAIL_LEVELS as readonly string[]).includes(rawDetail)
+      ? (rawDetail as 'draft' | 'professional')
+      : 'draft'
+
   const parsed: ValidatedSolveBody = {
     mode,
     caseOverride,
     stops: stopsRaw,
     usage,
+    detail_level,
   }
 
   if (mode === 'A') {
@@ -232,7 +241,7 @@ export async function handleSolve(
   }
 
   // 4. Generate DXF
-  const dxfString = generateElevatorDXF(design, config)
+  const dxfString = generateElevatorDXF(design, config, body.detail_level)
   const analysis = analyzeGeneratedDxf(
     dxfString,
     `solver-${body.mode.toLowerCase()}`,
