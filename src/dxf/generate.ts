@@ -24,6 +24,8 @@ import type { EffectiveConfig } from '../config/types'
 import { drawPlanView } from './plan'
 import { DRAFT_LAYERS, PROFESSIONAL_LAYERS, registerLayers } from './layers'
 import { drawElevationDraft } from './elevation-draft'
+import { drawPlanProfessional } from './plan-professional'
+import { drawElevationProfessional } from './elevation-professional'
 import { drawSpecBlock } from './spec-block'
 
 export type DetailLevel = 'draft' | 'professional'
@@ -46,10 +48,18 @@ export function generateElevatorDXF(
   // ---- PLAN VIEW ----
   drawPlanView(dw, design, { x: 0, y: 0 }, config)
 
+  if (detailLevel === 'professional' && config.professional) {
+    drawPlanProfessional(dw, design, { x: 0, y: 0 }, config.professional, config)
+  }
+
   // ---- ELEVATION VIEW (右側) ----
   const elevOX = shaft.width_mm + 4000
   const elevOY = 0
-  drawElevationDraft(dw, design, { x: elevOX, y: elevOY })
+  if (detailLevel === 'professional' && config.professional) {
+    drawElevationProfessional(dw, design, { x: elevOX, y: 0 }, config.professional, config)
+  } else {
+    drawElevationDraft(dw, design, { x: elevOX, y: elevOY })
+  }
 
   // ---- SPEC BLOCK (最右, 對齊 plan view 頂端) ----
   const specX = elevOX + shaft.width_mm + 3500
