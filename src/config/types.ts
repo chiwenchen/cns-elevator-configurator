@@ -108,3 +108,32 @@ export interface EffectiveConfig {
 
 /** Re-exports so downstream files don't have to double-import. */
 export type { Usage, DoorType } from '../solver/types'
+
+// ---- ValidationReport (Milestone 1c) ----
+
+export type ValidationStatus = 'pass' | 'warning' | 'fail'
+
+export interface ValidationItem {
+  rule_key: string
+  rule_name: string
+  category: string
+  source: 'cns' | 'industry' | 'engineering'
+  mandatory: boolean
+  final_value: string
+  team_default_value: string
+  factory_default_value: string
+  baseline_description: string
+  status: ValidationStatus
+  status_reason: string
+}
+
+export interface ValidationReport {
+  summary: {
+    guideline_pass: number
+    guideline_warning: number
+    cns_pass: number
+    cns_warning: number
+    total_fail: number
+  }
+  items: ValidationItem[]
+}
