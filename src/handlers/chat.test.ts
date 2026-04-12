@@ -162,7 +162,8 @@ describe('parseClaudeResponse', () => {
     }
     const result = parseClaudeResponse(response)
     expect(result.action.type).toBe('out_of_scope')
-    expect(result.assistantMessage).toBe('')
+    // No text block — assistantMessage falls back to input.message for consistency
+    expect(result.assistantMessage).toBe('抱歉，這超出了我的能力範圍。')
   })
 
   test('falls back to out_of_scope for text-only response (no tool call)', () => {
@@ -408,9 +409,35 @@ describe('handleChat', () => {
       },
     }
     const res = await handleChat(body, store, caller)
+    expect(res.action.type).toBe('propose_update')
     if (res.action.type === 'propose_update') {
       expect(res.action.current_value).toBe('back_left') // default from baseline
     }
+  })
+
+  test('propose_soft_delete happy path on non-mandatory rule (cwt.position)', async () => {
+    const caller = mockAnthropicCaller(
+      'propose_soft_delete',
+      { key: 'cwt.position', reasoning: '此案不需要配重位置限制' },
+      '建議移除配重位置規則。',
+    )
+    const body = {
+      session_id: 'sess-8',
+      messages: [{ role: 'user', content: '移除配重位置規則', timestamp: 1000 }],
+      case_context: {
+        solver_input: { mode: 'B', rated_load_kg: 1000, stops: 6, usage: 'passenger' },
+        current_case_override: {},
+      },
+    }
+    const res = await handleChat(body, store, caller)
+    // cwt.position is mandatory=0 in baseline, so soft-delete should be allowed
+    expect(res.action.type).toBe('propose_soft_delete')
+    if (res.action.type === 'propose_soft_delete') {
+      expect(res.action.rule_key).toBe('cwt.position')
+      expect(res.action.reasoning).toBe('此案不需要配重位置限制')
+    }
+    expect(res.assistant_message).toBe('建議移除配重位置規則。')
+    expect(res.session_id).toBe('sess-8')
   })
 
   test('invalid request body throws InvalidChatBodyError', async () => {

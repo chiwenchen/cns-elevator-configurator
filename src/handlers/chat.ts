@@ -143,7 +143,7 @@ export type AnthropicCaller = (opts: {
   max_tokens: number
   system: string
   tools: typeof CHAT_TOOLS
-  tool_choice: { type: string }
+  tool_choice: { type: 'any' | 'auto' | 'tool' }
   messages: Array<{ role: string; content: string }>
 }) => Promise<AnthropicResponse>
 
@@ -270,7 +270,7 @@ export function parseClaudeResponse(
 
     case 'out_of_scope':
       return {
-        assistantMessage,
+        assistantMessage: assistantMessage || String(input.message || ''),
         action: {
           type: 'out_of_scope',
           message: String(input.message || ''),
