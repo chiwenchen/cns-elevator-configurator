@@ -63,6 +63,9 @@ describe('parseChatBody', () => {
     const parsed = parseChatBody(body)
     expect(parsed.session_id).toBe('sess-1')
     expect(parsed.messages).toHaveLength(1)
+    // Extra fields like timestamp should be stripped — Anthropic API rejects them
+    expect(parsed.messages[0]).toEqual({ role: 'user', content: '配重位置在中間' })
+    expect((parsed.messages[0] as any).timestamp).toBeUndefined()
   })
 
   test('rejects missing session_id', () => {

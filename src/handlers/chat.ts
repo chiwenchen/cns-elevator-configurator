@@ -197,7 +197,7 @@ export function parseChatBody(raw: unknown): ChatRequest {
 
   return {
     session_id: b.session_id,
-    messages: b.messages as ChatMessage[],
+    messages: (b.messages as any[]).map((m: any) => ({ role: m.role, content: m.content })) as ChatMessage[],
     case_context: {
       solver_input: ctx.solver_input as Record<string, unknown>,
       current_case_override: ctx.current_case_override as CaseOverride,

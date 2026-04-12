@@ -2448,7 +2448,7 @@
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({
               session_id: chatState.sessionId,
-              messages: chatState.messages,
+              messages: chatState.messages.map(m => ({ role: m.role, content: m.content })),
               case_context: {
                 solver_input: solverInput,
                 current_case_override: { ...caseOverrideState },
