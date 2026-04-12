@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>我的圖紙 — Vera Plot</title>
+    <style>
+      :root {
+        --bg: #0e1013;
+        --bg-panel: #15181d;
+        --bg-elev: #1b1f25;
+        --fg: #e7e9ec;
+        --fg-muted: #8b93a0;
+        --fg-dim: #535c6b;
+        --border: #242932;
+        --border-strong: #333a45;
+        --accent: #e8734e;
+        --accent-soft: rgba(232, 115, 78, 0.18);
+        --accent-hover: #f58662;
+        --success: #7ee787;
+        --success-soft: rgba(46, 160, 67, 0.12);
+        --error: #ff8a80;
+        --error-soft: rgba(248, 81, 73, 0.12);
+        --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        --sans: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang TC",
+          "Microsoft JhengHei", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: var(--sans);
+        font-size: 14px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+      body {
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+      header {
+        padding: 20px 28px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+      .header-top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 24px;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      header h1 small {
+        color: var(--fg-muted);
+        font-weight: 400;
+        margin-left: 10px;
+      }
+      .app-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 8px;
+        font-size: 12px;
+      }
+      .app-nav .nav-links {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+      }
+      .app-nav .nav-link {
+        color: var(--fg-muted);
+        text-decoration: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+      }
+      .app-nav .nav-link.active {
+        color: var(--fg);
+        background: var(--bg-panel);
+      }
+      .app-nav .nav-link:hover:not(.active) {
+        color: var(--fg);
+      }
+      .nav-auth {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .nav-auth .auth-quota {
+        font-family: var(--mono);
+        color: var(--fg-muted);
+        font-size: 11px;
+      }
+      .nav-auth .auth-email {
+        color: var(--fg-muted);
+      }
+      .nav-auth .auth-logout-btn {
+        color: var(--fg-dim);
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-family: var(--sans);
+        font-size: 11px;
+        padding: 2px 4px;
+      }
+      .nav-auth .auth-logout-btn:hover {
+        color: var(--fg);
+      }
+      main {
+        padding: 28px 32px;
+        max-width: 860px;
+      }
+      .page-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      .page-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0;
+      }
+      .quota-badge {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--fg-muted);
+        background: var(--bg-panel);
+        border: 1px solid var(--border-strong);
+        padding: 4px 10px;
+        border-radius: 4px;
+      }
+      .section-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--fg-dim);
+        margin: 24px 0 10px;
+      }
+      .section-divider {
+        height: 1px;
+        background: var(--border);
+        margin: 24px 0 16px;
+      }
+      .company-section-header {
+        font-size: 13px;
+        color: var(--fg-muted);
+        margin-bottom: 12px;
+      }
+      .company-section-header strong {
+        color: var(--accent);
+      }
+      .design-card {
+        background: var(--bg-elev);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 14px 16px;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+      }
+      .design-card:hover {
+        border-color: var(--border-strong);
+      }
+      .design-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .design-name {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--fg);
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .design-meta {
+        display: flex;
+        gap: 12px;
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--fg-muted);
+        flex-wrap: wrap;
+      }
+      .design-by {
+        font-size: 11px;
+        color: var(--accent);
+        margin-top: 2px;
+      }
+      .design-actions {
+        display: flex;
+        gap: 6px;
+        flex-shrink: 0;
+      }
+      .btn-sm {
+        padding: 6px 12px;
+        font-size: 11px;
+        font-family: var(--sans);
+        cursor: pointer;
+        border-radius: 3px;
+        background: transparent;
+        white-space: nowrap;
+      }
+      .btn-accent {
+        border: 1px solid var(--accent);
+        color: var(--accent);
+      }
+      .btn-accent:hover {
+        background: var(--accent-soft);
+      }
+      .btn-dim {
+        border: 1px solid var(--border);
+        color: var(--fg-dim);
+      }
+      .btn-dim:hover {
+        border-color: var(--border-strong);
+        color: var(--fg-muted);
+      }
+      .btn-danger {
+        border: 1px solid transparent;
+        color: var(--fg-dim);
+      }
+      .btn-danger:hover {
+        border-color: var(--error);
+        color: var(--error);
+      }
+      .archived-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        user-select: none;
+        font-size: 12px;
+        color: var(--fg-muted);
+        padding: 6px 0;
+      }
+      .archived-toggle:hover {
+        color: var(--fg);
+      }
+      .archived-toggle .toggle-arrow {
+        font-size: 10px;
+        transition: transform 0.15s;
+      }
+      .archived-toggle.open .toggle-arrow {
+        transform: rotate(90deg);
+      }
+      .archived-section {
+        display: none;
+        margin-top: 8px;
+      }
+      .archived-section.open {
+        display: block;
+      }
+      .days-badge {
+        font-family: var(--mono);
+        font-size: 10px;
+        color: var(--fg-dim);
+        background: var(--bg-panel);
+        border: 1px solid var(--border);
+        padding: 2px 6px;
+        border-radius: 3px;
+        margin-left: 8px;
+      }
+      .empty-state {
+        padding: 32px 0;
+        color: var(--fg-dim);
+        font-size: 13px;
+        text-align: center;
+      }
+      .loading {
+        padding: 32px 0;
+        color: var(--fg-dim);
+        font-size: 13px;
+        text-align: center;
+      }
+      .error-msg {
+        padding: 12px 16px;
+        background: var(--error-soft);
+        border-left: 3px solid var(--error);
+        color: var(--error);
+        font-size: 12px;
+        border-radius: 3px;
+        margin-bottom: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="header-top">
+        <h1>Vera Plot <small>圖紙管理</small></h1>
+      </div>
+      <nav class="app-nav">
+        <div class="nav-links">
+          <a href="/" class="nav-link">設計出圖</a>
+          <a href="/designs.html" class="nav-link active">我的圖紙</a>
+        </div>
+        <div class="nav-auth" id="nav-auth"></div>
+      </nav>
+    </header>
+
+    <main>
+      <div class="page-header">
+        <h2 class="page-title">我的圖紙</h2>
+        <span class="quota-badge" id="quota-badge">—</span>
+      </div>
+
+      <div id="error-container"></div>
+      <div id="main-content" class="loading">載入中…</div>
+    </main>
+
+    <script>
+      'use strict'
+
+      let currentUser = null
+
+      // ---- Auth check ----
+      async function init() {
+        try {
+          const res = await fetch('/api/auth/me')
+          if (!res.ok) {
+            window.location.href = '/'
+            return
+          }
+          const data = await res.json()
+          currentUser = data
+          renderNav(data)
+          updateQuotaBadge(data.quota)
+          await loadDesigns()
+        } catch {
+          window.location.href = '/'
+        }
+      }
+
+      function renderNav(data) {
+        const u = data.user || {}
+        const q = data.quota || {}
+        const authEl = document.getElementById('nav-auth')
+        const dxfUsed = q.dxf_used != null ? q.dxf_used : 0
+        const dxfLimit = q.dxf_limit != null ? q.dxf_limit : 0
+        const aiUsed = q.ai_used != null ? q.ai_used : 0
+        const aiLimit = q.ai_limit != null ? q.ai_limit : 0
+        const email = escHtml(u.email || '')
+        const company = u.company_name ? escHtml(u.company_name) : null
+
+        authEl.innerHTML = [
+          `<span class="auth-quota">DXF ${dxfUsed}/${dxfLimit} · AI ${aiUsed}/${aiLimit}</span>`,
+          company
+            ? `<span class="auth-email">${company}</span>`
+            : `<span class="auth-email">${email}</span>`,
+          `<button class="auth-logout-btn" id="logout-btn">登出</button>`,
+        ].join('')
+
+        document.getElementById('logout-btn').onclick = async () => {
+          try { await fetch('/api/auth/logout', { method: 'POST' }) } catch { /* ignore */ }
+          window.location.href = '/'
+        }
+      }
+
+      function updateQuotaBadge(q) {
+        const el = document.getElementById('quota-badge')
+        if (!q) { el.textContent = '—'; return }
+        const used = q.dxf_used != null ? q.dxf_used : 0
+        const limit = q.dxf_limit != null ? q.dxf_limit : 0
+        el.textContent = `本週已輸出 ${used}/${limit} 張`
+      }
+
+      // ---- Load designs ----
+      async function loadDesigns() {
+        const [listRes, archRes] = await Promise.all([
+          fetch('/api/designs'),
+          fetch('/api/designs/archived'),
+        ])
+
+        if (!listRes.ok) {
+          showError('無法載入圖紙，請重新整理頁面')
+          return
+        }
+
+        const listData = await listRes.json()
+        const archData = archRes.ok ? await archRes.json() : { designs: [] }
+
+        renderDesigns(listData, archData)
+      }
+
+      function renderDesigns(listData, archData) {
+        const own = listData.own || []
+        const shared = listData.shared || []
+        const archived = archData.designs || []
+
+        const container = document.getElementById('main-content')
+        container.className = ''
+        container.innerHTML = ''
+
+        // Own designs
+        const ownLabel = document.createElement('div')
+        ownLabel.className = 'section-label'
+        ownLabel.textContent = '我的圖紙'
+        container.appendChild(ownLabel)
+
+        if (own.length === 0) {
+          const empty = document.createElement('div')
+          empty.className = 'empty-state'
+          empty.textContent = '尚無圖紙，前往設計出圖頁面產生第一張 DXF'
+          container.appendChild(empty)
+        } else {
+          own.forEach(d => container.appendChild(buildCard(d, false)))
+        }
+
+        // Company shared designs
+        const u = (currentUser && currentUser.user) || {}
+        if (shared.length > 0) {
+          const divider = document.createElement('div')
+          divider.className = 'section-divider'
+          container.appendChild(divider)
+
+          const companyHeader = document.createElement('div')
+          companyHeader.className = 'company-section-header'
+          const companyName = u.company_name ? escHtml(u.company_name) : '公司'
+          companyHeader.innerHTML = `<strong>${companyName}</strong> 的共享圖紙`
+          container.appendChild(companyHeader)
+
+          shared.forEach(d => container.appendChild(buildCard(d, true)))
+        }
+
+        // Archived section
+        if (archived.length > 0) {
+          const divider2 = document.createElement('div')
+          divider2.className = 'section-divider'
+          container.appendChild(divider2)
+
+          const toggleEl = document.createElement('div')
+          toggleEl.className = 'archived-toggle'
+          toggleEl.innerHTML = `<span class="toggle-arrow">&#9658;</span> 已封存（${archived.length}）`
+          container.appendChild(toggleEl)
+
+          const archSection = document.createElement('div')
+          archSection.className = 'archived-section'
+          archived.forEach(d => archSection.appendChild(buildArchivedCard(d)))
+          container.appendChild(archSection)
+
+          toggleEl.onclick = () => {
+            toggleEl.classList.toggle('open')
+            archSection.classList.toggle('open')
+          }
+        }
+      }
+
+      function buildCard(design, isShared) {
+        const card = document.createElement('div')
+        card.className = 'design-card'
+        card.dataset.id = design.id
+
+        // Parse solver_input for dimension info
+        let dimText = ''
+        try {
+          const inp = typeof design.solver_input === 'string'
+            ? JSON.parse(design.solver_input)
+            : (design.solver_input || {})
+          const parts = []
+          if (inp.width_mm) parts.push(`W ${inp.width_mm}`)
+          if (inp.depth_mm) parts.push(`D ${inp.depth_mm}`)
+          if (inp.total_height_mm) parts.push(`H ${inp.total_height_mm}`)
+          dimText = parts.join(' · ')
+        } catch { /* ignore */ }
+
+        const sizeKb = design.dxf_kb != null ? `${design.dxf_kb} KB` : ''
+        const detailLevel = design.detail_level ? escHtml(String(design.detail_level)) : ''
+        const createdAt = design.created_at ? formatDate(design.created_at) : ''
+
+        const infoHtml = `
+          <div class="design-info">
+            <div class="design-name">${escHtml(design.name || design.id)}</div>
+            <div class="design-meta">
+              ${dimText ? `<span>${escHtml(dimText)} mm</span>` : ''}
+              ${detailLevel ? `<span>${detailLevel}</span>` : ''}
+              ${sizeKb ? `<span>${sizeKb}</span>` : ''}
+              ${createdAt ? `<span>${createdAt}</span>` : ''}
+            </div>
+            ${isShared && design.email ? `<div class="design-by">by ${escHtml(design.email)}</div>` : ''}
+          </div>
+        `
+
+        let actionsHtml = `
+          <div class="design-actions">
+            <button class="btn-sm btn-accent" data-action="download">下載 DXF</button>
+            <button class="btn-sm btn-dim" data-action="load">載入參數</button>
+        `
+        if (!isShared) {
+          actionsHtml += `
+            <button class="btn-sm btn-dim" data-action="archive">封存</button>
+            <button class="btn-sm btn-danger" data-action="delete">刪除</button>
+          `
+        }
+        actionsHtml += `</div>`
+
+        card.innerHTML = infoHtml + actionsHtml
+
+        // Bind actions
+        card.querySelector('[data-action="download"]').onclick = () => downloadDxf(design.id, design.name)
+        card.querySelector('[data-action="load"]').onclick = () => {
+          window.location.href = `/?load=${encodeURIComponent(design.id)}`
+        }
+        if (!isShared) {
+          card.querySelector('[data-action="archive"]').onclick = () => archiveDesign(design.id)
+          card.querySelector('[data-action="delete"]').onclick = () => deleteDesign(design.id, design.name)
+        }
+
+        return card
+      }
+
+      function buildArchivedCard(design) {
+        const card = document.createElement('div')
+        card.className = 'design-card'
+        card.dataset.id = design.id
+
+        const createdAt = design.created_at ? formatDate(design.created_at) : ''
+        let daysBadge = ''
+        if (design.auto_delete_at) {
+          const diff = Math.ceil((new Date(design.auto_delete_at) - Date.now()) / 86400000)
+          if (diff > 0) {
+            daysBadge = `<span class="days-badge">${diff} 天後自動刪除</span>`
+          }
+        }
+
+        card.innerHTML = `
+          <div class="design-info">
+            <div class="design-name">
+              ${escHtml(design.name || design.id)}
+              ${daysBadge}
+            </div>
+            <div class="design-meta">
+              ${createdAt ? `<span>${createdAt}</span>` : ''}
+            </div>
+          </div>
+          <div class="design-actions">
+            <button class="btn-sm btn-accent" data-action="download">下載 DXF</button>
+            <button class="btn-sm btn-dim" data-action="load">載入參數</button>
+            <button class="btn-sm btn-dim" data-action="unarchive">取消封存</button>
+          </div>
+        `
+
+        card.querySelector('[data-action="download"]').onclick = () => downloadDxf(design.id, design.name)
+        card.querySelector('[data-action="load"]').onclick = () => {
+          window.location.href = `/?load=${encodeURIComponent(design.id)}`
+        }
+        card.querySelector('[data-action="unarchive"]').onclick = () => unarchiveDesign(design.id)
+
+        return card
+      }
+
+      // ---- Actions ----
+      async function downloadDxf(id, name) {
+        try {
+          const res = await fetch(`/api/designs/${encodeURIComponent(id)}`)
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          const data = await res.json()
+          const dxfString = data.dxf_string || data.design?.dxf_string
+          if (!dxfString) throw new Error('無 DXF 資料')
+
+          const blob = new Blob([dxfString], { type: 'application/dxf' })
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `${name || id}.dxf`
+          document.body.appendChild(a)
+          a.click()
+          a.remove()
+          URL.revokeObjectURL(url)
+        } catch (err) {
+          showError(`下載失敗：${err.message}`)
+        }
+      }
+
+      async function archiveDesign(id) {
+        try {
+          const res = await fetch(`/api/designs/${encodeURIComponent(id)}/archive`, { method: 'POST' })
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          await loadDesigns()
+        } catch (err) {
+          showError(`封存失敗：${err.message}`)
+        }
+      }
+
+      async function unarchiveDesign(id) {
+        try {
+          const res = await fetch(`/api/designs/${encodeURIComponent(id)}/unarchive`, { method: 'POST' })
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          await loadDesigns()
+        } catch (err) {
+          showError(`取消封存失敗：${err.message}`)
+        }
+      }
+
+      async function deleteDesign(id, name) {
+        const displayName = name || id
+        if (!confirm(`確定要刪除「${displayName}」嗎？此操作無法復原。`)) return
+        try {
+          const res = await fetch(`/api/designs/${encodeURIComponent(id)}`, { method: 'DELETE' })
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          await loadDesigns()
+        } catch (err) {
+          showError(`刪除失敗：${err.message}`)
+        }
+      }
+
+      // ---- Helpers ----
+      function escHtml(str) {
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+      }
+
+      function formatDate(iso) {
+        try {
+          const d = new Date(iso)
+          return d.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' })
+        } catch { return iso }
+      }
+
+      function showError(msg) {
+        const el = document.getElementById('error-container')
+        el.innerHTML = `<div class="error-msg">${escHtml(msg)}</div>`
+        setTimeout(() => { el.innerHTML = '' }, 5000)
+      }
+
+      init()
+    </script>
+  </body>
+</html>
