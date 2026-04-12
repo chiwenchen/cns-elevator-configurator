@@ -10,7 +10,12 @@
  */
 
 import { analyzeArchDxf } from '../handlers/analyze-arch'
-import { handleSolve, BaselineViolationError, NonStandardError } from '../handlers/solve'
+import {
+  handleSolve,
+  BaselineViolationError,
+  NonStandardError,
+  InvalidSolveBodyError,
+} from '../handlers/solve'
 import { D1RulesLoader } from '../config/load'
 
 interface D1Database {
@@ -77,6 +82,16 @@ export default {
         const result = await handleSolve(body, loader)
         return jsonResponse(result)
       } catch (err) {
+        if (err instanceof InvalidSolveBodyError) {
+          return jsonResponse(
+            {
+              error: 'invalid_request',
+              message: err.message,
+              field: err.field,
+            },
+            { status: 400 }
+          )
+        }
         if (err instanceof BaselineViolationError) {
           return jsonResponse(
             {

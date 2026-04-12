@@ -13,7 +13,12 @@
 
 import { join } from 'path'
 import { analyzeArchDxf } from '../handlers/analyze-arch'
-import { handleSolve, BaselineViolationError, NonStandardError } from '../handlers/solve'
+import {
+  handleSolve,
+  BaselineViolationError,
+  NonStandardError,
+  InvalidSolveBodyError,
+} from '../handlers/solve'
 import { StaticRulesLoader } from '../config/load'
 
 const PUBLIC_DIR = join(import.meta.dir, '..', '..', 'public')
@@ -53,6 +58,16 @@ const server = Bun.serve({
         const result = await handleSolve(body, loader)
         return Response.json(result)
       } catch (err) {
+        if (err instanceof InvalidSolveBodyError) {
+          return Response.json(
+            {
+              error: 'invalid_request',
+              message: err.message,
+              field: err.field,
+            },
+            { status: 400 }
+          )
+        }
         if (err instanceof BaselineViolationError) {
           return Response.json(
             {

@@ -7,7 +7,110 @@
 // @ts-ignore
 import Drawing from 'dxf-writer'
 import type { ElevatorDesign } from '../solver/types'
-import type { EffectiveConfig } from '../config/types'
+import type { EffectiveConfig, CwtPosition } from '../config/types'
+
+interface RectXY {
+  x0: number
+  y0: number
+  x1: number
+  y1: number
+}
+
+export interface CwtPlacement {
+  cwt: RectXY
+  rails: [RectXY, RectXY]
+}
+
+/**
+ * Compute CWT + rail rectangles in plan-view coordinate space.
+ *
+ * Coordinate system: Y up, back wall at Y=0, front wall at Y=shaft.depth_mm,
+ * left wall at X=0, right wall at X=shaft.width_mm. Origin offset NOT applied
+ * here — the caller adds ox/oy afterwards.
+ *
+ * Five positions:
+ *   back_left / back_center / back_right — CWT along the back wall,
+ *     rails flanking left/right of the CWT rectangle.
+ *   side_left / side_right — CWT rotated 90° along the side wall,
+ *     rails flanking above/below the CWT rectangle.
+ */
+export function computeCwtPlacement(
+  shaft: { width_mm: number; depth_mm: number },
+  cwtCfg: EffectiveConfig['cwt'],
+  railCfg: EffectiveConfig['rail'],
+  position: CwtPosition,
+): CwtPlacement {
+  const w = cwtCfg.width_mm
+  const t = cwtCfg.thickness_mm
+  const backOff = cwtCfg.back_offset_mm
+  const leftOff = cwtCfg.left_offset_mm
+  const railSize = railCfg.cwt_size_mm
+  const railGap = railCfg.cwt_gap_mm
+
+  if (position === 'back_left' || position === 'back_center' || position === 'back_right') {
+    let x0: number
+    if (position === 'back_left') {
+      x0 = leftOff
+    } else if (position === 'back_center') {
+      x0 = (shaft.width_mm - w) / 2
+    } else {
+      x0 = shaft.width_mm - leftOff - w
+    }
+    const y0 = backOff
+    const cwt: RectXY = { x0, y0, x1: x0 + w, y1: y0 + t }
+
+    // Rails flank CWT along X axis (rail rectangles are squares of railSize)
+    const railYMid = y0 + t / 2
+    const railY0 = railYMid - railSize / 2
+    const railY1 = railYMid + railSize / 2
+    const leftRail: RectXY = {
+      x0: x0 - railGap - railSize,
+      y0: railY0,
+      x1: x0 - railGap,
+      y1: railY1,
+    }
+    const rightRail: RectXY = {
+      x0: x0 + w + railGap,
+      y0: railY0,
+      x1: x0 + w + railGap + railSize,
+      y1: railY1,
+    }
+    return { cwt, rails: [leftRail, rightRail] }
+  }
+
+  // Side positions: CWT is rotated 90° — width runs along Y axis, thickness
+  // along X axis. Rails flank it above/below along Y axis.
+  const y0 = (shaft.depth_mm - w) / 2
+  const y1 = y0 + w
+  let x0: number
+  let x1: number
+  if (position === 'side_left') {
+    x0 = backOff
+    x1 = backOff + t
+  } else {
+    // side_right — mirror of side_left
+    x0 = shaft.width_mm - backOff - t
+    x1 = shaft.width_mm - backOff
+  }
+  const cwt: RectXY = { x0, y0, x1, y1 }
+
+  const railXMid = (x0 + x1) / 2
+  const railX0 = railXMid - railSize / 2
+  const railX1 = railXMid + railSize / 2
+  const bottomRail: RectXY = {
+    x0: railX0,
+    y0: y0 - railGap - railSize,
+    x1: railX1,
+    y1: y0 - railGap,
+  }
+  const topRail: RectXY = {
+    x0: railX0,
+    y0: y1 + railGap,
+    x1: railX1,
+    y1: y1 + railGap + railSize,
+  }
+  return { cwt, rails: [bottomRail, topRail] }
+}
 
 export function drawPlanView(
   dw: any,
@@ -41,31 +144,24 @@ export function drawPlanView(
     oy + carDy + car.depth_mm,
   )
 
-  // ---- 3. CWT ----
-  const cwtX0 = ox + cwtCfg.left_offset_mm
-  const cwtY0 = oy + cwtCfg.back_offset_mm
+  // ---- 3. CWT + CWT rails (position-aware) ----
+  const placement = computeCwtPlacement(
+    { width_mm: shaft.width_mm, depth_mm: shaft.depth_mm },
+    cwtCfg,
+    railCfg,
+    config.cwt.position,
+  )
   dw.setActiveLayer('CWT')
   dw.drawRect(
-    cwtX0,
-    cwtY0,
-    cwtX0 + cwtCfg.width_mm,
-    cwtY0 + cwtCfg.thickness_mm,
+    ox + placement.cwt.x0,
+    oy + placement.cwt.y0,
+    ox + placement.cwt.x1,
+    oy + placement.cwt.y1,
   )
-  // CWT rails
   dw.setActiveLayer('RAIL_CWT')
-  const cwtRailY = cwtY0 + cwtCfg.thickness_mm / 2 - railCfg.cwt_size_mm / 2
-  dw.drawRect(
-    cwtX0 - railCfg.cwt_size_mm - railCfg.cwt_gap_mm,
-    cwtRailY,
-    cwtX0 - railCfg.cwt_gap_mm,
-    cwtRailY + railCfg.cwt_size_mm,
-  )
-  dw.drawRect(
-    cwtX0 + cwtCfg.width_mm + railCfg.cwt_gap_mm,
-    cwtRailY,
-    cwtX0 + cwtCfg.width_mm + railCfg.cwt_gap_mm + railCfg.cwt_size_mm,
-    cwtRailY + railCfg.cwt_size_mm,
-  )
+  for (const rail of placement.rails) {
+    dw.drawRect(ox + rail.x0, oy + rail.y0, ox + rail.x1, oy + rail.y1)
+  }
 
   // ---- 4. Car rails ----
   dw.setActiveLayer('RAIL_CAR')
@@ -189,16 +285,11 @@ export function drawPlanView(
     'center',
   )
 
-  // Component labels
+  // Component labels — centered on actual CWT placement
   dw.setActiveLayer('TEXT')
-  dw.drawText(
-    cwtX0 + cwtCfg.width_mm / 2,
-    cwtY0 + cwtCfg.thickness_mm / 2,
-    70,
-    0,
-    'CWT',
-    'center',
-  )
+  const cwtLabelX = ox + (placement.cwt.x0 + placement.cwt.x1) / 2
+  const cwtLabelY = oy + (placement.cwt.y0 + placement.cwt.y1) / 2
+  dw.drawText(cwtLabelX, cwtLabelY, 70, 0, 'CWT', 'center')
 
   // Title
   dw.drawText(
