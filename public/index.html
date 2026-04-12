@@ -634,6 +634,16 @@
       .validation-item .item-value { font-family: var(--mono); color: var(--fg); }
       .validation-item .item-default { font-family: var(--mono); color: var(--fg-muted); }
       .validation-item .item-revert { font-size: 10px; }
+
+      /* ---- Commit section (case override) ---- */
+      .commit-section {
+        margin-top: 12px; padding: 12px;
+        background: var(--bg-panel); border-radius: 4px;
+        display: flex; justify-content: space-between; align-items: center;
+      }
+      .commit-section button { font-size: 11px; padding: 6px 12px; }
+      .override-label { font-size: 11px; color: var(--fg-muted); }
+      #override-count-badge { color: #ffd54f; font-weight: 600; }
     </style>
   </head>
   <body>
@@ -818,6 +828,13 @@
         <div class="metric" style="border-bottom: none">
           <div class="metric-label" id="m-matched-label">標籤配對到房間</div>
           <div class="metric-value" id="m-matched">—</div>
+        </div>
+
+        <div class="commit-section">
+          <div class="override-label">
+            案子微調 <span id="override-count-badge"></span>
+          </div>
+          <button id="commit-team-btn" class="rule-action-btn" disabled>收工存入團隊</button>
         </div>
       </aside>
 
@@ -1078,7 +1095,7 @@
           const res = await fetch('/api/solve', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ mode, ...payload }),
+            body: JSON.stringify({ mode, ...payload, caseOverride: { ...caseOverrideState } }),
           })
           const data = await res.json()
           if (!res.ok) {
@@ -1762,6 +1779,88 @@
         document.getElementById('validation-toggle').textContent =
           panel.classList.contains('collapsed') ? '[展開]' : '[收起]'
       }
+
+      // ---- Case Override Accumulator ----
+      const caseOverrideState = {}
+
+      function setOverride(key, value) {
+        caseOverrideState[key] = value
+        updateOverrideCountBadge()
+      }
+
+      function revertCaseOverride(key) {
+        delete caseOverrideState[key]
+        updateOverrideCountBadge()
+        resolveCurrentCase()
+      }
+
+      function clearAllOverrides() {
+        for (const k of Object.keys(caseOverrideState)) delete caseOverrideState[k]
+        updateOverrideCountBadge()
+      }
+
+      function updateOverrideCountBadge() {
+        const count = Object.keys(caseOverrideState).length
+        const badge = document.getElementById('override-count-badge')
+        const commitBtn = document.getElementById('commit-team-btn')
+        if (!badge || !commitBtn) return
+        if (count === 0) {
+          badge.textContent = ''
+          commitBtn.disabled = true
+        } else {
+          badge.textContent = `(${count} 條微調)`
+          commitBtn.disabled = false
+        }
+      }
+
+      function collectSolverFormPayload(mode) {
+        const form = mode === 'A' ? formA : formB
+        if (!form) return {}
+        return formToObject(form)
+      }
+
+      async function resolveCurrentCase() {
+        // Determine currently active mode tab
+        const activeTab = document.querySelector('.mode-tab.active')
+        const activeMode = activeTab && activeTab.dataset.mode ? activeTab.dataset.mode : 'A'
+        const payload = collectSolverFormPayload(activeMode)
+        await submitSolve(activeMode, payload)
+      }
+
+      // ---- Commit team button ----
+      document.getElementById('commit-team-btn').onclick = async () => {
+        const override = { ...caseOverrideState }
+        if (Object.keys(override).length === 0) return
+        try {
+          const res = await fetch('/api/rules/commit', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ case_override: override }),
+          })
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}))
+            showToast(`提交失敗：${err.message || err.error || res.statusText}`, 'error')
+            return
+          }
+          const data = await res.json()
+          clearAllOverrides()
+          // Reload rules if rules list already fetched
+          if (rulesState.rules.length > 0) await fetchRules()
+          // Re-solve current case with now-empty override
+          await resolveCurrentCase()
+          const applied = Array.isArray(data.applied) ? data.applied : []
+          const skipped = Array.isArray(data.skipped) ? data.skipped : []
+          showToast(`已提交 ${applied.length} 條規則，跳過 ${skipped.length} 條`)
+          for (const s of skipped) {
+            showToast(`跳過 ${s.key}：${s.reason}`, 'error')
+          }
+        } catch (e) {
+          showToast(`錯誤：${e.message}`, 'error')
+        }
+      }
+
+      // Initial badge state
+      updateOverrideCountBadge()
     </script>
   </body>
 </html>
