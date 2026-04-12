@@ -190,6 +190,12 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
 
+    // --- Redirect elevator-configurator → vera-plot ---
+    if (url.hostname === 'elevator-configurator.redarch.dev') {
+      const target = new URL(url.pathname + url.search, 'https://vera-plot.redarch.dev')
+      return Response.redirect(target.toString(), 301)
+    }
+
     // --- API routes ---
     if (url.pathname === '/api/analysis') {
       const source = url.searchParams.get('source') || 'hack-canada'
@@ -604,11 +610,11 @@ export default {
         const caller = createAnthropicCaller(env.ANTHROPIC_API_KEY)
         const result = await handleChat(body, loader, caller)
 
-        // Record AI usage
+        // Record AI usage (chat_sessions has NOT NULL columns: case_snapshot, messages, status)
         const sessionId = crypto.randomUUID()
         await env.DB.prepare(
-          `INSERT INTO chat_sessions (id, user_id, company_id, created_at) VALUES (?, ?, ?, ?)`
-        ).bind(sessionId, user.id, user.company_id, new Date().toISOString()).run()
+          `INSERT INTO chat_sessions (id, case_snapshot, messages, status, user_id, company_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`
+        ).bind(sessionId, '{}', '[]', 'active', user.id, user.company_id, new Date().toISOString()).run()
 
         return jsonResponse(result)
       } catch (err) {

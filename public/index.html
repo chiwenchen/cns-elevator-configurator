@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CNS Elevator Configurator — Spike 1 Demo</title>
+    <title>Vera Plot — 電梯設計規劃系統</title>
     <style>
       :root {
         --bg: #0e1013;
@@ -280,18 +280,23 @@
         padding: 14px 20px;
         border-bottom: 1px solid var(--border);
         display: flex;
-        justify-content: space-between;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .viz-legend-row {
+        display: flex;
+        justify-content: flex-end;
         align-items: center;
       }
       .viz-title {
         font-size: 12px;
         color: var(--fg-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.02em;
       }
       .legend {
         display: flex;
-        gap: 16px;
+        flex-wrap: wrap;
+        gap: 10px 16px;
         font-size: 11px;
         color: var(--fg-muted);
       }
@@ -487,6 +492,14 @@
       .lyr-DIMS    { fill: none; stroke: #ffd54f; stroke-width: 1; vector-effect: non-scaling-stroke; }
       .lyr-STOP    { fill: none; stroke: #8aa680; stroke-width: 1; vector-effect: non-scaling-stroke; }
       .lyr-TEXT    { fill: #e7e9ec; }
+
+      /* Professional layers */
+      .lyr-SLING   { fill: none; stroke: #e8734e; stroke-width: 1.6; stroke-opacity: 0.7; vector-effect: non-scaling-stroke; }
+      .lyr-BUFFER  { fill: rgba(76,175,80,0.3); stroke: #4caf50; stroke-width: 1.4; vector-effect: non-scaling-stroke; }
+      .lyr-SAFETY  { fill: none; stroke: #5c8ab5; stroke-width: 1.4; vector-effect: non-scaling-stroke; }
+      .lyr-ROPE    { fill: none; stroke: #ba68c8; stroke-width: 1; stroke-opacity: 0.8; vector-effect: non-scaling-stroke; }
+      .lyr-MACHINE { fill: rgba(255,152,0,0.2); stroke: #ff9800; stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+      .lyr-LANDING { fill: none; stroke: #4dd0e1; stroke-width: 1; stroke-opacity: 0.6; vector-effect: non-scaling-stroke; }
 
       /* ---- Rules Tab ---- */
       #view-rules { padding: 20px; max-width: 1200px; margin: 0 auto; }
@@ -698,8 +711,8 @@
         color: #fff;
       }
       .ai-btn.active {
-        background: var(--accent-soft);
-        color: var(--accent);
+        background: var(--bg-panel);
+        color: var(--fg);
       }
       .ai-btn.active::before {
         opacity: 1;
@@ -965,13 +978,53 @@
         border-color: var(--accent);
         color: var(--accent);
       }
-      .nav-auth .auth-quota {
-        font-family: var(--mono);
+      .nav-auth .auth-email-wrap {
+        position: relative;
+        cursor: pointer;
         color: var(--fg-muted);
+        user-select: none;
+      }
+      .nav-auth .auth-email-wrap:hover {
+        color: var(--fg);
+      }
+      .nav-auth .auth-email-wrap .auth-caret {
+        font-size: 9px;
+        margin-left: 4px;
+        opacity: 0.5;
+      }
+      .nav-auth .auth-dropdown {
+        display: none;
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        background: var(--bg-panel);
+        border: 1px solid var(--border-strong);
+        border-radius: 6px;
+        padding: 10px 14px;
+        min-width: 180px;
+        z-index: 50;
         font-size: 11px;
       }
-      .nav-auth .auth-email {
+      .nav-auth .auth-dropdown.open {
+        display: block;
+      }
+      .nav-auth .auth-dropdown-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 4px 0;
         color: var(--fg-muted);
+      }
+      .nav-auth .auth-dropdown-row .label {
+        color: var(--fg-dim);
+      }
+      .nav-auth .auth-dropdown-row .value {
+        font-family: var(--mono);
+        color: var(--fg);
+      }
+      .nav-auth .auth-dropdown-divider {
+        border-top: 1px solid var(--border);
+        margin: 6px 0;
       }
       .nav-auth .auth-logout-btn {
         color: var(--fg-dim);
@@ -980,10 +1033,12 @@
         cursor: pointer;
         font-family: var(--sans);
         font-size: 11px;
-        padding: 2px 4px;
+        padding: 4px 0;
+        width: 100%;
+        text-align: left;
       }
       .nav-auth .auth-logout-btn:hover {
-        color: var(--fg);
+        color: var(--accent);
       }
       .nav-auth .pro-badge {
         display: inline-block;
@@ -1108,10 +1163,10 @@
     <header>
       <div class="header-top">
         <h1>
-          CNS 電梯配件器
-          <small id="demo-subtitle">DXF 解析 Demo</small>
+          Vera Plot
+          <small id="demo-subtitle">電梯設計規劃系統</small>
         </h1>
-        <div class="source">
+        <div class="source" style="display:none;">
           <label style="font-size:11px;color:var(--fg-muted);margin-right:8px;text-transform:uppercase;letter-spacing:0.08em">資料來源</label>
           <select id="source-select" style="background:var(--bg-panel);color:var(--fg);border:1px solid var(--border-strong);font-family:var(--mono);font-size:12px;padding:4px 8px;">
             <option value="hack-canada">Hack_Canada 真實建築 DXF（讀取驗證）</option>
@@ -1122,7 +1177,7 @@
       <nav class="app-nav" style="display:flex;align-items:center;justify-content:space-between;">
         <div style="display:flex;gap:16px;align-items:center;">
           <a href="#/configurator" class="nav-link" data-view="configurator">設計出圖</a>
-          <a href="javascript:void(0)" class="nav-link" id="nav-ai-btn" data-view="ai">AI 設計助理</a>
+          <a href="javascript:void(0)" class="ai-btn nav-link" id="nav-ai-btn" data-view="ai">AI 設計助理</a>
           <a href="#/rules" class="nav-link" data-view="rules">規則管理</a>
           <a href="/designs.html" class="nav-link dimmed" id="nav-my-designs">我的圖紙</a>
           <a href="/admin.html" class="nav-link" id="nav-admin" style="display:none;" data-view="admin">用戶管理</a>
@@ -1254,7 +1309,7 @@
 
       <div class="viz">
         <div class="viz-header">
-          <span class="viz-title" id="viz-title">建築平面圖 · 由 DXF SVG 渲染</span>
+          <div class="viz-legend-row">
           <div class="legend" id="legend-container">
             <div class="legend-item">
               <span class="legend-swatch" style="background:#d9dde3;border-color:#d9dde3"></span>牆
@@ -1275,10 +1330,12 @@
               <span class="legend-swatch swatch-elev"></span>電梯區域
             </div>
           </div>
+          </div>
+          <span class="viz-title" id="viz-title"></span>
         </div>
         <div class="viz-body">
           <div id="svg-container">
-            <div class="error" id="svg-placeholder">載入中…</div>
+            <div id="svg-placeholder"></div>
           </div>
         </div>
       </div>
@@ -1519,26 +1576,43 @@
         const q = currentUser.quota || {}
         const authEl = document.getElementById('nav-auth')
 
-        let parts = []
-        // PRO badge + company
-        if (u.plan === 'pro' && u.company_name) {
-          parts.push('<span class="pro-badge">PRO</span>')
-        }
-        // Quota display
         const dxfUsed = q.dxf_used != null ? q.dxf_used : 0
         const dxfLimit = q.dxf_limit != null ? q.dxf_limit : 0
         const aiUsed = q.ai_used != null ? q.ai_used : 0
         const aiLimit = q.ai_limit != null ? q.ai_limit : 0
-        parts.push(`<span class="auth-quota">DXF ${dxfUsed}/${dxfLimit} · AI ${aiUsed}/${aiLimit}</span>`)
-        // Email or company name
-        if (u.company_name) {
-          parts.push(`<span class="auth-email">${escapeHtml(u.company_name)}</span>`)
-        } else {
-          parts.push(`<span class="auth-email">${escapeHtml(u.email || '')}</span>`)
+
+        let proBadge = ''
+        if (u.role === 'pro' || u.role === 'admin') {
+          proBadge = `<span class="pro-badge">${u.role === 'admin' ? 'ADMIN' : 'PRO'}</span> `
         }
-        // Logout
-        parts.push('<button class="auth-logout-btn" id="nav-logout-btn">登出</button>')
-        authEl.innerHTML = parts.join('')
+
+        const displayName = u.company ? escapeHtml(u.company.name) : escapeHtml(u.raw_email || u.email || '')
+
+        authEl.innerHTML = `
+          ${proBadge}
+          <div class="auth-email-wrap" id="auth-email-trigger">
+            ${displayName} <span class="auth-caret">▼</span>
+            <div class="auth-dropdown" id="auth-dropdown">
+              <div class="auth-dropdown-row"><span class="label">DXF 輸出</span><span class="value">${dxfUsed} / ${dxfLimit}</span></div>
+              <div class="auth-dropdown-row"><span class="label">AI 對話</span><span class="value">${aiUsed} / ${aiLimit}</span></div>
+              <div class="auth-dropdown-row"><span class="label">重置</span><span class="value">每週一</span></div>
+              ${u.company ? `<div class="auth-dropdown-row"><span class="label">公司</span><span class="value">${escapeHtml(u.company.name)}</span></div>` : ''}
+              <div class="auth-dropdown-row"><span class="label">帳號</span><span class="value">${escapeHtml(u.raw_email || u.email || '')}</span></div>
+              <div class="auth-dropdown-divider"></div>
+              <button class="auth-logout-btn" id="nav-logout-btn">登出</button>
+            </div>
+          </div>
+        `
+
+        // Toggle dropdown on click
+        const trigger = document.getElementById('auth-email-trigger')
+        const dropdown = document.getElementById('auth-dropdown')
+        trigger.addEventListener('click', (e) => {
+          e.stopPropagation()
+          dropdown.classList.toggle('open')
+        })
+        // Close on click outside
+        document.addEventListener('click', () => dropdown.classList.remove('open'))
 
         document.getElementById('nav-logout-btn').onclick = handleLogout
 
@@ -1945,10 +2019,19 @@
             { color: '#ba68c8', label: 'DOOR 門' },
             { color: '#ffd54f', label: 'DIMS 尺寸' },
             { color: '#8aa680', label: 'STOP 樓層/中斷符號' },
+            { color: '#e8734e', label: 'SLING 車架', pro: true },
+            { color: '#4caf50', label: 'BUFFER 緩衝器', pro: true },
+            { color: '#5c8ab5', label: 'SAFETY 安全裝置', pro: true },
+            { color: '#ba68c8', label: 'ROPE 鋼繩/電纜', pro: true },
+            { color: '#ff9800', label: 'MACHINE 曳引機', pro: true },
+            { color: '#4dd0e1', label: 'LANDING 層門', pro: true },
           ]
-          legend.innerHTML = items.map(i =>
-            `<div class="legend-item"><span class="legend-swatch" style="background:${i.color};border-color:${i.color}"></span>${i.label}</div>`
-          ).join('')
+          const isPro = professionalMode.a || professionalMode.b
+          legend.innerHTML = items
+            .filter(i => !i.pro || isPro)
+            .map(i =>
+              `<div class="legend-item"><span class="legend-swatch" style="background:${i.color};border-color:${i.color}"></span>${i.label}</div>`
+            ).join('')
         } else {
           legend.innerHTML = `
             <div class="legend-item"><span class="legend-swatch" style="background:#d9dde3;border-color:#d9dde3"></span>牆</div>
@@ -1964,7 +2047,7 @@
       async function loadSource(source) {
         applyCopy(source)
         const container = document.getElementById('svg-container')
-        container.innerHTML = '<div class="error" id="svg-placeholder">載入中…</div>'
+        container.innerHTML = '<div id="svg-placeholder">載入中…</div>'
         try {
           const res = await fetch('/api/analysis?source=' + encodeURIComponent(source))
           if (!res.ok) {
@@ -1983,7 +2066,7 @@
 
       const sourceSelect = document.getElementById('source-select')
       sourceSelect.addEventListener('change', () => loadSource(sourceSelect.value))
-      loadSource(sourceSelect.value)
+      // Don't auto-load Hack_Canada on startup — start with blank canvas
 
       // ---- Solver form handling ----
 
@@ -2030,6 +2113,11 @@
           track.classList.remove('on')
           if (btn) btn.textContent = '產生 DXF 草稿'
         }
+        // Refresh legend to show/hide professional layer entries
+        applyCopy(mode === 'a' ? 'solver-mode-a' : 'solver-mode-b')
+        // Auto re-generate with new detail level
+        const form = document.getElementById('form-' + mode)
+        if (form) form.requestSubmit()
       }
 
       async function submitSolve(mode, payload) {
@@ -2118,12 +2206,10 @@
 
       formA.addEventListener('submit', (e) => {
         e.preventDefault()
-        if (!requireAuth('dxf')) return
         submitSolve('A', formToObject(formA))
       })
       formB.addEventListener('submit', (e) => {
         e.preventDefault()
-        if (!requireAuth('dxf')) return
         submitSolve('B', formToObject(formB))
       })
 
@@ -2257,7 +2343,7 @@
 
         // Generated DXF: render all polygons by layer class. Fall back to
         // elev-room class for architectural DXFs (Hack_Canada) where layer info isn't used.
-        const KNOWN_LAYERS = new Set(['SHAFT','WALL','CAR','CWT','RAIL_CAR','RAIL_CWT','DOOR','CENTER','DIMS','STOP','TEXT'])
+        const KNOWN_LAYERS = new Set(['SHAFT','WALL','CAR','CWT','RAIL_CAR','RAIL_CWT','DOOR','CENTER','DIMS','STOP','TEXT','SLING','BUFFER','SAFETY','ROPE','MACHINE','LANDING'])
         const isGenerated = data.extra_lines !== undefined
         for (const room of data.rooms) {
           if (isGenerated) {
@@ -2811,6 +2897,26 @@
         document.getElementById('nav-ai-btn').classList.add('active')
         document.getElementById('chat-input').disabled = false
         document.getElementById('chat-send-btn').disabled = false
+        // Show welcome message on first open, include current solver context
+        const msgArea = document.getElementById('chat-messages')
+        if (msgArea && msgArea.children.length === 0) {
+          const activeTab = document.querySelector('.mode-tab.active')
+          const activeMode = activeTab && activeTab.dataset.mode ? activeTab.dataset.mode : 'A'
+          const payload = collectSolverFormPayload(activeMode)
+          const usageMap = { passenger: '客用電梯', freight: '貨用電梯', bed: '病床電梯', accessible: '無障礙電梯' }
+          const usage = usageMap[payload.usage] || payload.usage || ''
+          const contextParts = []
+          if (usage) contextParts.push(usage)
+          if (payload.width_mm && payload.depth_mm) contextParts.push(`井道 ${payload.width_mm}x${payload.depth_mm}mm`)
+          if (payload.rated_load_kg) contextParts.push(`載重 ${payload.rated_load_kg}kg`)
+          if (payload.stops) contextParts.push(`${payload.stops} 層`)
+          const contextStr = contextParts.length > 0 ? `目前您正在設計：${contextParts.join('、')}。` : ''
+
+          const welcome = document.createElement('div')
+          welcome.className = 'chat-bubble assistant'
+          welcome.textContent = `嗨，我是 Vera，您的電梯設計助理。${contextStr}您可以在此與我討論設計規則的調整，例如配重位置、車廂尺寸、安全裝置參數等。確認後我將即時套用變更並重新產生圖面。`
+          msgArea.appendChild(welcome)
+        }
         document.getElementById('chat-input').focus()
       }
 
@@ -2901,21 +3007,27 @@
           setOverride(action.rule_key, action.new_value)
           chatState.pendingAction = null
           chatState.status = 'chat_open'
+          chatState.messages = []  // clear history — topic resolved, start fresh
           card.remove()
           addChatBubble('system', '已套用: ' + action.rule_key + ' = ' + action.new_value)
+          document.getElementById('chat-input').disabled = false
+          document.getElementById('chat-send-btn').disabled = false
+          document.getElementById('chat-input').focus()
           resolveCurrentCase()
         })
         card.querySelector('[data-action="accept-delete"]')?.addEventListener('click', () => {
-          // For soft delete, we don't apply an override — we'd need a special API call.
-          // In v1, soft delete via chat applies as a case override with the default value,
-          // effectively reverting it. The actual soft delete happens at commit time.
           addChatBubble('system', '已標記刪除: ' + action.rule_key + '（將在「收工存入團隊」時生效）')
           chatState.pendingAction = null
           chatState.status = 'chat_open'
+          chatState.messages = []  // clear history — topic resolved
           card.remove()
+          document.getElementById('chat-input').disabled = false
+          document.getElementById('chat-send-btn').disabled = false
+          document.getElementById('chat-input').focus()
         })
         card.querySelector('[data-action="reject"]')?.addEventListener('click', () => {
           chatState.pendingAction = null
+          chatState.messages = []  // clear history — topic cancelled
           chatState.status = 'chat_open'
           card.remove()
           addChatBubble('system', '已取消提議')
@@ -3002,7 +3114,7 @@
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({
               session_id: chatState.sessionId,
-              messages: chatState.messages,
+              messages: chatState.messages.map(m => ({ role: m.role, content: m.content })),
               case_context: {
                 solver_input: solverInput,
                 current_case_override: { ...caseOverrideState },
@@ -3059,9 +3171,50 @@
       })
 
       // ---- Commit team button ----
-      async function commitOverridesToTeam() {
-        const override = { ...caseOverrideState }
-        if (Object.keys(override).length === 0) return
+      let commitModalOpen = false
+
+      function showCommitChecklist() {
+        const keys = Object.keys(caseOverrideState)
+        if (keys.length === 0 || commitModalOpen) return
+        commitModalOpen = true
+
+        const overlay = document.createElement('div')
+        overlay.className = 'modal-backdrop'
+        overlay.innerHTML = `
+          <div class="modal">
+            <h3>選擇要存入團隊指引的項目</h3>
+            <div class="modal-body" style="max-height:300px;overflow-y:auto">
+              ${keys.map(k => `
+                <label style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border)">
+                  <input type="checkbox" checked data-key="${k}" style="accent-color:var(--accent);width:16px;height:16px">
+                  <span style="color:var(--fg-muted);font-family:var(--mono);font-size:11px;min-width:180px">${k}</span>
+                  <span style="color:var(--accent)">${caseOverrideState[k]}</span>
+                </label>
+              `).join('')}
+            </div>
+            <div class="modal-actions">
+              <button class="modal-btn" id="commit-cancel">取消</button>
+              <button class="modal-btn primary" id="commit-confirm">確認存入</button>
+            </div>
+          </div>
+        `
+        document.body.appendChild(overlay)
+
+        function closeModal() { overlay.remove(); commitModalOpen = false }
+
+        overlay.querySelector('#commit-cancel').onclick = closeModal
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal() })
+        overlay.querySelector('#commit-confirm').onclick = async () => {
+          const checked = overlay.querySelectorAll('input[type="checkbox"]:checked')
+          const selected = {}
+          checked.forEach(cb => { selected[cb.dataset.key] = caseOverrideState[cb.dataset.key] })
+          closeModal()
+          if (Object.keys(selected).length === 0) return
+          await doCommit(selected)
+        }
+      }
+
+      async function doCommit(override) {
         try {
           const res = await fetch('/api/rules/commit', {
             method: 'POST',
@@ -3074,7 +3227,9 @@
             return
           }
           const data = await res.json()
-          clearAllOverrides()
+          // Only clear committed keys, keep unchecked ones
+          for (const k of Object.keys(override)) delete caseOverrideState[k]
+          updateOverrideCountBadge()
           if (rulesState.rules.length > 0) await fetchRules()
           await resolveCurrentCase()
           const applied = Array.isArray(data.applied) ? data.applied : []
@@ -3088,8 +3243,8 @@
         }
       }
 
-      document.getElementById('commit-team-btn').onclick = commitOverridesToTeam
-      document.getElementById('chat-commit-btn').onclick = commitOverridesToTeam
+      document.getElementById('commit-team-btn').onclick = showCommitChecklist
+      document.getElementById('chat-commit-btn').onclick = showCommitChecklist
 
       // Initial badge state
       updateOverrideCountBadge()

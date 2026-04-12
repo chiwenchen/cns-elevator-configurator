@@ -388,6 +388,155 @@ describe('drawElevationProfessional', () => {
   })
 })
 
+// ---- Zigzag Compression Tests ----
+
+describe('drawElevationProfessional zigzag compression', () => {
+  /**
+   * Helper: compute the visual bounding box height for a given design.
+   * The elevation draws a shaft rect from pitBottom to shaftVisualTop.
+   * pitBottom = oy - pit_depth_mm
+   * shaftVisualTop = oy + carTop_offset + BREAK_HEADROOM + BREAK_GAP + TOP_ZONE_HEIGHT
+   *                = oy + 100 + car.height_mm + 600 + 1200 + 2000
+   * So visual height = pit_depth_mm + 100 + car.height_mm + 3800  (constant, stops-independent)
+   */
+  function getShaftRectHeight(calls: MockCall[]): number {
+    // drawRect on SHAFT layer: (ox, pitBottom, ox+sw, shaftVisualTop)
+    let active = false
+    for (const call of calls) {
+      if (call.method === 'setActiveLayer') {
+        active = call.args[0] === 'SHAFT'
+      } else if (active && call.method === 'drawRect') {
+        const [_x1, y1, _x2, y2] = call.args
+        return Math.abs(y2 - y1)
+      }
+    }
+    return -1
+  }
+
+  test('elevation height is independent of stops count (zigzag compresses middle floors)', () => {
+    const dw3 = createMockDw()
+    const dw10 = createMockDw()
+
+    drawElevationProfessional(dw3, makeDesign({ stops: 3 }), { x: 0, y: 0 }, PRO, makeConfig())
+    drawElevationProfessional(dw10, makeDesign({ stops: 10 }), { x: 0, y: 0 }, PRO, makeConfig())
+
+    const h3 = getShaftRectHeight(dw3.calls)
+    const h10 = getShaftRectHeight(dw10.calls)
+
+    // Both heights should be equal because the zigzag makes height stops-independent
+    expect(h3).toBeGreaterThan(0)
+    expect(h10).toBe(h3)
+  })
+
+  test('10-stop elevation height is much smaller than naive proportional height would be', () => {
+    const dw = createMockDw()
+    const design = makeDesign({ stops: 10 })
+    const config = makeConfig()
+    drawElevationProfessional(dw, design, { x: 0, y: 0 }, PRO, config)
+
+    const visualH = getShaftRectHeight(dw.calls)
+    // Naive proportional: total_height_mm = 12000 (makeDesign default)
+    // Visual height with zigzag should be far less than 12000
+    expect(visualH).toBeLessThan(design.shaft.total_height_mm * 0.7)
+  })
+
+  test('zigzag break lines are drawn on STOP layer', () => {
+    const dw = createMockDw()
+    drawElevationProfessional(dw, makeDesign({ stops: 6 }), { x: 0, y: 0 }, PRO, makeConfig())
+
+    const stopLines = getLayerCalls(dw.calls, 'STOP').filter(c => c.method === 'drawLine')
+    // Two zigzag rows × 6 segments each = 12 lines
+    expect(stopLines.length).toBe(12)
+  })
+
+  test('machine rect exists in top zone (above zigTop)', () => {
+    const dw = createMockDw()
+    const design = makeDesign()
+    drawElevationProfessional(dw, design, { x: 0, y: 0 }, PRO, makeConfig())
+
+    // Compute zigTop from first principles (same formula as source)
+    const carTop = 0 + 100 + design.car.height_mm  // oy=0, carBottom = oy+100
+    const zigBot = carTop + 600
+    const zigTop = zigBot + 1200
+
+    const machineRects = getLayerCalls(dw.calls, 'MACHINE').filter(c => c.method === 'drawRect')
+    expect(machineRects.length).toBe(1)
+    const [_x1, y1, _x2, y2] = machineRects[0].args
+    // Machine should be entirely above zigTop
+    expect(Math.min(y1, y2)).toBeGreaterThan(zigTop)
+  })
+
+  test('governor circle exists in top zone (above zigTop)', () => {
+    const dw = createMockDw()
+    const design = makeDesign()
+    drawElevationProfessional(dw, design, { x: 0, y: 0 }, PRO, makeConfig())
+
+    const carTop = 0 + 100 + design.car.height_mm
+    const zigTop = carTop + 600 + 1200
+
+    const safetyCircles = getLayerCalls(dw.calls, 'SAFETY').filter(c => c.method === 'drawCircle')
+    expect(safetyCircles.length).toBe(1)
+    const [_cx, cy, _r] = safetyCircles[0].args
+    // Governor center should be above zigTop
+    expect(cy).toBeGreaterThan(zigTop)
+  })
+
+  test('safety gear rects exist in bottom zone (below zigBot)', () => {
+    const dw = createMockDw()
+    const design = makeDesign()
+    drawElevationProfessional(dw, design, { x: 0, y: 0 }, PRO, makeConfig())
+
+    const carTop = 0 + 100 + design.car.height_mm
+    const zigBot = carTop + 600
+
+    const safetyRects = getLayerCalls(dw.calls, 'SAFETY').filter(c => c.method === 'drawRect')
+    expect(safetyRects.length).toBe(2)
+    for (const rect of safetyRects) {
+      const [_x1, y1, _x2, y2] = rect.args
+      // Safety gear top edge should be below zigBot
+      expect(Math.max(y1, y2)).toBeLessThan(zigBot)
+    }
+  })
+
+  test('buffer rects exist in bottom zone (below zigBot)', () => {
+    const dw = createMockDw()
+    const design = makeDesign()
+    drawElevationProfessional(dw, design, { x: 0, y: 0 }, PRO, makeConfig())
+
+    const carTop = 0 + 100 + design.car.height_mm
+    const zigBot = carTop + 600
+
+    const bufferRects = getLayerCalls(dw.calls, 'BUFFER').filter(c => c.method === 'drawRect')
+    expect(bufferRects.length).toBe(2)
+    for (const rect of bufferRects) {
+      const [_x1, y1, _x2, y2] = rect.args
+      expect(Math.max(y1, y2)).toBeLessThan(zigBot)
+    }
+  })
+
+  test('no single ROPE drawLine spans from below zigBot to above zigTop', () => {
+    const dw = createMockDw()
+    const design = makeDesign()
+    drawElevationProfessional(dw, design, { x: 0, y: 0 }, PRO, makeConfig())
+
+    const carTop = 0 + 100 + design.car.height_mm
+    const zigBot = carTop + 600
+    const zigTop = zigBot + 1200
+
+    const ropeLines = getLayerCalls(dw.calls, 'ROPE').filter(c => c.method === 'drawLine')
+    expect(ropeLines.length).toBeGreaterThan(0)
+
+    for (const line of ropeLines) {
+      const [_x1, y1, _x2, y2] = line.args
+      const minY = Math.min(y1, y2)
+      const maxY = Math.max(y1, y2)
+      // A line crossing the zigzag gap would have minY < zigBot AND maxY > zigTop
+      const crossesGap = minY < zigBot && maxY > zigTop
+      expect(crossesGap).toBe(false)
+    }
+  })
+})
+
 // ---- generateElevatorDXF Integration Tests ----
 
 describe('generateElevatorDXF integration', () => {
