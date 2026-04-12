@@ -31,6 +31,12 @@ import {
   RuleMandatoryError,
 } from '../handlers/rules'
 import { InMemoryRulesStore } from '../config/load'
+import {
+  handleChat,
+  createAnthropicCaller,
+  InvalidChatBodyError,
+  ChatApiError,
+} from '../handlers/chat'
 
 const PUBLIC_DIR = join(import.meta.dir, '..', '..', 'public')
 const HACK_CANADA_PATH = join(PUBLIC_DIR, 'assets', 'hack-canada.dxf')
@@ -118,6 +124,39 @@ const server = Bun.serve({
         } catch (err) {
           return handleRulesErrorBun(err)
         }
+      }
+    }
+
+    if (url.pathname === '/api/chat' && req.method === 'POST') {
+      const apiKey = process.env.ANTHROPIC_API_KEY
+      if (!apiKey) {
+        return Response.json(
+          { error: 'not_configured', message: 'Set ANTHROPIC_API_KEY env var' },
+          { status: 503 },
+        )
+      }
+      try {
+        const body = await req.json()
+        const caller = createAnthropicCaller(apiKey)
+        const result = await handleChat(body, rulesStore, caller)
+        return Response.json(result)
+      } catch (err) {
+        if (err instanceof InvalidChatBodyError) {
+          return Response.json(
+            { error: 'invalid_request', message: err.message },
+            { status: 400 },
+          )
+        }
+        if (err instanceof ChatApiError) {
+          return Response.json(
+            { error: 'ai_unavailable', message: err.message },
+            { status: 503 },
+          )
+        }
+        return Response.json(
+          { error: 'chat_failed', message: String(err) },
+          { status: 500 },
+        )
       }
     }
 
