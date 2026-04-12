@@ -2344,6 +2344,7 @@
           setOverride(action.rule_key, action.new_value)
           chatState.pendingAction = null
           chatState.status = 'chat_open'
+          chatState.messages = []  // clear history — topic resolved, start fresh
           card.remove()
           addChatBubble('system', '已套用: ' + action.rule_key + ' = ' + action.new_value)
           document.getElementById('chat-input').disabled = false
@@ -2355,6 +2356,7 @@
           addChatBubble('system', '已標記刪除: ' + action.rule_key + '（將在「收工存入團隊」時生效）')
           chatState.pendingAction = null
           chatState.status = 'chat_open'
+          chatState.messages = []  // clear history — topic resolved
           card.remove()
           document.getElementById('chat-input').disabled = false
           document.getElementById('chat-send-btn').disabled = false
@@ -2362,6 +2364,7 @@
         })
         card.querySelector('[data-action="reject"]')?.addEventListener('click', () => {
           chatState.pendingAction = null
+          chatState.messages = []  // clear history — topic cancelled
           chatState.status = 'chat_open'
           card.remove()
           addChatBubble('system', '已取消提議')
