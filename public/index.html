@@ -68,13 +68,54 @@
         color: var(--fg-muted);
         text-decoration: underline dotted;
       }
+      header .header-top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 24px;
+      }
+      .app-nav {
+        display: flex;
+        gap: 16px;
+        margin-top: 8px;
+        font-size: 12px;
+      }
+      .app-nav .nav-link {
+        color: var(--fg-muted);
+        text-decoration: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+      }
+      .app-nav .nav-link.active {
+        color: var(--fg);
+        background: var(--bg-panel);
+      }
       main {
+        min-height: 0;
+        overflow: hidden;
+        display: block;
+      }
+      .view {
+        display: block;
+        height: 100%;
+      }
+      .view.hidden {
+        display: none;
+      }
+      #view-configurator {
         display: grid;
         grid-template-columns: 340px 1fr 380px;
         gap: 1px;
         background: var(--border);
         min-height: 0;
         overflow: hidden;
+        height: 100%;
+      }
+      #view-configurator.hidden {
+        display: none;
+      }
+      #view-rules {
+        overflow-y: auto;
       }
       .solver-panel {
         background: var(--bg-elev);
@@ -445,20 +486,27 @@
   </head>
   <body>
     <header>
-      <h1>
-        CNS 電梯配件器
-        <small id="demo-subtitle">DXF 解析 Demo</small>
-      </h1>
-      <div class="source">
-        <label style="font-size:11px;color:var(--fg-muted);margin-right:8px;text-transform:uppercase;letter-spacing:0.08em">資料來源</label>
-        <select id="source-select" style="background:var(--bg-panel);color:var(--fg);border:1px solid var(--border-strong);font-family:var(--mono);font-size:12px;padding:4px 8px;">
-          <option value="hack-canada">Hack_Canada 真實建築 DXF（讀取驗證）</option>
-        </select>
-        <span id="unit-badge" style="margin-left:12px">—</span>
+      <div class="header-top">
+        <h1>
+          CNS 電梯配件器
+          <small id="demo-subtitle">DXF 解析 Demo</small>
+        </h1>
+        <div class="source">
+          <label style="font-size:11px;color:var(--fg-muted);margin-right:8px;text-transform:uppercase;letter-spacing:0.08em">資料來源</label>
+          <select id="source-select" style="background:var(--bg-panel);color:var(--fg);border:1px solid var(--border-strong);font-family:var(--mono);font-size:12px;padding:4px 8px;">
+            <option value="hack-canada">Hack_Canada 真實建築 DXF（讀取驗證）</option>
+          </select>
+          <span id="unit-badge" style="margin-left:12px">—</span>
+        </div>
       </div>
+      <nav class="app-nav">
+        <a href="#/configurator" class="nav-link" data-view="configurator">配件器</a>
+        <a href="#/rules" class="nav-link" data-view="rules">規則管理</a>
+      </nav>
     </header>
 
     <main>
+      <section id="view-configurator" class="view">
       <div class="solver-panel">
         <div class="solver-header">
           <div class="solver-title">解算器輸入（Solver）</div>
@@ -620,6 +668,9 @@
           <div class="metric-value" id="m-matched">—</div>
         </div>
       </aside>
+      </section>
+
+      <section id="view-rules" class="view hidden"></section>
     </main>
 
     <footer>
@@ -628,6 +679,40 @@
     </footer>
 
     <script>
+      // ---- Hash router ----
+      function currentRoute() {
+        const hash = window.location.hash || '#/configurator'
+        if (hash.startsWith('#/rules/deleted')) return 'rules-deleted'
+        if (hash.startsWith('#/rules')) return 'rules'
+        return 'configurator'
+      }
+
+      function renderRoute() {
+        const route = currentRoute()
+        const configuratorView = document.getElementById('view-configurator')
+        const rulesView = document.getElementById('view-rules')
+        const navLinks = document.querySelectorAll('.nav-link')
+
+        if (route === 'configurator') {
+          configuratorView.classList.remove('hidden')
+          rulesView.classList.add('hidden')
+        } else {
+          configuratorView.classList.add('hidden')
+          rulesView.classList.remove('hidden')
+        }
+
+        navLinks.forEach((link) => {
+          const isActive = link.dataset.view === (route === 'configurator' ? 'configurator' : 'rules')
+          link.classList.toggle('active', isActive)
+        })
+
+        // Dispatch event so individual views can refresh
+        document.dispatchEvent(new CustomEvent('route-change', { detail: { route } }))
+      }
+
+      window.addEventListener('hashchange', renderRoute)
+      window.addEventListener('DOMContentLoaded', renderRoute)
+
       // 根據 source 調整 UI 文案
       const copyByMode = {
         'hack-canada': {
