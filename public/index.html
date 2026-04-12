@@ -2147,12 +2147,10 @@
 
       formA.addEventListener('submit', (e) => {
         e.preventDefault()
-        if (!requireAuth('dxf')) return
         submitSolve('A', formToObject(formA))
       })
       formB.addEventListener('submit', (e) => {
         e.preventDefault()
-        if (!requireAuth('dxf')) return
         submitSolve('B', formToObject(formB))
       })
 
