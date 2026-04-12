@@ -878,6 +878,65 @@
       }
       .chat-send-btn:hover { background: var(--accent); color: #fff; }
       .chat-send-btn:disabled { opacity: 0.5; cursor: default; }
+
+      /* Professional mode toggle */
+      .pro-toggle-wrap {
+        display: inline-flex; align-items: center; gap: 8px;
+      }
+      .pro-toggle-track {
+        width: 36px; height: 20px;
+        border-radius: 10px; position: relative;
+        overflow: hidden; cursor: pointer;
+        transition: all 0.3s ease;
+        background: linear-gradient(135deg, #2a2f38 0%, #363c47 50%, #2a2f38 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.2);
+      }
+      .pro-toggle-track.on {
+        background: linear-gradient(135deg, #3a4a5e 0%, #5a6a80 30%, #8090a8 50%, #5a6a80 70%, #3a4a5e 100%);
+        box-shadow: 0 0 8px rgba(138,147,160,0.2),
+          inset 0 1px 0 rgba(255,255,255,0.15),
+          inset 0 -1px 0 rgba(0,0,0,0.2);
+      }
+      .pro-toggle-track.on::after {
+        content: '';
+        position: absolute; top: 0; left: -100%;
+        width: 60%; height: 100%;
+        background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.25) 40%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.25) 60%, transparent 100%);
+        animation: pro-shimmer 3s ease-in-out infinite;
+        border-radius: 10px;
+      }
+      @keyframes pro-shimmer {
+        0% { left: -100%; }
+        50% { left: 140%; }
+        100% { left: 140%; }
+      }
+      .pro-toggle-knob {
+        width: 16px; height: 16px; border-radius: 50%;
+        position: absolute; top: 2px; left: 2px;
+        background: linear-gradient(180deg, #bbb, #999);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        transition: all 0.3s ease;
+      }
+      .pro-toggle-track.on .pro-toggle-knob {
+        left: 18px;
+        background: linear-gradient(180deg, #fff, #e8eaf0);
+      }
+      .pro-toggle-label { font-size: 12px; color: var(--fg-muted); }
+      .pro-toggle-track.on ~ .pro-toggle-label { color: var(--fg); }
+      .pro-info {
+        position: relative; display: inline-flex; align-items: center;
+        cursor: help; color: var(--fg-muted); font-size: 13px;
+      }
+      .pro-info .tooltip {
+        display: none; position: absolute; bottom: 100%; left: 50%;
+        transform: translateX(-50%); margin-bottom: 8px;
+        background: var(--bg-panel); border: 1px solid var(--border-strong);
+        border-radius: 6px; padding: 10px 14px;
+        font-size: 11px; color: var(--fg-muted); line-height: 1.5;
+        width: 280px; z-index: 100; white-space: normal;
+        pointer-events: none;
+      }
+      .pro-info:hover .tooltip { display: block; }
     </style>
   </head>
   <body>
@@ -956,6 +1015,15 @@
               <label>偏好速度 (m/min)</label>
               <input type="number" name="preferred_speed_mpm" value="60" min="15" max="270" step="15" />
             </div>
+            <div class="pro-toggle-wrap" style="margin-bottom: 10px;">
+              <div class="pro-toggle-track" id="pro-toggle-a" onclick="toggleProfessional('a')">
+                <div class="pro-toggle-knob"></div>
+              </div>
+              <span class="pro-toggle-label">專業施工圖</span>
+              <span class="pro-info">ⓘ
+                <span class="tooltip">專業施工圖模式：新增 13 個工程部件（車架、緩衝器、安全裝置、多樓層標記等），輸出 18 圖層 DXF，可在 AutoCAD 中逐層控制可見度。</span>
+              </span>
+            </div>
             <button type="submit" class="btn-primary">產生 DXF 草稿</button>
             <button type="button" class="btn-secondary" id="download-a" disabled>下載 DXF</button>
           </form>
@@ -996,6 +1064,15 @@
             <div class="form-row">
               <label>樓層高 (mm)</label>
               <input type="number" name="floor_height_mm" value="3000" min="2200" max="6000" />
+            </div>
+            <div class="pro-toggle-wrap" style="margin-bottom: 10px;">
+              <div class="pro-toggle-track" id="pro-toggle-b" onclick="toggleProfessional('b')">
+                <div class="pro-toggle-knob"></div>
+              </div>
+              <span class="pro-toggle-label">專業施工圖</span>
+              <span class="pro-info">ⓘ
+                <span class="tooltip">專業施工圖模式：新增 13 個工程部件（車架、緩衝器、安全裝置、多樓層標記等），輸出 18 圖層 DXF，可在 AutoCAD 中逐層控制可見度。</span>
+              </span>
             </div>
             <button type="submit" class="btn-primary">產生 DXF 草稿</button>
             <button type="button" class="btn-secondary" id="download-b" disabled>下載 DXF</button>
@@ -1338,6 +1415,21 @@
         return obj
       }
 
+      const professionalMode = { a: false, b: false }
+
+      function toggleProfessional(mode) {
+        professionalMode[mode] = !professionalMode[mode]
+        const track = document.getElementById('pro-toggle-' + mode)
+        const btn = document.querySelector('#form-' + mode + ' .btn-primary')
+        if (professionalMode[mode]) {
+          track.classList.add('on')
+          if (btn) btn.textContent = '產生 DXF 施工圖'
+        } else {
+          track.classList.remove('on')
+          if (btn) btn.textContent = '產生 DXF 草稿'
+        }
+      }
+
       async function submitSolve(mode, payload) {
         statusEl.className = 'solver-status'
         statusEl.textContent = '解算中…'
@@ -1350,7 +1442,12 @@
           const res = await fetch('/api/solve', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ mode, ...payload, caseOverride: { ...caseOverrideState } }),
+            body: JSON.stringify({
+              mode,
+              ...payload,
+              caseOverride: { ...caseOverrideState },
+              detail_level: professionalMode[mode.toLowerCase()] ? 'professional' : 'draft',
+            }),
           })
           const data = await res.json()
           if (!res.ok) {
@@ -1400,15 +1497,16 @@
         }
       }
 
-      function downloadDxf(design, dxfString) {
+      function downloadDxf(d, dxfString) {
         const blob = new Blob([dxfString], { type: 'application/dxf' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
+        const usage = d.shaft.usage
+        const load = d.rated_load_kg
+        const dateStr = d.generated_at.slice(0, 10)
+        const proTag = professionalMode[d.solver_mode.toLowerCase()] ? '-professional' : ''
         a.href = url
-        const usage = design.shaft.usage
-        const load = design.rated_load_kg
-        const date = new Date().toISOString().slice(0, 10)
-        a.download = `elevator-${design.solver_mode}-${usage}-${load}kg-${date}.dxf`
+        a.download = `elevator-${d.solver_mode}-${usage}${proTag}-${load}kg-${dateStr}.dxf`
         document.body.appendChild(a)
         a.click()
         document.body.removeChild(a)
