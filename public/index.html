@@ -1357,9 +1357,12 @@
             { color: '#ff9800', label: 'MACHINE 曳引機', pro: true },
             { color: '#4dd0e1', label: 'LANDING 層門', pro: true },
           ]
-          legend.innerHTML = items.map(i =>
-            `<div class="legend-item"><span class="legend-swatch" style="background:${i.color};border-color:${i.color}"></span>${i.label}</div>`
-          ).join('')
+          const isPro = professionalMode.a || professionalMode.b
+          legend.innerHTML = items
+            .filter(i => !i.pro || isPro)
+            .map(i =>
+              `<div class="legend-item"><span class="legend-swatch" style="background:${i.color};border-color:${i.color}"></span>${i.label}</div>`
+            ).join('')
         } else {
           legend.innerHTML = `
             <div class="legend-item"><span class="legend-swatch" style="background:#d9dde3;border-color:#d9dde3"></span>牆</div>
@@ -1441,6 +1444,8 @@
           track.classList.remove('on')
           if (btn) btn.textContent = '產生 DXF 草稿'
         }
+        // Refresh legend to show/hide professional layer entries
+        applyCopy(mode === 'a' ? 'solver-mode-a' : 'solver-mode-b')
       }
 
       async function submitSolve(mode, payload) {
