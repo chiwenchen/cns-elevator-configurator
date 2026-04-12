@@ -587,6 +587,53 @@
       }
       .toast.error { border-left-color: #e8734e; }
       @keyframes toast-in { from { transform: translateX(100%); opacity: 0; } to { transform: none; opacity: 1; } }
+
+      /* ---- Validation Panel ---- */
+      .validation-panel {
+        position: fixed; bottom: 0; left: 0; right: 0;
+        background: var(--bg-panel); border-top: 1px solid var(--border);
+        font-size: 12px; z-index: 50;
+        max-height: 50vh; display: flex; flex-direction: column;
+      }
+      .validation-panel.collapsed .validation-body { display: none; }
+      .validation-summary {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 10px 20px; cursor: pointer;
+      }
+      .validation-summary:hover { background: var(--bg); }
+      .validation-counts { display: flex; gap: 20px; font-family: var(--mono); }
+      .count-pass { color: #8aa680; }
+      .count-warning { color: #ffd54f; }
+      .count-cns { color: #e7e9ec; }
+      .count-fail { color: #e8734e; }
+      .validation-toggle { font-size: 10px; color: var(--fg-muted); }
+
+      .validation-body {
+        overflow-y: auto; padding: 16px 20px; border-top: 1px solid var(--border);
+      }
+      .validation-section { margin-bottom: 16px; }
+      .validation-section-header {
+        font-size: 13px; font-weight: 600; margin-bottom: 8px;
+        display: flex; justify-content: space-between; cursor: pointer;
+        color: var(--fg);
+      }
+      .validation-section-header.collapsed + .validation-section-body { display: none; }
+
+      .validation-item {
+        display: grid; grid-template-columns: 20px 1fr auto auto auto;
+        gap: 10px; padding: 6px 10px; align-items: center;
+        border-bottom: 1px solid var(--border);
+        font-size: 11px;
+      }
+      .validation-item .status-icon { text-align: center; font-family: var(--mono); font-weight: 600; }
+      .validation-item.warning .status-icon { color: #ffd54f; }
+      .validation-item.pass .status-icon { color: #8aa680; }
+      .validation-item.fail .status-icon { color: #e8734e; }
+      .validation-item .item-info .item-name { color: var(--fg); font-weight: 500; }
+      .validation-item .item-info .item-key { color: var(--fg-muted); font-family: var(--mono); font-size: 10px; }
+      .validation-item .item-value { font-family: var(--mono); color: var(--fg); }
+      .validation-item .item-default { font-family: var(--mono); color: var(--fg-muted); }
+      .validation-item .item-revert { font-size: 10px; }
     </style>
   </head>
   <body>
@@ -773,6 +820,16 @@
           <div class="metric-value" id="m-matched">—</div>
         </div>
       </aside>
+
+      <div class="validation-panel collapsed" id="validation-panel">
+        <div class="validation-summary" id="validation-summary">
+          <div class="validation-counts" id="validation-counts">
+            <span style="color:var(--fg-muted);">尚未生成</span>
+          </div>
+          <span class="validation-toggle" id="validation-toggle">[展開]</span>
+        </div>
+        <div class="validation-body" id="validation-body"></div>
+      </div>
       </section>
 
       <section id="view-rules" class="view hidden">
@@ -826,9 +883,10 @@
           </div>
         </div>
 
-        <div class="toast-container" id="toast-container"></div>
       </section>
     </main>
+
+    <div class="toast-container" id="toast-container"></div>
 
     <footer>
       <span>bun src/demo/server.ts · port 3000</span>
@@ -1029,8 +1087,12 @@
               (data.error === 'non_standard' ? '⚠ 非標輸入\n' : '✕ 解算失敗\n') +
               (data.message || '') +
               (data.suggestion ? '\n\n建議：' + data.suggestion : '')
+            renderValidationSummary(null)
             return
           }
+
+          // Render validation panel from response
+          renderValidationSummary(data.validation_report || null)
 
           // Success
           lastDxfString = data.dxf_string
@@ -1584,6 +1646,122 @@
           }
         }
       })
+
+      // ---- Validation Panel ----
+      let lastValidationReport = null
+
+      function renderValidationSummary(report) {
+        lastValidationReport = report
+        const container = document.getElementById('validation-counts')
+        if (!container) return
+        if (!report) {
+          container.innerHTML = '<span style="color:var(--fg-muted);">尚未生成</span>'
+          const body = document.getElementById('validation-body')
+          if (body) body.innerHTML = ''
+          return
+        }
+        const summary = report.summary || {}
+        const guideline_pass = summary.guideline_pass || 0
+        const guideline_warning = summary.guideline_warning || 0
+        const cns_pass = summary.cns_pass || 0
+        const total_fail = summary.total_fail || 0
+        container.innerHTML = `
+          <span class="count-pass">PASS ${guideline_pass + cns_pass}</span>
+          <span class="count-warning">WARN ${guideline_warning}</span>
+          <span class="count-cns">CNS ${cns_pass}</span>
+          ${total_fail > 0 ? `<span class="count-fail">FAIL ${total_fail}</span>` : ''}
+        `
+        renderValidationBody(report)
+      }
+
+      function renderValidationBody(report) {
+        const body = document.getElementById('validation-body')
+        if (!body) return
+        if (!report) { body.innerHTML = ''; return }
+
+        const items = Array.isArray(report.items) ? report.items : []
+        const warnings = items.filter((i) => i.status === 'warning')
+        const cnsItems = items.filter((i) => i.source === 'cns')
+        const guidelines = items.filter((i) => i.source !== 'cns' && i.status === 'pass')
+
+        body.innerHTML = `
+          <div class="validation-section">
+            <div class="validation-section-header">
+              <span>案子微調 (${warnings.length})</span>
+              <span class="validation-toggle">[-]</span>
+            </div>
+            <div class="validation-section-body">
+              ${warnings.length === 0 ? '<div style="color:var(--fg-muted);padding:10px;">無微調</div>' : warnings.map(renderValidationItem).join('')}
+            </div>
+          </div>
+          <div class="validation-section">
+            <div class="validation-section-header collapsed">
+              <span>CNS 法規合規 (${cnsItems.length})</span>
+              <span class="validation-toggle">[+]</span>
+            </div>
+            <div class="validation-section-body">
+              ${cnsItems.map(renderValidationItem).join('')}
+            </div>
+          </div>
+          <div class="validation-section">
+            <div class="validation-section-header collapsed">
+              <span>設計指引 (${guidelines.length})</span>
+              <span class="validation-toggle">[+]</span>
+            </div>
+            <div class="validation-section-body">
+              ${guidelines.map(renderValidationItem).join('')}
+            </div>
+          </div>
+        `
+
+        // Wire up collapse toggles
+        body.querySelectorAll('.validation-section-header').forEach((h) => {
+          h.onclick = () => {
+            h.classList.toggle('collapsed')
+            const tog = h.querySelector('.validation-toggle')
+            if (tog) tog.textContent = h.classList.contains('collapsed') ? '[+]' : '[-]'
+          }
+        })
+        // Wire up revert buttons (revertCaseOverride is defined in Task 10)
+        body.querySelectorAll('[data-revert-key]').forEach((btn) => {
+          btn.onclick = () => {
+            const key = btn.dataset.revertKey
+            if (typeof revertCaseOverride === 'function') revertCaseOverride(key)
+          }
+        })
+      }
+
+      function renderValidationItem(item) {
+        const icon = item.status === 'warning' ? '!' : (item.status === 'pass' ? 'v' : 'x')
+        const revertBtn = item.status === 'warning'
+          ? `<button class="rule-action-btn item-revert" data-revert-key="${escapeHtml(String(item.rule_key || ''))}">revert</button>`
+          : ''
+        const finalValue = item.final_value == null ? '' : String(item.final_value)
+        const teamDefault = item.team_default_value == null ? '' : String(item.team_default_value)
+        const ruleName = item.rule_name == null ? '' : String(item.rule_name)
+        const ruleKey = item.rule_key == null ? '' : String(item.rule_key)
+        const source = item.source == null ? '' : String(item.source)
+        return `
+          <div class="validation-item ${item.status}">
+            <div class="status-icon">${icon}</div>
+            <div class="item-info">
+              <div class="item-name">${escapeHtml(ruleName)} <span class="source-badge ${escapeHtml(source)}">${escapeHtml(source)}</span></div>
+              <div class="item-key">${escapeHtml(ruleKey)}</div>
+            </div>
+            <div class="item-value">${escapeHtml(finalValue)}</div>
+            <div class="item-default">${item.status === 'warning' ? '(預設 ' + escapeHtml(teamDefault) + ')' : ''}</div>
+            <div>${revertBtn}</div>
+          </div>
+        `
+      }
+
+      // Validation panel expand/collapse
+      document.getElementById('validation-summary').onclick = () => {
+        const panel = document.getElementById('validation-panel')
+        panel.classList.toggle('collapsed')
+        document.getElementById('validation-toggle').textContent =
+          panel.classList.contains('collapsed') ? '[展開]' : '[收起]'
+      }
     </script>
   </body>
 </html>
