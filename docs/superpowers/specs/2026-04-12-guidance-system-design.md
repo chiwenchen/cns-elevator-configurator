@@ -679,15 +679,16 @@ interface ListRulesResponse {
 
 // PATCH /api/rules/:key
 interface PatchRuleRequest { value: string; reason?: string }
-interface PatchRuleResponse { rule: TeamRule; audit_id: number }
+interface PatchRuleResponse { rule: TeamRule }
+// audit_id not returned in v1; audit history queryable separately (phase 2)
 // 400: baseline violation | 404: not found or deleted
 
 // DELETE /api/rules/:key
-interface DeleteRuleResponse { rule: TeamRule; audit_id: number }
+interface DeleteRuleResponse { rule: TeamRule }
 // 403: mandatory=1 | 404: not found or already deleted
 
 // POST /api/rules/:key/restore
-interface RestoreRuleResponse { rule: TeamRule; audit_id: number }
+interface RestoreRuleResponse { rule: TeamRule }
 
 // POST /api/rules/commit
 interface CommitRequest {
@@ -695,7 +696,7 @@ interface CommitRequest {
   case_override: CaseOverride
 }
 interface CommitResponse {
-  applied: Array<{ key: string; old_value: string; new_value: string; audit_id: number }>
+  applied: Array<{ key: string; old_value: string; new_value: string }>
   skipped: Array<{ key: string; reason: 'rule_deleted' | 'baseline_violation' | 'unchanged' }>
 }
 ```

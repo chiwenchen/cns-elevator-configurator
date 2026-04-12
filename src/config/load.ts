@@ -301,7 +301,6 @@ export class D1RulesStore extends D1RulesLoader implements RulesStore {
         key,
         old_value: rule.value,
         new_value: newValue,
-        audit_id: 0, // D1 batch doesn't give us row IDs; acceptable for v1
       })
     }
 
@@ -498,7 +497,7 @@ export class InMemoryRulesStore implements RulesStore {
         source,
         timestamp: now,
       })
-      applied.push({ key, old_value: oldValue, new_value: newValue, audit_id: auditId })
+      applied.push({ key, old_value: oldValue, new_value: newValue })
     }
 
     return { applied, skipped }
