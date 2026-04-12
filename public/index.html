@@ -482,6 +482,13 @@
       .lyr-DIMS    { fill: none; stroke: #ffd54f; stroke-width: 1; vector-effect: non-scaling-stroke; }
       .lyr-STOP    { fill: none; stroke: #8aa680; stroke-width: 1; vector-effect: non-scaling-stroke; }
       .lyr-TEXT    { fill: #e7e9ec; }
+      /* Professional layers */
+      .lyr-SLING   { fill: none; stroke: #e8734e; stroke-width: 1.6; stroke-opacity: 0.7; vector-effect: non-scaling-stroke; }
+      .lyr-BUFFER  { fill: rgba(76,175,80,0.3); stroke: #4caf50; stroke-width: 1.4; vector-effect: non-scaling-stroke; }
+      .lyr-SAFETY  { fill: none; stroke: #5c8ab5; stroke-width: 1.4; vector-effect: non-scaling-stroke; }
+      .lyr-ROPE    { fill: none; stroke: #ba68c8; stroke-width: 1; stroke-opacity: 0.8; vector-effect: non-scaling-stroke; }
+      .lyr-MACHINE { fill: rgba(255,152,0,0.2); stroke: #ff9800; stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+      .lyr-LANDING { fill: none; stroke: #4dd0e1; stroke-width: 1; stroke-opacity: 0.6; vector-effect: non-scaling-stroke; }
 
       /* ---- Rules Tab ---- */
       #view-rules { padding: 20px; max-width: 1200px; margin: 0 auto; }
@@ -1343,6 +1350,12 @@
             { color: '#ba68c8', label: 'DOOR 門' },
             { color: '#ffd54f', label: 'DIMS 尺寸' },
             { color: '#8aa680', label: 'STOP 樓層/中斷符號' },
+            { color: '#e8734e', label: 'SLING 車架', pro: true },
+            { color: '#4caf50', label: 'BUFFER 緩衝器', pro: true },
+            { color: '#5c8ab5', label: 'SAFETY 安全裝置', pro: true },
+            { color: '#ba68c8', label: 'ROPE 鋼繩/電纜', pro: true },
+            { color: '#ff9800', label: 'MACHINE 曳引機', pro: true },
+            { color: '#4dd0e1', label: 'LANDING 層門', pro: true },
           ]
           legend.innerHTML = items.map(i =>
             `<div class="legend-item"><span class="legend-swatch" style="background:${i.color};border-color:${i.color}"></span>${i.label}</div>`
@@ -1652,7 +1665,7 @@
 
         // Generated DXF: render all polygons by layer class. Fall back to
         // elev-room class for architectural DXFs (Hack_Canada) where layer info isn't used.
-        const KNOWN_LAYERS = new Set(['SHAFT','WALL','CAR','CWT','RAIL_CAR','RAIL_CWT','DOOR','CENTER','DIMS','STOP','TEXT'])
+        const KNOWN_LAYERS = new Set(['SHAFT','WALL','CAR','CWT','RAIL_CAR','RAIL_CWT','DOOR','CENTER','DIMS','STOP','TEXT','SLING','BUFFER','SAFETY','ROPE','MACHINE','LANDING'])
         const isGenerated = data.extra_lines !== undefined
         for (const room of data.rooms) {
           if (isGenerated) {
