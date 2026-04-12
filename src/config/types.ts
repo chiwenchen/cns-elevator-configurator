@@ -53,6 +53,27 @@ export interface PitFormulaParams {
   speed_bonus_150mpm_mm: number
 }
 
+export type BufferType = 'auto' | 'spring' | 'oil'
+
+export interface ProfessionalConfig {
+  sling_offset_mm: number
+  sling_thickness_mm: number
+  guide_shoe_width_mm: number
+  guide_shoe_depth_mm: number
+  wall_thickness_mm: number
+  buffer_type: BufferType
+  buffer_width_mm: number
+  buffer_height_spring_mm: number
+  buffer_height_oil_mm: number
+  machine_width_mm: number
+  machine_height_mm: number
+  sheave_diameter_mm: number
+  safety_gear_width_mm: number
+  safety_gear_height_mm: number
+  governor_diameter_mm: number
+  rail_bracket_spacing_mm: number
+}
+
 /**
  * Parsed + structured EffectiveConfig. This is what the solver, DXF generator,
  * and validation report consume. Built from:
@@ -104,6 +125,7 @@ export interface EffectiveConfig {
     accessible_min_car_depth_mm: number
     bed_min_car_depth_mm: number
   }
+  professional?: ProfessionalConfig
 }
 
 /** Re-exports so downstream files don't have to double-import. */

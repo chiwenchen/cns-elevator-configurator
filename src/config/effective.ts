@@ -9,7 +9,7 @@
  * (client may have stale localStorage referring to rules that were deleted).
  */
 
-import type { TeamRule, CaseOverride, EffectiveConfig, CwtPosition, Usage } from './types'
+import type { TeamRule, CaseOverride, EffectiveConfig, CwtPosition, Usage, BufferType } from './types'
 
 export class BaselineViolationError extends Error {
   constructor(
@@ -184,5 +184,23 @@ function parseIntoStructuredConfig(values: Map<string, string>): EffectiveConfig
       accessible_min_car_depth_mm: num('usage.accessible.min_car_depth_mm'),
       bed_min_car_depth_mm: num('usage.bed.min_car_depth_mm'),
     },
+    professional: values.has('pro.sling_offset_mm') ? {
+      sling_offset_mm: num('pro.sling_offset_mm'),
+      sling_thickness_mm: num('pro.sling_thickness_mm'),
+      guide_shoe_width_mm: num('pro.guide_shoe_width_mm'),
+      guide_shoe_depth_mm: num('pro.guide_shoe_depth_mm'),
+      wall_thickness_mm: num('pro.wall_thickness_mm'),
+      buffer_type: str('pro.buffer_type') as BufferType,
+      buffer_width_mm: num('pro.buffer_width_mm'),
+      buffer_height_spring_mm: num('pro.buffer_height_spring_mm'),
+      buffer_height_oil_mm: num('pro.buffer_height_oil_mm'),
+      machine_width_mm: num('pro.machine_width_mm'),
+      machine_height_mm: num('pro.machine_height_mm'),
+      sheave_diameter_mm: num('pro.sheave_diameter_mm'),
+      safety_gear_width_mm: num('pro.safety_gear_width_mm'),
+      safety_gear_height_mm: num('pro.safety_gear_height_mm'),
+      governor_diameter_mm: num('pro.governor_diameter_mm'),
+      rail_bracket_spacing_mm: num('pro.rail_bracket_spacing_mm'),
+    } : undefined,
   }
 }

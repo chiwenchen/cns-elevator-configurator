@@ -251,6 +251,57 @@ describe('buildEffectiveConfig — team default already differs from original ba
   })
 })
 
+describe('buildEffectiveConfig — professional config', () => {
+  function makeProRules(): TeamRule[] {
+    return [
+      num('pro.sling_offset_mm', 75, { min: 50, max: 120, category: 'professional' }),
+      num('pro.sling_thickness_mm', 12, { min: 4, max: 20, category: 'professional' }),
+      num('pro.guide_shoe_width_mm', 100, { min: 60, max: 150, category: 'professional' }),
+      num('pro.guide_shoe_depth_mm', 60, { min: 30, max: 100, category: 'professional' }),
+      num('pro.wall_thickness_mm', 200, { min: 120, max: 300, category: 'professional' }),
+      enumR('pro.buffer_type', 'auto', ['auto', 'spring', 'oil'], { category: 'professional' }),
+      num('pro.buffer_width_mm', 200, { min: 100, max: 400, category: 'professional' }),
+      num('pro.buffer_height_spring_mm', 300, { min: 150, max: 500, category: 'professional' }),
+      num('pro.buffer_height_oil_mm', 450, { min: 250, max: 800, category: 'professional' }),
+      num('pro.machine_width_mm', 600, { min: 300, max: 1000, category: 'professional' }),
+      num('pro.machine_height_mm', 400, { min: 200, max: 700, category: 'professional' }),
+      num('pro.sheave_diameter_mm', 400, { min: 200, max: 600, category: 'professional' }),
+      num('pro.safety_gear_width_mm', 150, { min: 80, max: 250, category: 'professional' }),
+      num('pro.safety_gear_height_mm', 80, { min: 40, max: 150, category: 'professional' }),
+      num('pro.governor_diameter_mm', 300, { min: 150, max: 500, category: 'professional' }),
+      num('pro.rail_bracket_spacing_mm', 2500, { min: 1500, max: 3500, category: 'professional' }),
+    ]
+  }
+
+  test('pro.* rules present: config.professional is populated with correct values', () => {
+    const rules = [...makeCompleteRuleSet(), ...makeProRules()]
+    const config = buildEffectiveConfig(rules, {})
+    expect(config.professional).toBeDefined()
+    expect(config.professional!.sling_offset_mm).toBe(75)
+    expect(config.professional!.sling_thickness_mm).toBe(12)
+    expect(config.professional!.guide_shoe_width_mm).toBe(100)
+    expect(config.professional!.guide_shoe_depth_mm).toBe(60)
+    expect(config.professional!.wall_thickness_mm).toBe(200)
+    expect(config.professional!.buffer_type).toBe('auto')
+    expect(config.professional!.buffer_width_mm).toBe(200)
+    expect(config.professional!.buffer_height_spring_mm).toBe(300)
+    expect(config.professional!.buffer_height_oil_mm).toBe(450)
+    expect(config.professional!.machine_width_mm).toBe(600)
+    expect(config.professional!.machine_height_mm).toBe(400)
+    expect(config.professional!.sheave_diameter_mm).toBe(400)
+    expect(config.professional!.safety_gear_width_mm).toBe(150)
+    expect(config.professional!.safety_gear_height_mm).toBe(80)
+    expect(config.professional!.governor_diameter_mm).toBe(300)
+    expect(config.professional!.rail_bracket_spacing_mm).toBe(2500)
+  })
+
+  test('no pro.* rules (46 baseline rules only): config.professional is undefined', () => {
+    const rules = makeCompleteRuleSet()
+    const config = buildEffectiveConfig(rules, {})
+    expect(config.professional).toBeUndefined()
+  })
+})
+
 describe('BaselineViolationError class', () => {
   test('instanceof Error', () => {
     const e = new BaselineViolationError('test.key', '99', 'too low', { min: 100, max: 500 })

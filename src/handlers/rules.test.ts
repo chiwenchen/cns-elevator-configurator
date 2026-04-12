@@ -27,9 +27,9 @@ beforeEach(() => {
 })
 
 describe('handleListRules', () => {
-  test('returns 46 rules + 8 categories', async () => {
+  test('returns 62 rules + 8 categories', async () => {
     const result = await handleListRules(store)
-    expect(result.rules).toHaveLength(46)
+    expect(result.rules).toHaveLength(62)
     expect(result.categories).toHaveLength(8)
   })
 
