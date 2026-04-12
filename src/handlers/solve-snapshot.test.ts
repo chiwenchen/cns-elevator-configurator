@@ -79,7 +79,7 @@ describe('solve-snapshot: Mode B 500kg passenger regression', () => {
     expect(result.dxf_string).toContain('ELEVATION VIEW')
   })
 
-  test('validation_report returns stub shape', async () => {
+  test('validation_report returns real shape with 46 items', async () => {
     const loader = new StaticRulesLoader()
     const result = await handleSolve(
       {
@@ -92,7 +92,16 @@ describe('solve-snapshot: Mode B 500kg passenger regression', () => {
       loader,
     )
 
+    expect(result.validation_report.items).toHaveLength(46)
     expect(result.validation_report.summary.total_fail).toBe(0)
-    expect(result.validation_report.items).toEqual([])
+
+    // All items should pass when no case override
+    const passed = result.validation_report.items.filter(i => i.status === 'pass')
+    expect(passed).toHaveLength(46)
+
+    // Summary counts should sum to total
+    const { guideline_pass, guideline_warning, cns_pass, cns_warning } =
+      result.validation_report.summary
+    expect(guideline_pass + guideline_warning + cns_pass + cns_warning).toBe(46)
   })
 })

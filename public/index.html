@@ -68,13 +68,54 @@
         color: var(--fg-muted);
         text-decoration: underline dotted;
       }
+      header .header-top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 24px;
+      }
+      .app-nav {
+        display: flex;
+        gap: 16px;
+        margin-top: 8px;
+        font-size: 12px;
+      }
+      .app-nav .nav-link {
+        color: var(--fg-muted);
+        text-decoration: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+      }
+      .app-nav .nav-link.active {
+        color: var(--fg);
+        background: var(--bg-panel);
+      }
       main {
+        min-height: 0;
+        overflow: hidden;
+        display: block;
+      }
+      .view {
+        display: block;
+        height: 100%;
+      }
+      .view.hidden {
+        display: none;
+      }
+      #view-configurator {
         display: grid;
         grid-template-columns: 340px 1fr 380px;
         gap: 1px;
         background: var(--border);
         min-height: 0;
         overflow: hidden;
+        height: 100%;
+      }
+      #view-configurator.hidden {
+        display: none;
+      }
+      #view-rules {
+        overflow-y: auto;
       }
       .solver-panel {
         background: var(--bg-elev);
@@ -441,24 +482,193 @@
       .lyr-DIMS    { fill: none; stroke: #ffd54f; stroke-width: 1; vector-effect: non-scaling-stroke; }
       .lyr-STOP    { fill: none; stroke: #8aa680; stroke-width: 1; vector-effect: non-scaling-stroke; }
       .lyr-TEXT    { fill: #e7e9ec; }
+
+      /* ---- Rules Tab ---- */
+      #view-rules { padding: 20px; max-width: 1200px; margin: 0 auto; }
+      .rules-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+      .rules-title { font-size: 18px; font-weight: 600; }
+
+      .rules-filters {
+        display: flex; gap: 12px; flex-wrap: wrap;
+        padding: 12px; background: var(--bg-panel); border-radius: 6px;
+        margin-bottom: 20px; position: sticky; top: 0; z-index: 10;
+      }
+      .filter-group { display: flex; gap: 4px; align-items: center; }
+      .filter-label { font-size: 11px; color: var(--fg-muted); text-transform: uppercase; }
+      .filter-btn {
+        padding: 4px 10px; font-size: 11px;
+        background: transparent; color: var(--fg-muted);
+        border: 1px solid var(--border); border-radius: 4px;
+        cursor: pointer; font-family: inherit;
+      }
+      .filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+      .rule-category-group { margin-bottom: 24px; }
+      .rule-category-header {
+        font-size: 13px; font-weight: 600; color: var(--fg);
+        margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border);
+      }
+
+      .rule-row {
+        display: grid; grid-template-columns: 1fr auto auto auto;
+        gap: 12px; padding: 10px 12px; margin-bottom: 4px;
+        background: var(--bg-panel); border-radius: 4px;
+        font-size: 12px; align-items: center;
+      }
+      .rule-row.deleted { opacity: 0.6; }
+      .rule-name { font-weight: 500; color: var(--fg); }
+      .rule-key { font-size: 10px; color: var(--fg-muted); font-family: var(--mono); }
+      .rule-meta { display: flex; gap: 6px; align-items: center; font-size: 10px; color: var(--fg-muted); }
+      .source-badge {
+        display: inline-block; padding: 2px 6px; border-radius: 3px;
+        font-size: 9px; text-transform: uppercase; font-weight: 600;
+      }
+      .source-badge.cns { background: #3a4a5e; color: #e7e9ec; }
+      .source-badge.industry { background: #6b5a20; color: #ffd54f; }
+      .source-badge.engineering { background: #3a5233; color: #8aa680; }
+      .mandatory-icon { color: var(--fg-muted); font-size: 11px; }
+
+      .rule-value-input {
+        padding: 4px 8px; font-size: 12px;
+        background: var(--bg); color: var(--fg);
+        border: 1px solid var(--border); border-radius: 3px;
+        width: 100px; font-family: var(--mono);
+      }
+      .rule-value-input:focus { border-color: var(--accent); outline: none; }
+      .rule-value-input.updated { border-color: var(--accent); animation: flash 0.8s; }
+      @keyframes flash {
+        0% { background: rgba(232, 115, 78, 0.3); }
+        100% { background: var(--bg); }
+      }
+
+      .rule-action-btn {
+        padding: 4px 8px; font-size: 10px;
+        background: transparent; color: var(--fg-muted);
+        border: 1px solid var(--border); border-radius: 3px;
+        cursor: pointer; font-family: inherit;
+      }
+      .rule-action-btn:hover:not(:disabled) { color: var(--fg); border-color: var(--accent); }
+      .rule-action-btn:disabled { cursor: not-allowed; opacity: 0.4; }
+      .rule-action-btn.danger:hover:not(:disabled) { color: #e8734e; border-color: #e8734e; }
+
+      /* Modal */
+      .modal-backdrop {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 100;
+      }
+      .modal-backdrop.hidden { display: none; }
+      .modal {
+        background: var(--bg-panel); border-radius: 8px;
+        padding: 24px; max-width: 480px; width: 90%;
+        border: 1px solid var(--border);
+      }
+      .modal h3 { margin: 0 0 12px 0; font-size: 14px; }
+      .modal-body { font-size: 12px; color: var(--fg-muted); margin-bottom: 16px; }
+      .modal-body ul { margin: 8px 0 8px 16px; padding: 0; }
+      .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+      .modal-btn {
+        padding: 8px 16px; font-size: 12px;
+        border: 1px solid var(--border); border-radius: 4px;
+        background: transparent; color: var(--fg); cursor: pointer;
+      }
+      .modal-btn.primary { background: var(--accent); border-color: var(--accent); color: white; }
+      .modal-btn.danger:hover { border-color: #e8734e; color: #e8734e; }
+
+      /* Toast */
+      .toast-container {
+        position: fixed; bottom: 20px; right: 20px; z-index: 200;
+        display: flex; flex-direction: column; gap: 8px;
+      }
+      .toast {
+        padding: 10px 16px; border-radius: 4px; font-size: 12px;
+        background: var(--bg-panel); border-left: 3px solid var(--accent);
+        color: var(--fg); animation: toast-in 0.3s;
+      }
+      .toast.error { border-left-color: #e8734e; }
+      @keyframes toast-in { from { transform: translateX(100%); opacity: 0; } to { transform: none; opacity: 1; } }
+
+      /* ---- Validation Panel ---- */
+      .validation-panel {
+        position: fixed; bottom: 0; left: 0; right: 0;
+        background: var(--bg-panel); border-top: 1px solid var(--border);
+        font-size: 12px; z-index: 50;
+        max-height: 50vh; display: flex; flex-direction: column;
+      }
+      .validation-panel.collapsed .validation-body { display: none; }
+      .validation-summary {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 10px 20px; cursor: pointer;
+      }
+      .validation-summary:hover { background: var(--bg); }
+      .validation-counts { display: flex; gap: 20px; font-family: var(--mono); }
+      .count-pass { color: #8aa680; }
+      .count-warning { color: #ffd54f; }
+      .count-cns { color: #e7e9ec; }
+      .count-fail { color: #e8734e; }
+      .validation-toggle { font-size: 10px; color: var(--fg-muted); }
+
+      .validation-body {
+        overflow-y: auto; padding: 16px 20px; border-top: 1px solid var(--border);
+      }
+      .validation-section { margin-bottom: 16px; }
+      .validation-section-header {
+        font-size: 13px; font-weight: 600; margin-bottom: 8px;
+        display: flex; justify-content: space-between; cursor: pointer;
+        color: var(--fg);
+      }
+      .validation-section-header.collapsed + .validation-section-body { display: none; }
+
+      .validation-item {
+        display: grid; grid-template-columns: 20px 1fr auto auto auto;
+        gap: 10px; padding: 6px 10px; align-items: center;
+        border-bottom: 1px solid var(--border);
+        font-size: 11px;
+      }
+      .validation-item .status-icon { text-align: center; font-family: var(--mono); font-weight: 600; }
+      .validation-item.warning .status-icon { color: #ffd54f; }
+      .validation-item.pass .status-icon { color: #8aa680; }
+      .validation-item.fail .status-icon { color: #e8734e; }
+      .validation-item .item-info .item-name { color: var(--fg); font-weight: 500; }
+      .validation-item .item-info .item-key { color: var(--fg-muted); font-family: var(--mono); font-size: 10px; }
+      .validation-item .item-value { font-family: var(--mono); color: var(--fg); }
+      .validation-item .item-default { font-family: var(--mono); color: var(--fg-muted); }
+      .validation-item .item-revert { font-size: 10px; }
+
+      /* ---- Commit section (case override) ---- */
+      .commit-section {
+        margin-top: 12px; padding: 12px;
+        background: var(--bg-panel); border-radius: 4px;
+        display: flex; justify-content: space-between; align-items: center;
+      }
+      .commit-section button { font-size: 11px; padding: 6px 12px; }
+      .override-label { font-size: 11px; color: var(--fg-muted); }
+      #override-count-badge { color: #ffd54f; font-weight: 600; }
     </style>
   </head>
   <body>
     <header>
-      <h1>
-        CNS 電梯配件器
-        <small id="demo-subtitle">DXF 解析 Demo</small>
-      </h1>
-      <div class="source">
-        <label style="font-size:11px;color:var(--fg-muted);margin-right:8px;text-transform:uppercase;letter-spacing:0.08em">資料來源</label>
-        <select id="source-select" style="background:var(--bg-panel);color:var(--fg);border:1px solid var(--border-strong);font-family:var(--mono);font-size:12px;padding:4px 8px;">
-          <option value="hack-canada">Hack_Canada 真實建築 DXF（讀取驗證）</option>
-        </select>
-        <span id="unit-badge" style="margin-left:12px">—</span>
+      <div class="header-top">
+        <h1>
+          CNS 電梯配件器
+          <small id="demo-subtitle">DXF 解析 Demo</small>
+        </h1>
+        <div class="source">
+          <label style="font-size:11px;color:var(--fg-muted);margin-right:8px;text-transform:uppercase;letter-spacing:0.08em">資料來源</label>
+          <select id="source-select" style="background:var(--bg-panel);color:var(--fg);border:1px solid var(--border-strong);font-family:var(--mono);font-size:12px;padding:4px 8px;">
+            <option value="hack-canada">Hack_Canada 真實建築 DXF（讀取驗證）</option>
+          </select>
+          <span id="unit-badge" style="margin-left:12px">—</span>
+        </div>
       </div>
+      <nav class="app-nav">
+        <a href="#/configurator" class="nav-link" data-view="configurator">配件器</a>
+        <a href="#/rules" class="nav-link" data-view="rules">規則管理</a>
+      </nav>
     </header>
 
     <main>
+      <section id="view-configurator" class="view">
       <div class="solver-panel">
         <div class="solver-header">
           <div class="solver-title">解算器輸入（Solver）</div>
@@ -619,8 +829,81 @@
           <div class="metric-label" id="m-matched-label">標籤配對到房間</div>
           <div class="metric-value" id="m-matched">—</div>
         </div>
+
+        <div class="commit-section">
+          <div class="override-label">
+            案子微調 <span id="override-count-badge"></span>
+          </div>
+          <button id="commit-team-btn" class="rule-action-btn" disabled>收工存入團隊</button>
+        </div>
       </aside>
+
+      <div class="validation-panel collapsed" id="validation-panel">
+        <div class="validation-summary" id="validation-summary">
+          <div class="validation-counts" id="validation-counts">
+            <span style="color:var(--fg-muted);">尚未生成</span>
+          </div>
+          <span class="validation-toggle" id="validation-toggle">[展開]</span>
+        </div>
+        <div class="validation-body" id="validation-body"></div>
+      </div>
+      </section>
+
+      <section id="view-rules" class="view hidden">
+        <div class="rules-header">
+          <span class="rules-title">規則管理</span>
+          <div>
+            <a href="#/rules/deleted" class="rule-action-btn">查看已刪規則</a>
+          </div>
+        </div>
+
+        <div class="rules-filters">
+          <div class="filter-group">
+            <span class="filter-label">類別</span>
+            <button class="filter-btn active" data-filter="category" data-value="">全部</button>
+            <!-- Filled dynamically -->
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">來源</span>
+            <button class="filter-btn active" data-filter="source" data-value="">全部</button>
+            <button class="filter-btn" data-filter="source" data-value="cns">CNS</button>
+            <button class="filter-btn" data-filter="source" data-value="industry">產業</button>
+            <button class="filter-btn" data-filter="source" data-value="engineering">工程</button>
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">狀態</span>
+            <button class="filter-btn active" data-filter="status" data-value="active">啟用</button>
+            <button class="filter-btn" data-filter="status" data-value="deleted">已刪除</button>
+          </div>
+        </div>
+
+        <div id="rules-list"></div>
+
+        <!-- Delete confirmation modal -->
+        <div id="delete-modal" class="modal-backdrop hidden">
+          <div class="modal">
+            <h3>確認刪除設計指引</h3>
+            <div class="modal-body">
+              <div id="delete-modal-rule-info"></div>
+              <p>刪除後：</p>
+              <ul>
+                <li>此規則立刻從所有案子消失</li>
+                <li>Solver 會 fallback 到系統預設</li>
+                <li>可在「查看已刪規則」頁面還原</li>
+                <li>此動作會記錄到 audit log</li>
+              </ul>
+            </div>
+            <div class="modal-actions">
+              <button class="modal-btn" id="delete-cancel">取消</button>
+              <button class="modal-btn danger" id="delete-confirm">確認刪除</button>
+            </div>
+          </div>
+        </div>
+
+      </section>
     </main>
+
+    <div class="toast-container" id="toast-container"></div>
 
     <footer>
       <span>bun src/demo/server.ts · port 3000</span>
@@ -628,6 +911,40 @@
     </footer>
 
     <script>
+      // ---- Hash router ----
+      function currentRoute() {
+        const hash = window.location.hash || '#/configurator'
+        if (hash.startsWith('#/rules/deleted')) return 'rules-deleted'
+        if (hash.startsWith('#/rules')) return 'rules'
+        return 'configurator'
+      }
+
+      function renderRoute() {
+        const route = currentRoute()
+        const configuratorView = document.getElementById('view-configurator')
+        const rulesView = document.getElementById('view-rules')
+        const navLinks = document.querySelectorAll('.nav-link')
+
+        if (route === 'configurator') {
+          configuratorView.classList.remove('hidden')
+          rulesView.classList.add('hidden')
+        } else {
+          configuratorView.classList.add('hidden')
+          rulesView.classList.remove('hidden')
+        }
+
+        navLinks.forEach((link) => {
+          const isActive = link.dataset.view === (route === 'configurator' ? 'configurator' : 'rules')
+          link.classList.toggle('active', isActive)
+        })
+
+        // Dispatch event so individual views can refresh
+        document.dispatchEvent(new CustomEvent('route-change', { detail: { route } }))
+      }
+
+      window.addEventListener('hashchange', renderRoute)
+      window.addEventListener('DOMContentLoaded', renderRoute)
+
       // 根據 source 調整 UI 文案
       const copyByMode = {
         'hack-canada': {
@@ -778,7 +1095,7 @@
           const res = await fetch('/api/solve', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ mode, ...payload }),
+            body: JSON.stringify({ mode, ...payload, caseOverride: { ...caseOverrideState } }),
           })
           const data = await res.json()
           if (!res.ok) {
@@ -787,8 +1104,12 @@
               (data.error === 'non_standard' ? '⚠ 非標輸入\n' : '✕ 解算失敗\n') +
               (data.message || '') +
               (data.suggestion ? '\n\n建議：' + data.suggestion : '')
+            renderValidationSummary(null)
             return
           }
+
+          // Render validation panel from response
+          renderValidationSummary(data.validation_report || null)
 
           // Success
           lastDxfString = data.dxf_string
@@ -1043,6 +1364,503 @@
         container.innerHTML = ''
         container.appendChild(svg)
       }
+
+      // ---- Rules Tab State ----
+      const rulesState = {
+        rules: [],
+        deletedRules: [],
+        categories: [],
+        filters: { category: '', source: '', status: 'active' },
+        pendingDelete: null, // { key, name } when modal open
+      }
+
+      async function fetchRules() {
+        const [activeRes, deletedRes] = await Promise.all([
+          fetch('/api/rules').then((r) => r.json()),
+          fetch('/api/rules/deleted').then((r) => r.json()),
+        ])
+        rulesState.rules = activeRes.rules
+        rulesState.categories = activeRes.categories
+        rulesState.deletedRules = deletedRes.rules
+        populateCategoryFilter()
+        renderRulesList()
+      }
+
+      function populateCategoryFilter() {
+        const filterGroup = document.querySelector('[data-filter="category"]').parentElement
+        // Clear existing category buttons except "全部"
+        Array.from(filterGroup.querySelectorAll('[data-filter="category"]'))
+          .slice(1) // keep "全部"
+          .forEach((btn) => btn.remove())
+        for (const cat of rulesState.categories) {
+          const btn = document.createElement('button')
+          btn.className = 'filter-btn'
+          btn.dataset.filter = 'category'
+          btn.dataset.value = cat.id
+          btn.textContent = cat.display_name
+          filterGroup.appendChild(btn)
+        }
+        // Re-bind all filter buttons (since we added new ones)
+        bindFilters()
+      }
+
+      function bindFilters() {
+        document.querySelectorAll('.filter-btn').forEach((btn) => {
+          btn.onclick = () => {
+            const filter = btn.dataset.filter
+            const value = btn.dataset.value
+            rulesState.filters[filter] = value
+            // Update active state on the same filter group
+            document.querySelectorAll(`[data-filter="${filter}"]`).forEach((b) => {
+              b.classList.toggle('active', b.dataset.value === value)
+            })
+            renderRulesList()
+          }
+        })
+      }
+
+      function renderRulesList() {
+        const container = document.getElementById('rules-list')
+        container.innerHTML = ''
+
+        const source = rulesState.filters.source
+        const category = rulesState.filters.category
+        const status = rulesState.filters.status
+
+        const sourceRules = status === 'active' ? rulesState.rules : rulesState.deletedRules
+        const filtered = sourceRules.filter((r) => {
+          if (source && r.source !== source) return false
+          if (category && r.category !== category) return false
+          return true
+        })
+
+        // Group by category
+        const groups = new Map()
+        for (const rule of filtered) {
+          if (!groups.has(rule.category)) groups.set(rule.category, [])
+          groups.get(rule.category).push(rule)
+        }
+
+        if (groups.size === 0) {
+          container.innerHTML = '<div style="padding:20px;color:var(--fg-muted);">無符合條件的規則</div>'
+          return
+        }
+
+        for (const [categoryId, rules] of groups.entries()) {
+          const catMeta = rulesState.categories.find((c) => c.id === categoryId)
+          const group = document.createElement('div')
+          group.className = 'rule-category-group'
+
+          const header = document.createElement('div')
+          header.className = 'rule-category-header'
+          header.textContent = `${catMeta ? catMeta.display_name : categoryId} (${rules.length})`
+          group.appendChild(header)
+
+          for (const rule of rules) {
+            group.appendChild(renderRuleRow(rule, status === 'deleted'))
+          }
+          container.appendChild(group)
+        }
+      }
+
+      function renderRuleRow(rule, isDeleted) {
+        const row = document.createElement('div')
+        row.className = 'rule-row' + (isDeleted ? ' deleted' : '')
+
+        // Column 1: name + key + meta
+        const info = document.createElement('div')
+        info.innerHTML = `
+          <div class="rule-name">${escapeHtml(rule.name)} ${rule.mandatory ? '<span class="mandatory-icon" title="結構性必要，不可刪">[必]</span>' : ''}</div>
+          <div class="rule-key">${escapeHtml(rule.key)}</div>
+          <div class="rule-meta">
+            <span class="source-badge ${rule.source}">${rule.source}</span>
+            ${baselineDescText(rule)}
+          </div>
+        `
+        row.appendChild(info)
+
+        // Column 2: value editor
+        const valueCell = document.createElement('div')
+        if (isDeleted) {
+          valueCell.innerHTML = `<span class="rule-key">${escapeHtml(rule.value)}${rule.unit ? ' ' + rule.unit : ''}</span>`
+        } else if (rule.type === 'number') {
+          const input = document.createElement('input')
+          input.type = 'number'
+          input.className = 'rule-value-input'
+          input.value = rule.value
+          if (rule.baseline_min !== null && rule.baseline_min !== undefined) input.min = rule.baseline_min
+          if (rule.baseline_max !== null && rule.baseline_max !== undefined) input.max = rule.baseline_max
+          input.onblur = () => handleRuleEdit(rule.key, input.value, input)
+          valueCell.appendChild(input)
+        } else if (rule.type === 'enum') {
+          const select = document.createElement('select')
+          select.className = 'rule-value-input'
+          for (const choice of rule.baseline_choices || []) {
+            const opt = document.createElement('option')
+            opt.value = choice
+            opt.textContent = choice
+            if (choice === rule.value) opt.selected = true
+            select.appendChild(opt)
+          }
+          select.onchange = () => handleRuleEdit(rule.key, select.value, select)
+          valueCell.appendChild(select)
+        }
+        row.appendChild(valueCell)
+
+        // Column 3: reset to factory
+        const resetCell = document.createElement('div')
+        if (!isDeleted && rule.value !== rule.default_value) {
+          const btn = document.createElement('button')
+          btn.className = 'rule-action-btn'
+          btn.textContent = '重設'
+          btn.title = `重設為出廠值 ${rule.default_value}`
+          btn.onclick = () => handleRuleEdit(rule.key, rule.default_value, null)
+          resetCell.appendChild(btn)
+        }
+        row.appendChild(resetCell)
+
+        // Column 4: delete / restore
+        const deleteCell = document.createElement('div')
+        if (isDeleted) {
+          const btn = document.createElement('button')
+          btn.className = 'rule-action-btn'
+          btn.textContent = '還原'
+          btn.onclick = () => handleRestore(rule.key)
+          deleteCell.appendChild(btn)
+        } else {
+          const btn = document.createElement('button')
+          btn.className = 'rule-action-btn danger'
+          btn.textContent = '刪除'
+          btn.disabled = rule.mandatory
+          if (rule.mandatory) btn.title = '此規則為結構性必要，不可刪除'
+          btn.onclick = () => openDeleteModal(rule)
+          deleteCell.appendChild(btn)
+        }
+        row.appendChild(deleteCell)
+
+        return row
+      }
+
+      function baselineDescText(rule) {
+        if (rule.type === 'number') {
+          const unit = rule.unit || ''
+          if (rule.baseline_min !== null && rule.baseline_min !== undefined && rule.baseline_max !== null && rule.baseline_max !== undefined)
+            return `${rule.baseline_min}-${rule.baseline_max} ${unit}`.trim()
+          if (rule.baseline_min !== null && rule.baseline_min !== undefined) return `≥ ${rule.baseline_min} ${unit}`.trim()
+          if (rule.baseline_max !== null && rule.baseline_max !== undefined) return `≤ ${rule.baseline_max} ${unit}`.trim()
+          return ''
+        }
+        return `(${(rule.baseline_choices || []).length} 選項)`
+      }
+
+      function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
+      }
+
+      async function handleRuleEdit(key, newValue, inputEl) {
+        try {
+          const res = await fetch(`/api/rules/${encodeURIComponent(key)}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ value: newValue }),
+          })
+          if (!res.ok) {
+            const err = await res.json()
+            showToast(`更新失敗：${err.message || err.error}`, 'error')
+            return
+          }
+          const data = await res.json()
+          // Update state
+          const idx = rulesState.rules.findIndex((r) => r.key === key)
+          if (idx >= 0) rulesState.rules[idx] = data.rule
+          showToast(`已更新 ${key}`)
+          if (inputEl) {
+            inputEl.classList.add('updated')
+            setTimeout(() => inputEl.classList.remove('updated'), 800)
+          } else {
+            renderRulesList()
+          }
+        } catch (e) {
+          showToast(`錯誤：${e.message}`, 'error')
+        }
+      }
+
+      function openDeleteModal(rule) {
+        rulesState.pendingDelete = rule
+        const modal = document.getElementById('delete-modal')
+        document.getElementById('delete-modal-rule-info').innerHTML = `
+          <div style="background:var(--bg);padding:10px;border-radius:4px;margin-bottom:12px;">
+            <div><strong>${escapeHtml(rule.key)}</strong></div>
+            <div style="font-size:11px;">${escapeHtml(rule.name)}</div>
+            <div style="font-size:11px;color:var(--fg-muted);">目前值：${escapeHtml(rule.value)}</div>
+            <div style="font-size:11px;color:var(--fg-muted);">來源：${rule.source}</div>
+          </div>
+        `
+        modal.classList.remove('hidden')
+      }
+
+      document.getElementById('delete-cancel').onclick = () => {
+        document.getElementById('delete-modal').classList.add('hidden')
+        rulesState.pendingDelete = null
+      }
+
+      document.getElementById('delete-confirm').onclick = async () => {
+        const rule = rulesState.pendingDelete
+        if (!rule) return
+        try {
+          const res = await fetch(`/api/rules/${encodeURIComponent(rule.key)}`, { method: 'DELETE' })
+          if (!res.ok) {
+            const err = await res.json()
+            showToast(`刪除失敗：${err.message || err.error}`, 'error')
+            return
+          }
+          await fetchRules()
+          showToast(`已刪除 ${rule.key}`)
+        } catch (e) {
+          showToast(`錯誤：${e.message}`, 'error')
+        } finally {
+          document.getElementById('delete-modal').classList.add('hidden')
+          rulesState.pendingDelete = null
+        }
+      }
+
+      async function handleRestore(key) {
+        try {
+          const res = await fetch(`/api/rules/${encodeURIComponent(key)}/restore`, { method: 'POST' })
+          if (!res.ok) {
+            const err = await res.json()
+            showToast(`還原失敗：${err.message}`, 'error')
+            return
+          }
+          await fetchRules()
+          showToast(`已還原 ${key}`)
+        } catch (e) {
+          showToast(`錯誤：${e.message}`, 'error')
+        }
+      }
+
+      function showToast(message, variant = 'success') {
+        const container = document.getElementById('toast-container')
+        const toast = document.createElement('div')
+        toast.className = 'toast' + (variant === 'error' ? ' error' : '')
+        toast.textContent = message
+        container.appendChild(toast)
+        setTimeout(() => toast.remove(), 3000)
+      }
+
+      // Fetch rules when entering rules view
+      document.addEventListener('route-change', (ev) => {
+        const route = ev.detail.route
+        if (route === 'rules' || route === 'rules-deleted') {
+          if (rulesState.rules.length === 0) fetchRules()
+          // Handle #/rules/deleted — switch to deleted filter
+          if (route === 'rules-deleted') {
+            rulesState.filters.status = 'deleted'
+            document.querySelectorAll('[data-filter="status"]').forEach((b) => {
+              b.classList.toggle('active', b.dataset.value === 'deleted')
+            })
+            renderRulesList()
+          }
+        }
+      })
+
+      // ---- Validation Panel ----
+      let lastValidationReport = null
+
+      function renderValidationSummary(report) {
+        lastValidationReport = report
+        const container = document.getElementById('validation-counts')
+        if (!container) return
+        if (!report) {
+          container.innerHTML = '<span style="color:var(--fg-muted);">尚未生成</span>'
+          const body = document.getElementById('validation-body')
+          if (body) body.innerHTML = ''
+          return
+        }
+        const summary = report.summary || {}
+        const guideline_pass = summary.guideline_pass || 0
+        const guideline_warning = summary.guideline_warning || 0
+        const cns_pass = summary.cns_pass || 0
+        const total_fail = summary.total_fail || 0
+        container.innerHTML = `
+          <span class="count-pass">PASS ${guideline_pass + cns_pass}</span>
+          <span class="count-warning">WARN ${guideline_warning}</span>
+          <span class="count-cns">CNS ${cns_pass}</span>
+          ${total_fail > 0 ? `<span class="count-fail">FAIL ${total_fail}</span>` : ''}
+        `
+        renderValidationBody(report)
+      }
+
+      function renderValidationBody(report) {
+        const body = document.getElementById('validation-body')
+        if (!body) return
+        if (!report) { body.innerHTML = ''; return }
+
+        const items = Array.isArray(report.items) ? report.items : []
+        const warnings = items.filter((i) => i.status === 'warning')
+        const cnsItems = items.filter((i) => i.source === 'cns')
+        const guidelines = items.filter((i) => i.source !== 'cns' && i.status === 'pass')
+
+        body.innerHTML = `
+          <div class="validation-section">
+            <div class="validation-section-header">
+              <span>案子微調 (${warnings.length})</span>
+              <span class="validation-toggle">[-]</span>
+            </div>
+            <div class="validation-section-body">
+              ${warnings.length === 0 ? '<div style="color:var(--fg-muted);padding:10px;">無微調</div>' : warnings.map(renderValidationItem).join('')}
+            </div>
+          </div>
+          <div class="validation-section">
+            <div class="validation-section-header collapsed">
+              <span>CNS 法規合規 (${cnsItems.length})</span>
+              <span class="validation-toggle">[+]</span>
+            </div>
+            <div class="validation-section-body">
+              ${cnsItems.map(renderValidationItem).join('')}
+            </div>
+          </div>
+          <div class="validation-section">
+            <div class="validation-section-header collapsed">
+              <span>設計指引 (${guidelines.length})</span>
+              <span class="validation-toggle">[+]</span>
+            </div>
+            <div class="validation-section-body">
+              ${guidelines.map(renderValidationItem).join('')}
+            </div>
+          </div>
+        `
+
+        // Wire up collapse toggles
+        body.querySelectorAll('.validation-section-header').forEach((h) => {
+          h.onclick = () => {
+            h.classList.toggle('collapsed')
+            const tog = h.querySelector('.validation-toggle')
+            if (tog) tog.textContent = h.classList.contains('collapsed') ? '[+]' : '[-]'
+          }
+        })
+        // Wire up revert buttons (revertCaseOverride is defined in Task 10)
+        body.querySelectorAll('[data-revert-key]').forEach((btn) => {
+          btn.onclick = () => {
+            const key = btn.dataset.revertKey
+            if (typeof revertCaseOverride === 'function') revertCaseOverride(key)
+          }
+        })
+      }
+
+      function renderValidationItem(item) {
+        const icon = item.status === 'warning' ? '!' : (item.status === 'pass' ? 'v' : 'x')
+        const revertBtn = item.status === 'warning'
+          ? `<button class="rule-action-btn item-revert" data-revert-key="${escapeHtml(String(item.rule_key || ''))}">revert</button>`
+          : ''
+        const finalValue = item.final_value == null ? '' : String(item.final_value)
+        const teamDefault = item.team_default_value == null ? '' : String(item.team_default_value)
+        const ruleName = item.rule_name == null ? '' : String(item.rule_name)
+        const ruleKey = item.rule_key == null ? '' : String(item.rule_key)
+        const source = item.source == null ? '' : String(item.source)
+        return `
+          <div class="validation-item ${item.status}">
+            <div class="status-icon">${icon}</div>
+            <div class="item-info">
+              <div class="item-name">${escapeHtml(ruleName)} <span class="source-badge ${escapeHtml(source)}">${escapeHtml(source)}</span></div>
+              <div class="item-key">${escapeHtml(ruleKey)}</div>
+            </div>
+            <div class="item-value">${escapeHtml(finalValue)}</div>
+            <div class="item-default">${item.status === 'warning' ? '(預設 ' + escapeHtml(teamDefault) + ')' : ''}</div>
+            <div>${revertBtn}</div>
+          </div>
+        `
+      }
+
+      // Validation panel expand/collapse
+      document.getElementById('validation-summary').onclick = () => {
+        const panel = document.getElementById('validation-panel')
+        panel.classList.toggle('collapsed')
+        document.getElementById('validation-toggle').textContent =
+          panel.classList.contains('collapsed') ? '[展開]' : '[收起]'
+      }
+
+      // ---- Case Override Accumulator ----
+      const caseOverrideState = {}
+
+      function setOverride(key, value) {
+        caseOverrideState[key] = value
+        updateOverrideCountBadge()
+      }
+
+      function revertCaseOverride(key) {
+        delete caseOverrideState[key]
+        updateOverrideCountBadge()
+        resolveCurrentCase()
+      }
+
+      function clearAllOverrides() {
+        for (const k of Object.keys(caseOverrideState)) delete caseOverrideState[k]
+        updateOverrideCountBadge()
+      }
+
+      function updateOverrideCountBadge() {
+        const count = Object.keys(caseOverrideState).length
+        const badge = document.getElementById('override-count-badge')
+        const commitBtn = document.getElementById('commit-team-btn')
+        if (!badge || !commitBtn) return
+        if (count === 0) {
+          badge.textContent = ''
+          commitBtn.disabled = true
+        } else {
+          badge.textContent = `(${count} 條微調)`
+          commitBtn.disabled = false
+        }
+      }
+
+      function collectSolverFormPayload(mode) {
+        const form = mode === 'A' ? formA : formB
+        if (!form) return {}
+        return formToObject(form)
+      }
+
+      async function resolveCurrentCase() {
+        // Determine currently active mode tab
+        const activeTab = document.querySelector('.mode-tab.active')
+        const activeMode = activeTab && activeTab.dataset.mode ? activeTab.dataset.mode : 'A'
+        const payload = collectSolverFormPayload(activeMode)
+        await submitSolve(activeMode, payload)
+      }
+
+      // ---- Commit team button ----
+      document.getElementById('commit-team-btn').onclick = async () => {
+        const override = { ...caseOverrideState }
+        if (Object.keys(override).length === 0) return
+        try {
+          const res = await fetch('/api/rules/commit', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ case_override: override }),
+          })
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}))
+            showToast(`提交失敗：${err.message || err.error || res.statusText}`, 'error')
+            return
+          }
+          const data = await res.json()
+          clearAllOverrides()
+          // Reload rules if rules list already fetched
+          if (rulesState.rules.length > 0) await fetchRules()
+          // Re-solve current case with now-empty override
+          await resolveCurrentCase()
+          const applied = Array.isArray(data.applied) ? data.applied : []
+          const skipped = Array.isArray(data.skipped) ? data.skipped : []
+          showToast(`已提交 ${applied.length} 條規則，跳過 ${skipped.length} 條`)
+          for (const s of skipped) {
+            showToast(`跳過 ${s.key}：${s.reason}`, 'error')
+          }
+        } catch (e) {
+          showToast(`錯誤：${e.message}`, 'error')
+        }
+      }
+
+      // Initial badge state
+      updateOverrideCountBadge()
     </script>
   </body>
 </html>

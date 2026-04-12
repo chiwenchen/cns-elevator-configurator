@@ -108,3 +108,63 @@ export interface EffectiveConfig {
 
 /** Re-exports so downstream files don't have to double-import. */
 export type { Usage, DoorType } from '../solver/types'
+
+// ---- ValidationReport (Milestone 1c) ----
+
+export type ValidationStatus = 'pass' | 'warning' | 'fail'
+
+export interface ValidationItem {
+  rule_key: string
+  rule_name: string
+  category: string
+  source: 'cns' | 'industry' | 'engineering'
+  mandatory: boolean
+  final_value: string
+  team_default_value: string
+  factory_default_value: string
+  baseline_description: string
+  status: ValidationStatus
+  status_reason: string
+}
+
+export interface ValidationReport {
+  summary: {
+    guideline_pass: number
+    guideline_warning: number
+    cns_pass: number
+    cns_warning: number
+    total_fail: number
+  }
+  items: ValidationItem[]
+}
+
+// ---- Audit + Commit (Milestone 1c) ----
+
+export type AuditSource = 'migration' | 'ai' | 'user' | 'admin'
+
+export interface CommitResult {
+  applied: Array<{
+    key: string
+    old_value: string
+    new_value: string
+    audit_id: number
+  }>
+  skipped: Array<{
+    key: string
+    reason: 'rule_deleted' | 'baseline_violation' | 'unchanged' | 'unknown_key'
+  }>
+}
+
+export class RuleNotFoundError extends Error {
+  constructor(public readonly key: string) {
+    super(`Rule not found: ${key}`)
+    this.name = 'RuleNotFoundError'
+  }
+}
+
+export class RuleMandatoryError extends Error {
+  constructor(public readonly key: string) {
+    super(`Cannot delete mandatory rule: ${key}`)
+    this.name = 'RuleMandatoryError'
+  }
+}

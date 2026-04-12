@@ -22,7 +22,8 @@ import {
   BaselineViolationError,
 } from '../config/effective'
 import type { RulesLoader } from '../config/load'
-import type { CaseOverride } from '../config/types'
+import type { CaseOverride, ValidationReport } from '../config/types'
+import { buildValidationReport } from '../config/validation'
 
 // ---- Request body validation ----
 
@@ -179,23 +180,12 @@ export function parseSolveBody(raw: unknown): ValidatedSolveBody {
   return parsed
 }
 
-export interface ValidationReportStub {
-  summary: {
-    guideline_pass: number
-    guideline_warning: number
-    cns_pass: number
-    cns_warning: number
-    total_fail: number
-  }
-  items: []
-}
-
 export interface SolveResponse {
   design: ReturnType<typeof solveModeA>
   dxf_string: string
   dxf_kb: number
   analysis: ReturnType<typeof analyzeGeneratedDxf>
-  validation_report: ValidationReportStub
+  validation_report: ValidationReport
 }
 
 export async function handleSolve(
@@ -249,17 +239,11 @@ export async function handleSolve(
     '(in-memory)',
   )
 
-  // 5. Stub validation report (real logic in 1c)
-  const validation_report: ValidationReportStub = {
-    summary: {
-      guideline_pass: 0,
-      guideline_warning: 0,
-      cns_pass: 0,
-      cns_warning: 0,
-      total_fail: 0,
-    },
-    items: [],
-  }
+  // 5. Build validation report from team rules + case override
+  const validation_report: ValidationReport = buildValidationReport(
+    teamRules,
+    body.caseOverride,
+  )
 
   return {
     design,

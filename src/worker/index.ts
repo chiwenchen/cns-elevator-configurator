@@ -16,7 +16,18 @@ import {
   NonStandardError,
   InvalidSolveBodyError,
 } from '../handlers/solve'
-import { D1RulesLoader } from '../config/load'
+import {
+  handleListRules,
+  handleListDeletedRules,
+  handlePatchRule,
+  handleDeleteRule,
+  handleRestoreRule,
+  handleCommit,
+  InvalidRulesBodyError,
+  RuleNotFoundError,
+  RuleMandatoryError,
+} from '../handlers/rules'
+import { D1RulesLoader, D1RulesStore } from '../config/load'
 
 interface D1Database {
   prepare(query: string): {
@@ -53,6 +64,40 @@ function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   })
 }
 
+function handleRulesError(err: unknown): Response {
+  if (err instanceof InvalidRulesBodyError) {
+    return jsonResponse({ error: 'invalid_request', message: err.message }, { status: 400 })
+  }
+  if (err instanceof RuleNotFoundError) {
+    return jsonResponse(
+      { error: 'not_found', message: err.message, key: (err as any).key },
+      { status: 404 },
+    )
+  }
+  if (err instanceof RuleMandatoryError) {
+    return jsonResponse(
+      { error: 'mandatory_rule', message: err.message, key: (err as any).key },
+      { status: 403 },
+    )
+  }
+  if (err instanceof BaselineViolationError) {
+    return jsonResponse(
+      {
+        error: 'baseline_violation',
+        message: err.message,
+        rule_key: err.ruleKey,
+        attempted_value: err.attemptedValue,
+        baseline: err.baseline,
+      },
+      { status: 400 },
+    )
+  }
+  return jsonResponse(
+    { error: 'internal_error', message: String(err) },
+    { status: 500 },
+  )
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
@@ -72,6 +117,75 @@ export default {
           { error: String(err), hint: `source: ${source}` },
           { status: 500 }
         )
+      }
+    }
+
+    // --- Rules routes ---
+    if (url.pathname === '/api/rules' && request.method === 'GET') {
+      try {
+        const store = new D1RulesStore(env.DB as any)
+        const result = await handleListRules(store)
+        return jsonResponse(result)
+      } catch (err) {
+        return handleRulesError(err)
+      }
+    }
+
+    if (url.pathname === '/api/rules/deleted' && request.method === 'GET') {
+      try {
+        const store = new D1RulesStore(env.DB as any)
+        const result = await handleListDeletedRules(store)
+        return jsonResponse(result)
+      } catch (err) {
+        return handleRulesError(err)
+      }
+    }
+
+    if (url.pathname === '/api/rules/commit' && request.method === 'POST') {
+      try {
+        const body = await request.json()
+        const store = new D1RulesStore(env.DB as any)
+        const result = await handleCommit(store, body)
+        return jsonResponse(result)
+      } catch (err) {
+        return handleRulesError(err)
+      }
+    }
+
+    // /api/rules/:key/restore (POST)
+    const restoreMatch = url.pathname.match(/^\/api\/rules\/([^/]+)\/restore$/)
+    if (restoreMatch && request.method === 'POST') {
+      try {
+        const key = decodeURIComponent(restoreMatch[1]!)
+        const store = new D1RulesStore(env.DB as any)
+        const result = await handleRestoreRule(store, key)
+        return jsonResponse(result)
+      } catch (err) {
+        return handleRulesError(err)
+      }
+    }
+
+    // /api/rules/:key (PATCH/DELETE)
+    const keyMatch = url.pathname.match(/^\/api\/rules\/([^/]+)$/)
+    if (keyMatch) {
+      const key = decodeURIComponent(keyMatch[1]!)
+      const store = new D1RulesStore(env.DB as any)
+      if (request.method === 'PATCH') {
+        try {
+          const body = await request.json()
+          const result = await handlePatchRule(store, key, body)
+          return jsonResponse(result)
+        } catch (err) {
+          return handleRulesError(err)
+        }
+      }
+      if (request.method === 'DELETE') {
+        try {
+          const result = await handleDeleteRule(store, key)
+          return jsonResponse(result)
+        } catch (err) {
+          return handleRulesError(err)
+        }
       }
     }
 
