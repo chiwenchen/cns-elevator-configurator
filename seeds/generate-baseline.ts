@@ -187,7 +187,7 @@ export function buildBaselineRules(): RawRule[] {
       category: 'car', mandatory: 0, source: 'industry',
     }),
 
-    // ---- cwt (4) ----
+    // ---- cwt (5) ----
     // Implicit in src/dxf/plan.ts — CWT is currently always drawn at
     // back-left (offset 250 from left wall, 40 from back wall).
     enumRule(
@@ -215,8 +215,14 @@ export function buildBaselineRules(): RawRule[] {
       min: 20, max: 150,
       category: 'cwt', mandatory: 0, source: 'engineering',
     }),
+    // mirrors src/dxf/plan.ts line 59 `const cwtX0 = ox + 250`
+    num('cwt.left_offset_mm', '配重與左牆間隙', 250, {
+      min: 100, max: 800,
+      category: 'cwt', mandatory: 0, source: 'engineering',
+      description: '配重框左側與坑道左牆的距離（DXF plan view 繪圖用）',
+    }),
 
-    // ---- rail (3) ----
+    // ---- rail (4) ----
     // mirrors src/dxf/plan.ts CAR_RAIL_SIZE_MM
     num('rail.car.size_mm', '車廂導軌外接方塊邊長', 90, {
       min: 50, max: 150,
@@ -232,6 +238,12 @@ export function buildBaselineRules(): RawRule[] {
     num('rail.cwt.size_mm', '配重導軌邊長', 70, {
       min: 40, max: 120,
       category: 'rail', mandatory: 0, source: 'engineering',
+    }),
+    // mirrors src/dxf/plan.ts line 72 `cwtX0 - CWT_RAIL_SIZE_MM - 20`
+    num('rail.cwt.gap_mm', '配重導軌與配重邊緣 gap', 20, {
+      min: 10, max: 60,
+      category: 'rail', mandatory: 0, source: 'engineering',
+      description: '配重框兩側到配重導軌的間隙',
     }),
 
     // ---- door (8) ----
