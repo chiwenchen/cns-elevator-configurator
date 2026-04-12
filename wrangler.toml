@@ -8,6 +8,10 @@ directory = "./public"
 binding = "ASSETS"
 
 [[routes]]
+pattern = "vera-plot.redarch.dev"
+custom_domain = true
+
+[[routes]]
 pattern = "elevator-configurator.redarch.dev"
 custom_domain = true
 
