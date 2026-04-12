@@ -1452,6 +1452,9 @@
         }
         // Refresh legend to show/hide professional layer entries
         applyCopy(mode === 'a' ? 'solver-mode-a' : 'solver-mode-b')
+        // Auto re-generate with new detail level
+        const form = document.getElementById('form-' + mode)
+        if (form) form.requestSubmit()
       }
 
       async function submitSolve(mode, payload) {
