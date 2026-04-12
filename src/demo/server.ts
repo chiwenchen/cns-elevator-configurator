@@ -37,6 +37,39 @@ import {
   InvalidChatBodyError,
   ChatApiError,
 } from '../handlers/chat'
+import {
+  handleRequestOtp,
+  handleVerifyOtp,
+  handleLogout,
+  handleMe,
+  AuthError,
+} from '../handlers/auth'
+import {
+  handleListDesigns,
+  handleListArchivedDesigns,
+  handleGetDesign,
+  handleArchiveDesign,
+  handleUnarchiveDesign,
+  handleDeleteDesign,
+  DesignError,
+} from '../handlers/designs'
+import {
+  handleCreateCompany,
+  handleGetCompany,
+  handleInvite,
+  handleJoinCompany,
+  handleLeaveCompany,
+  handleRemoveMember,
+  CompanyError,
+} from '../handlers/company'
+import {
+  handleListUsers,
+  handleUpdateRole,
+  AdminError,
+} from '../handlers/admin'
+import { parseCookie, extractUser, shouldRunCleanup, SESSION_COOKIE_NAME } from '../auth/middleware'
+import type { AuthUser } from '../auth/middleware'
+import { getWeekStartUtc, getQuotaLimits } from '../config/quota'
 
 const PUBLIC_DIR = join(import.meta.dir, '..', '..', 'public')
 const HACK_CANADA_PATH = join(PUBLIC_DIR, 'assets', 'hack-canada.dxf')
@@ -46,6 +79,52 @@ const hackCanadaDxf = await Bun.file(HACK_CANADA_PATH).text()
 
 // Singleton store for local dev (persists across requests within this Bun process)
 const rulesStore = new InMemoryRulesStore()
+
+const DEV_JWT_SECRET = 'dev-secret-for-local-testing-only'
+
+// Mock OTP sender: logs to console instead of sending email
+const mockOtpSender = async (to: string, code: string): Promise<void> => {
+  console.log(`[DEV] OTP for ${to}: ${code}`)
+}
+
+// Mock invite sender: logs to console instead of sending email
+const mockInviteSender = async (to: string, inviterEmail: string, companyName: string, token: string): Promise<void> => {
+  console.log(`[DEV] Invite for ${to} from ${inviterEmail} to join ${companyName}: token=${token}`)
+}
+
+// In-memory DB stub for dev (no real DB in local dev — returns null for all queries)
+const devDb: any = {
+  prepare(query: string) {
+    return {
+      bind(..._values: unknown[]) {
+        return {
+          async all() { return { results: [] } },
+          async first() { return null },
+          async run() { return },
+        }
+      },
+      async all() { return { results: [] } },
+      async first() { return null },
+    }
+  }
+}
+
+async function resolveAuthUserDev(req: Request): Promise<AuthUser | null> {
+  const cookieHeader = req.headers.get('cookie')
+  const cookieValue = parseCookie(cookieHeader, SESSION_COOKIE_NAME)
+  const payload = await extractUser(cookieValue, DEV_JWT_SECRET)
+  if (!payload) return null
+
+  // In dev we don't have a real DB, so we trust the JWT payload directly
+  return {
+    id: payload.sub,
+    email: `${payload.sub}@dev.local`,
+    raw_email: `${payload.sub}@dev.local`,
+    role: payload.role ?? 'user',
+    company_id: null,
+    session_id: payload.jti,
+  }
+}
 
 const server = Bun.serve({
   port: 3000,
@@ -68,6 +147,288 @@ const server = Bun.serve({
         return Response.json(data)
       } catch (err) {
         return Response.json({ error: String(err), hint: `source: ${source}` }, { status: 500 })
+      }
+    }
+
+    // --- Auth routes ---
+    if (url.pathname === '/api/auth/request-otp' && req.method === 'POST') {
+      try {
+        const body = await req.json() as { email?: string }
+        const result = await handleRequestOtp(body, devDb, mockOtpSender)
+        return Response.json(result)
+      } catch (err) {
+        if (err instanceof AuthError) {
+          return Response.json({ error: err.message }, { status: err.status })
+        }
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    if (url.pathname === '/api/auth/verify-otp' && req.method === 'POST') {
+      try {
+        const body = await req.json() as { email?: string; code?: string }
+        const result = await handleVerifyOtp(body, devDb, DEV_JWT_SECRET)
+        return new Response(JSON.stringify({ user: result.user, is_new: result.is_new }), {
+          headers: {
+            'content-type': 'application/json',
+            'Set-Cookie': result.cookie,
+          },
+        })
+      } catch (err) {
+        if (err instanceof AuthError) {
+          return Response.json({ error: err.message }, { status: err.status })
+        }
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    if (url.pathname === '/api/auth/logout' && req.method === 'POST') {
+      try {
+        const user = await resolveAuthUserDev(req)
+        if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 })
+        const result = await handleLogout(user.session_id, devDb)
+        return new Response(JSON.stringify({ ok: result.ok }), {
+          headers: {
+            'content-type': 'application/json',
+            'Set-Cookie': result.cookie,
+          },
+        })
+      } catch (err) {
+        if (err instanceof AuthError) {
+          return Response.json({ error: err.message }, { status: err.status })
+        }
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    if (url.pathname === '/api/auth/me' && req.method === 'GET') {
+      try {
+        const user = await resolveAuthUserDev(req)
+        if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 })
+        const result = await handleMe(user, devDb)
+        return Response.json(result)
+      } catch (err) {
+        if (err instanceof AuthError) {
+          return Response.json({ error: err.message }, { status: err.status })
+        }
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    // --- Design routes ---
+    if (url.pathname === '/api/designs' && req.method === 'GET') {
+      try {
+        const user = await resolveAuthUserDev(req)
+        if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 })
+        const result = await handleListDesigns(user, devDb)
+        return Response.json(result)
+      } catch (err) {
+        if (err instanceof DesignError) {
+          return Response.json({ error: err.message }, { status: err.status })
+        }
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    if (url.pathname === '/api/designs/archived' && req.method === 'GET') {
+      try {
+        const user = await resolveAuthUserDev(req)
+        if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 })
+        const result = await handleListArchivedDesigns(user, devDb)
+        return Response.json(result)
+      } catch (err) {
+        if (err instanceof DesignError) {
+          return Response.json({ error: err.message }, { status: err.status })
+        }
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    const designIdMatch = url.pathname.match(/^\/api\/designs\/([^/]+)$/)
+    if (designIdMatch) {
+      const designId = designIdMatch[1]!
+      if (req.method === 'GET') {
+        try {
+          const user = await resolveAuthUserDev(req)
+          if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 })
+          const result = await handleGetDesign(designId, user, devDb)
+          return Response.json(result)
+        } catch (err) {
+          if (err instanceof DesignError) {
+            return Response.json({ error: err.message }, { status: err.status })
+          }
+          return Response.json({ error: String(err) }, { status: 500 })
+        }
+      }
+      if (req.method === 'DELETE') {
+        try {
+          const user = await resolveAuthUserDev(req)
+          if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 })
+          const result = await handleDeleteDesign(designId, user, devDb)
+          return Response.json(result)
+        } catch (err) {
+          if (err instanceof DesignError) {
+            return Response.json({ error: err.message }, { status: err.status })
+          }
+          return Response.json({ error: String(err) }, { status: 500 })
+        }
+      }
+    }
+
+    const archiveMatch = url.pathname.match(/^\/api\/designs\/([^/]+)\/archive$/)
+    if (archiveMatch && req.method === 'POST') {
+      try {
+        const designId = archiveMatch[1]!
+        const user = await resolveAuthUserDev(req)
+        if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 })
+        const result = await handleArchiveDesign(designId, user, devDb)
+        return Response.json(result)
+      } catch (err) {
+        if (err instanceof DesignError) {
+          return Response.json({ error: err.message }, { status: err.status })
+        }
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    const unarchiveMatch = url.pathname.match(/^\/api\/designs\/([^/]+)\/unarchive$/)
+    if (unarchiveMatch && req.method === 'POST') {
+      try {
+        const designId = unarchiveMatch[1]!
+        const user = await resolveAuthUserDev(req)
+        if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 })
+        const result = await handleUnarchiveDesign(designId, user, devDb)
+        return Response.json(result)
+      } catch (err) {
+        if (err instanceof DesignError) {
+          return Response.json({ error: err.message }, { status: err.status })
+        }
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    // --- Company routes ---
+    if (url.pathname === '/api/company' && req.method === 'POST') {
+      try {
+        const user = await resolveAuthUserDev(req)
+        if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 })
+        const body = await req.json() as { name?: string }
+        const result = await handleCreateCompany(body, user, devDb)
+        return Response.json(result)
+      } catch (err) {
+        if (err instanceof CompanyError) {
+          return Response.json({ error: err.message }, { status: err.status })
+        }
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    if (url.pathname === '/api/company' && req.method === 'GET') {
+      try {
+        const user = await resolveAuthUserDev(req)
+        if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 })
+        const result = await handleGetCompany(user, devDb)
+        return Response.json(result)
+      } catch (err) {
+        if (err instanceof CompanyError) {
+          return Response.json({ error: err.message }, { status: err.status })
+        }
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    if (url.pathname === '/api/company/invite' && req.method === 'POST') {
+      try {
+        const user = await resolveAuthUserDev(req)
+        if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 })
+        const body = await req.json() as { email?: string }
+        const result = await handleInvite(body, user, devDb, mockInviteSender)
+        return Response.json(result)
+      } catch (err) {
+        if (err instanceof CompanyError) {
+          return Response.json({ error: err.message }, { status: err.status })
+        }
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    const joinMatch = url.pathname.match(/^\/api\/company\/join\/([^/]+)$/)
+    if (joinMatch && req.method === 'POST') {
+      try {
+        const token = joinMatch[1]!
+        const user = await resolveAuthUserDev(req)
+        if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 })
+        const result = await handleJoinCompany(token, user, devDb)
+        return Response.json(result)
+      } catch (err) {
+        if (err instanceof CompanyError) {
+          return Response.json({ error: err.message }, { status: err.status })
+        }
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    if (url.pathname === '/api/company/leave' && req.method === 'POST') {
+      try {
+        const user = await resolveAuthUserDev(req)
+        if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 })
+        const result = await handleLeaveCompany(user, devDb)
+        return Response.json(result)
+      } catch (err) {
+        if (err instanceof CompanyError) {
+          return Response.json({ error: err.message }, { status: err.status })
+        }
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    const removeMemberMatch = url.pathname.match(/^\/api\/company\/members\/([^/]+)$/)
+    if (removeMemberMatch && req.method === 'DELETE') {
+      try {
+        const targetUserId = removeMemberMatch[1]!
+        const user = await resolveAuthUserDev(req)
+        if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 })
+        const result = await handleRemoveMember(targetUserId, user, devDb)
+        return Response.json(result)
+      } catch (err) {
+        if (err instanceof CompanyError) {
+          return Response.json({ error: err.message }, { status: err.status })
+        }
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    // --- Admin routes ---
+    if (url.pathname === '/api/admin/users' && req.method === 'GET') {
+      try {
+        const user = await resolveAuthUserDev(req)
+        if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 })
+        if (user.role !== 'admin') return Response.json({ error: 'forbidden' }, { status: 403 })
+        const result = await handleListUsers(devDb)
+        return Response.json(result)
+      } catch (err) {
+        if (err instanceof AdminError) {
+          return Response.json({ error: err.message }, { status: err.status })
+        }
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    const adminUserMatch = url.pathname.match(/^\/api\/admin\/users\/([^/]+)$/)
+    if (adminUserMatch && req.method === 'PATCH') {
+      try {
+        const targetId = adminUserMatch[1]!
+        const user = await resolveAuthUserDev(req)
+        if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 })
+        if (user.role !== 'admin') return Response.json({ error: 'forbidden' }, { status: 403 })
+        const body = await req.json() as { role?: string }
+        const result = await handleUpdateRole(targetId, body, devDb)
+        return Response.json(result)
+      } catch (err) {
+        if (err instanceof AdminError) {
+          return Response.json({ error: err.message }, { status: err.status })
+        }
+        return Response.json({ error: String(err) }, { status: 500 })
       }
     }
 
@@ -136,6 +497,10 @@ const server = Bun.serve({
         )
       }
       try {
+        const user = await resolveAuthUserDev(req)
+        if (!user) return Response.json({ error: 'unauthorized', message: '請先登入' }, { status: 401 })
+
+        // In dev: skip quota check (no real DB)
         const body = await req.json()
         const caller = createAnthropicCaller(apiKey)
         const result = await handleChat(body, rulesStore, caller)
@@ -163,7 +528,8 @@ const server = Bun.serve({
     if (url.pathname === '/api/solve' && req.method === 'POST') {
       try {
         const body = await req.json()
-        const result = await handleSolve(body, rulesStore)
+        const user = await resolveAuthUserDev(req)
+        const result = await handleSolve(body, rulesStore, user, null)
         return Response.json(result)
       } catch (err) {
         if (err instanceof InvalidSolveBodyError) {
@@ -197,6 +563,12 @@ const server = Bun.serve({
               suggestion: err.suggestion,
             },
             { status: 400 }
+          )
+        }
+        if ((err as any)?.name === 'QuotaExceededError') {
+          return Response.json(
+            { error: 'quota_exceeded', message: (err as Error).message },
+            { status: 429 }
           )
         }
         return Response.json(
