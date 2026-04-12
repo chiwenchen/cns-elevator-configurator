@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CNS Elevator Configurator — Spike 1 Demo</title>
+    <title>Vera Plot — 電梯設計規劃系統</title>
     <style>
       :root {
         --bg: #0e1013;
@@ -955,8 +955,8 @@
     <header>
       <div class="header-top">
         <h1>
-          CNS 電梯配件器
-          <small id="demo-subtitle">DXF 解析 Demo</small>
+          Vera Plot
+          <small id="demo-subtitle">電梯設計規劃系統</small>
         </h1>
         <div class="source" style="display:none">
           <label style="font-size:11px;color:var(--fg-muted);margin-right:8px;text-transform:uppercase;letter-spacing:0.08em">資料來源</label>
@@ -968,7 +968,7 @@
       </div>
       <nav class="app-nav">
         <button class="ai-btn" id="ai-chat-btn">AI 設計助理</button>
-        <a href="#/configurator" class="nav-link" data-view="configurator">配件器</a>
+        <a href="#/configurator" class="nav-link" data-view="configurator">設計出圖</a>
         <a href="#/rules" class="nav-link" data-view="rules">規則管理</a>
       </nav>
     </header>
@@ -2334,16 +2334,19 @@
           chatState.status = 'chat_open'
           card.remove()
           addChatBubble('system', '已套用: ' + action.rule_key + ' = ' + action.new_value)
+          document.getElementById('chat-input').disabled = false
+          document.getElementById('chat-send-btn').disabled = false
+          document.getElementById('chat-input').focus()
           resolveCurrentCase()
         })
         card.querySelector('[data-action="accept-delete"]')?.addEventListener('click', () => {
-          // For soft delete, we don't apply an override — we'd need a special API call.
-          // In v1, soft delete via chat applies as a case override with the default value,
-          // effectively reverting it. The actual soft delete happens at commit time.
           addChatBubble('system', '已標記刪除: ' + action.rule_key + '（將在「收工存入團隊」時生效）')
           chatState.pendingAction = null
           chatState.status = 'chat_open'
           card.remove()
+          document.getElementById('chat-input').disabled = false
+          document.getElementById('chat-send-btn').disabled = false
+          document.getElementById('chat-input').focus()
         })
         card.querySelector('[data-action="reject"]')?.addEventListener('click', () => {
           chatState.pendingAction = null
@@ -2488,9 +2491,45 @@
       })
 
       // ---- Commit team button ----
-      async function commitOverridesToTeam() {
-        const override = { ...caseOverrideState }
-        if (Object.keys(override).length === 0) return
+      function showCommitChecklist() {
+        const keys = Object.keys(caseOverrideState)
+        if (keys.length === 0) return
+
+        // Build checklist modal
+        const overlay = document.createElement('div')
+        overlay.className = 'modal-overlay'
+        overlay.innerHTML = `
+          <div class="modal-content" style="max-width:420px">
+            <h3 style="margin-bottom:12px">選擇要存入團隊指引的項目</h3>
+            <div style="margin-bottom:16px;max-height:300px;overflow-y:auto">
+              ${keys.map(k => `
+                <label style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border)">
+                  <input type="checkbox" checked data-key="${k}" style="accent-color:var(--accent);width:16px;height:16px">
+                  <span style="color:var(--fg-muted);font-family:var(--mono);font-size:11px;min-width:180px">${k}</span>
+                  <span style="color:var(--accent)">${caseOverrideState[k]}</span>
+                </label>
+              `).join('')}
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end">
+              <button class="modal-btn" id="commit-cancel">取消</button>
+              <button class="modal-btn primary" id="commit-confirm">確認存入</button>
+            </div>
+          </div>
+        `
+        document.body.appendChild(overlay)
+
+        overlay.querySelector('#commit-cancel').onclick = () => overlay.remove()
+        overlay.querySelector('#commit-confirm').onclick = async () => {
+          const checked = overlay.querySelectorAll('input[type="checkbox"]:checked')
+          const selected = {}
+          checked.forEach(cb => { selected[cb.dataset.key] = caseOverrideState[cb.dataset.key] })
+          overlay.remove()
+          if (Object.keys(selected).length === 0) return
+          await doCommit(selected)
+        }
+      }
+
+      async function doCommit(override) {
         try {
           const res = await fetch('/api/rules/commit', {
             method: 'POST',
@@ -2503,7 +2542,9 @@
             return
           }
           const data = await res.json()
-          clearAllOverrides()
+          // Only clear committed keys, keep unchecked ones
+          for (const k of Object.keys(override)) delete caseOverrideState[k]
+          updateOverrideCountBadge()
           if (rulesState.rules.length > 0) await fetchRules()
           await resolveCurrentCase()
           const applied = Array.isArray(data.applied) ? data.applied : []
@@ -2517,8 +2558,8 @@
         }
       }
 
-      document.getElementById('commit-team-btn').onclick = commitOverridesToTeam
-      document.getElementById('chat-commit-btn').onclick = commitOverridesToTeam
+      document.getElementById('commit-team-btn').onclick = showCommitChecklist
+      document.getElementById('chat-commit-btn').onclick = showCommitChecklist
 
       // Initial badge state
       updateOverrideCountBadge()
