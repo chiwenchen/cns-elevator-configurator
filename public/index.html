@@ -1291,7 +1291,9 @@
       function formToObject(form) {
         const obj = {}
         for (const el of form.elements) {
-          if (el.name) obj[el.name] = el.value
+          if (el.name) {
+            obj[el.name] = el.type === 'number' ? parseFloat(el.value) : el.value
+          }
         }
         return obj
       }
