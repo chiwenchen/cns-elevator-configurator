@@ -978,13 +978,53 @@
         border-color: var(--accent);
         color: var(--accent);
       }
-      .nav-auth .auth-quota {
-        font-family: var(--mono);
+      .nav-auth .auth-email-wrap {
+        position: relative;
+        cursor: pointer;
         color: var(--fg-muted);
+        user-select: none;
+      }
+      .nav-auth .auth-email-wrap:hover {
+        color: var(--fg);
+      }
+      .nav-auth .auth-email-wrap .auth-caret {
+        font-size: 9px;
+        margin-left: 4px;
+        opacity: 0.5;
+      }
+      .nav-auth .auth-dropdown {
+        display: none;
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        background: var(--bg-panel);
+        border: 1px solid var(--border-strong);
+        border-radius: 6px;
+        padding: 10px 14px;
+        min-width: 180px;
+        z-index: 50;
         font-size: 11px;
       }
-      .nav-auth .auth-email {
+      .nav-auth .auth-dropdown.open {
+        display: block;
+      }
+      .nav-auth .auth-dropdown-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 4px 0;
         color: var(--fg-muted);
+      }
+      .nav-auth .auth-dropdown-row .label {
+        color: var(--fg-dim);
+      }
+      .nav-auth .auth-dropdown-row .value {
+        font-family: var(--mono);
+        color: var(--fg);
+      }
+      .nav-auth .auth-dropdown-divider {
+        border-top: 1px solid var(--border);
+        margin: 6px 0;
       }
       .nav-auth .auth-logout-btn {
         color: var(--fg-dim);
@@ -993,10 +1033,12 @@
         cursor: pointer;
         font-family: var(--sans);
         font-size: 11px;
-        padding: 2px 4px;
+        padding: 4px 0;
+        width: 100%;
+        text-align: left;
       }
       .nav-auth .auth-logout-btn:hover {
-        color: var(--fg);
+        color: var(--accent);
       }
       .nav-auth .pro-badge {
         display: inline-block;
@@ -1534,26 +1576,43 @@
         const q = currentUser.quota || {}
         const authEl = document.getElementById('nav-auth')
 
-        let parts = []
-        // PRO badge + company
-        if (u.plan === 'pro' && u.company_name) {
-          parts.push('<span class="pro-badge">PRO</span>')
-        }
-        // Quota display
         const dxfUsed = q.dxf_used != null ? q.dxf_used : 0
         const dxfLimit = q.dxf_limit != null ? q.dxf_limit : 0
         const aiUsed = q.ai_used != null ? q.ai_used : 0
         const aiLimit = q.ai_limit != null ? q.ai_limit : 0
-        parts.push(`<span class="auth-quota">DXF ${dxfUsed}/${dxfLimit} · AI ${aiUsed}/${aiLimit}</span>`)
-        // Email or company name
-        if (u.company_name) {
-          parts.push(`<span class="auth-email">${escapeHtml(u.company_name)}</span>`)
-        } else {
-          parts.push(`<span class="auth-email">${escapeHtml(u.email || '')}</span>`)
+
+        let proBadge = ''
+        if (u.role === 'pro' || u.role === 'admin') {
+          proBadge = `<span class="pro-badge">${u.role === 'admin' ? 'ADMIN' : 'PRO'}</span> `
         }
-        // Logout
-        parts.push('<button class="auth-logout-btn" id="nav-logout-btn">登出</button>')
-        authEl.innerHTML = parts.join('')
+
+        const displayName = u.company ? escapeHtml(u.company.name) : escapeHtml(u.raw_email || u.email || '')
+
+        authEl.innerHTML = `
+          ${proBadge}
+          <div class="auth-email-wrap" id="auth-email-trigger">
+            ${displayName} <span class="auth-caret">▼</span>
+            <div class="auth-dropdown" id="auth-dropdown">
+              <div class="auth-dropdown-row"><span class="label">DXF 輸出</span><span class="value">${dxfUsed} / ${dxfLimit}</span></div>
+              <div class="auth-dropdown-row"><span class="label">AI 對話</span><span class="value">${aiUsed} / ${aiLimit}</span></div>
+              <div class="auth-dropdown-row"><span class="label">重置</span><span class="value">每週一</span></div>
+              ${u.company ? `<div class="auth-dropdown-row"><span class="label">公司</span><span class="value">${escapeHtml(u.company.name)}</span></div>` : ''}
+              <div class="auth-dropdown-row"><span class="label">帳號</span><span class="value">${escapeHtml(u.raw_email || u.email || '')}</span></div>
+              <div class="auth-dropdown-divider"></div>
+              <button class="auth-logout-btn" id="nav-logout-btn">登出</button>
+            </div>
+          </div>
+        `
+
+        // Toggle dropdown on click
+        const trigger = document.getElementById('auth-email-trigger')
+        const dropdown = document.getElementById('auth-dropdown')
+        trigger.addEventListener('click', (e) => {
+          e.stopPropagation()
+          dropdown.classList.toggle('open')
+        })
+        // Close on click outside
+        document.addEventListener('click', () => dropdown.classList.remove('open'))
 
         document.getElementById('nav-logout-btn').onclick = handleLogout
 
