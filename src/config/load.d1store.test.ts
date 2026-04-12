@@ -111,6 +111,16 @@ class FakeD1 {
   }
 
   private runSelect(query: string, bindings: unknown[]): unknown[] {
+    // findActiveRule / restoreRule lookup: WHERE key = ? AND deleted_at IS NULL/NOT NULL
+    // Check these first because they also contain "WHERE key = ?"
+    if (query.includes('WHERE key = ? AND deleted_at IS NOT NULL')) {
+      const key = bindings[0] as string
+      return this.rows.filter((r) => r.key === key && r.deleted_at !== null)
+    }
+    if (query.includes('WHERE key = ? AND deleted_at IS NULL')) {
+      const key = bindings[0] as string
+      return this.rows.filter((r) => r.key === key && r.deleted_at === null)
+    }
     // loadActiveRules: WHERE deleted_at IS NULL
     if (query.includes('WHERE deleted_at IS NULL')) {
       return this.rows.filter((r) => r.deleted_at === null)
@@ -119,14 +129,10 @@ class FakeD1 {
     if (query.includes('WHERE deleted_at IS NOT NULL')) {
       return this.rows.filter((r) => r.deleted_at !== null)
     }
-    // findActiveRule / restoreRule lookup: WHERE key = ? AND deleted_at IS NULL/NOT NULL
-    if (query.includes('WHERE key = ? AND deleted_at IS NOT NULL')) {
-      const key = bindings[0] as string
-      return this.rows.filter((r) => r.key === key && r.deleted_at !== null)
-    }
-    if (query.includes('WHERE key = ? AND deleted_at IS NULL')) {
-      const key = bindings[0] as string
-      return this.rows.filter((r) => r.key === key && r.deleted_at === null)
+    // commitCaseOverride: SELECT ... FROM rules ORDER BY category, key
+    // (no WHERE clause — returns all rows including deleted)
+    if (query.includes('FROM rules') && !query.includes('WHERE')) {
+      return this.rows
     }
     return []
   }
@@ -369,5 +375,17 @@ describe('D1RulesStore.commitCaseOverride', () => {
     const result = await store.commitCaseOverride({}, 'user')
     expect(result.applied).toHaveLength(0)
     expect(result.skipped).toHaveLength(0)
+  })
+
+  test('skips rule_deleted when rule has deleted_at set', async () => {
+    db.rows[1]!.deleted_at = 999 // cwt.position soft-deleted
+    const result = await store.commitCaseOverride(
+      { 'cwt.position': 'back_center' },
+      'user',
+    )
+    expect(result.applied).toHaveLength(0)
+    expect(result.skipped).toHaveLength(1)
+    expect(result.skipped[0]!.key).toBe('cwt.position')
+    expect(result.skipped[0]!.reason).toBe('rule_deleted')
   })
 })
