@@ -19,9 +19,9 @@ const KNOWN_SOURCES = new Set(['cns', 'industry', 'engineering'])
 const KNOWN_TYPES = new Set(['number', 'enum'])
 
 describe('buildBaselineRules — structural', () => {
-  test('returns exactly 44 rules', () => {
+  test('returns exactly 46 rules', () => {
     const rules = buildBaselineRules()
-    expect(rules).toHaveLength(44)
+    expect(rules).toHaveLength(46)
   })
 
   test('all rule keys are unique', () => {
@@ -178,6 +178,26 @@ describe('buildBaselineRules — specific spec rules present', () => {
       expect(r).toBeDefined()
       expect(r!.unit).toBeNull()
     }
+  })
+
+  test('cwt.left_offset_mm exists with value 250', () => {
+    const r = byKey().get('cwt.left_offset_mm')!
+    expect(r).toBeDefined()
+    expect(r.type).toBe('number')
+    expect(r.value).toBe('250')
+    expect(r.baseline_min).toBe(100)
+    expect(r.baseline_max).toBe(800)
+    expect(r.category).toBe('cwt')
+    expect(r.source).toBe('engineering')
+  })
+
+  test('rail.cwt.gap_mm exists with value 20', () => {
+    const r = byKey().get('rail.cwt.gap_mm')!
+    expect(r).toBeDefined()
+    expect(r.value).toBe('20')
+    expect(r.baseline_min).toBe(10)
+    expect(r.baseline_max).toBe(60)
+    expect(r.category).toBe('rail')
   })
 
   test('usage.accessible.min_car_width_mm is 1100, cns, mandatory', () => {

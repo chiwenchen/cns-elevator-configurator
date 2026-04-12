@@ -13,8 +13,8 @@
 
 import { join } from 'path'
 import { analyzeArchDxf } from '../handlers/analyze-arch'
-import { handleSolve } from '../handlers/solve'
-import { NonStandardError } from '../solver/types'
+import { handleSolve, BaselineViolationError, NonStandardError } from '../handlers/solve'
+import { StaticRulesLoader } from '../config/load'
 
 const PUBLIC_DIR = join(import.meta.dir, '..', '..', 'public')
 const HACK_CANADA_PATH = join(PUBLIC_DIR, 'assets', 'hack-canada.dxf')
@@ -49,9 +49,22 @@ const server = Bun.serve({
     if (url.pathname === '/api/solve' && req.method === 'POST') {
       try {
         const body = await req.json()
-        const result = handleSolve(body)
+        const loader = new StaticRulesLoader()
+        const result = await handleSolve(body, loader)
         return Response.json(result)
       } catch (err) {
+        if (err instanceof BaselineViolationError) {
+          return Response.json(
+            {
+              error: 'baseline_violation',
+              message: err.message,
+              rule_key: err.ruleKey,
+              attempted_value: err.attemptedValue,
+              baseline: err.baseline,
+            },
+            { status: 400 }
+          )
+        }
         if (err instanceof NonStandardError) {
           return Response.json(
             {

@@ -13,6 +13,7 @@ import { solveModeB } from './mode-b'
 import { minLoadForArea, maxAreaForLoad, maxPassengersForLoad } from './table'
 import { NonStandardError } from './types'
 import { generateElevatorDXF } from '../dxf/generate'
+import { defaultFixtureConfig } from '../config/fixtures'
 
 // ---- Table lookup tests ----
 
@@ -73,7 +74,7 @@ describe('Mode A Solver (shaft → design)', () => {
       pit_depth_mm: 1600,
       stops: 6,
       usage: 'passenger',
-    })
+    }, defaultFixtureConfig())
 
     expect(design.solver_mode).toBe('A')
     expect(design.shaft.width_mm).toBe(2000)
@@ -98,7 +99,7 @@ describe('Mode A Solver (shaft → design)', () => {
       pit_depth_mm: 1600,
       stops: 4,
       usage: 'passenger',
-    })
+    }, defaultFixtureConfig())
 
     expect(design.car.width_mm).toBe(1000) // 1400 - 400
     expect(design.car.depth_mm).toBe(1100) // 1500 - 400
@@ -116,7 +117,7 @@ describe('Mode A Solver (shaft → design)', () => {
         pit_depth_mm: 1600,
         stops: 4,
         usage: 'passenger',
-      })
+      }, defaultFixtureConfig())
     ).toThrow(NonStandardError)
   })
 
@@ -130,7 +131,7 @@ describe('Mode A Solver (shaft → design)', () => {
         pit_depth_mm: 1600,
         stops: 6,
         usage: 'passenger',
-      })
+      }, defaultFixtureConfig())
     ).toThrow(/頂部|overhead/i)
   })
 
@@ -144,7 +145,7 @@ describe('Mode A Solver (shaft → design)', () => {
         pit_depth_mm: 500, // too low
         stops: 6,
         usage: 'passenger',
-      })
+      }, defaultFixtureConfig())
     ).toThrow(/底坑/i)
   })
 })
@@ -158,7 +159,7 @@ describe('Mode B Solver (requirement → design)', () => {
       stops: 6,
       usage: 'passenger',
       machine_location: 'MR',
-    })
+    }, defaultFixtureConfig())
 
     expect(design.solver_mode).toBe('B')
     expect(design.rated_load_kg).toBe(500)
@@ -183,7 +184,7 @@ describe('Mode B Solver (requirement → design)', () => {
       stops: 10,
       usage: 'passenger',
       machine_location: 'MRL',
-    })
+    }, defaultFixtureConfig())
 
     expect(design.rated_load_kg).toBe(750)
     expect(design.rated_speed_mpm).toBe(90)
@@ -199,7 +200,7 @@ describe('Mode B Solver (requirement → design)', () => {
       stops: 8,
       usage: 'bed',
       machine_location: 'MR',
-    })
+    }, defaultFixtureConfig())
 
     expect(design.car.depth_mm).toBeGreaterThanOrEqual(2400)
     expect(design.shaft.depth_mm).toBeGreaterThan(design.car.depth_mm)
@@ -212,7 +213,7 @@ describe('Mode B Solver (requirement → design)', () => {
         stops: 4,
         usage: 'accessible',
         machine_location: 'MR',
-      })
+      }, defaultFixtureConfig())
     ).toThrow(NonStandardError)
   })
 
@@ -223,7 +224,7 @@ describe('Mode B Solver (requirement → design)', () => {
         stops: 4,
         usage: 'passenger',
         machine_location: 'MR',
-      })
+      }, defaultFixtureConfig())
     ).toThrow(NonStandardError)
   })
 })
@@ -240,9 +241,9 @@ describe('DXF Writer + round-trip', () => {
       pit_depth_mm: 1600,
       stops: 6,
       usage: 'passenger',
-    })
+    }, defaultFixtureConfig())
 
-    const dxf = generateElevatorDXF(design)
+    const dxf = generateElevatorDXF(design, defaultFixtureConfig())
     expect(dxf.length).toBeGreaterThan(1000)
     expect(dxf).toContain('SECTION')
     expect(dxf).toContain('SHAFT')
@@ -260,9 +261,9 @@ describe('DXF Writer + round-trip', () => {
       stops: 6,
       usage: 'passenger',
       machine_location: 'MR',
-    })
+    }, defaultFixtureConfig())
 
-    const dxf = generateElevatorDXF(design)
+    const dxf = generateElevatorDXF(design, defaultFixtureConfig())
     const parser = new DxfParser()
     const parsed = parser.parseSync(dxf)
 

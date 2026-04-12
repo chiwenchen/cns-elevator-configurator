@@ -20,9 +20,10 @@
 // @ts-ignore
 import Drawing from 'dxf-writer'
 import type { ElevatorDesign } from '../solver/types'
+import type { EffectiveConfig } from '../config/types'
 import { drawPlanView } from './plan'
 
-export function generateElevatorDXF(design: ElevatorDesign): string {
+export function generateElevatorDXF(design: ElevatorDesign, config: EffectiveConfig): string {
   const dw = new Drawing()
   dw.setUnits('Millimeters')
 
@@ -41,7 +42,7 @@ export function generateElevatorDXF(design: ElevatorDesign): string {
   const { shaft, car, rated_load_kg, rated_speed_mpm, machine_location } = design
 
   // ---- PLAN VIEW ----
-  drawPlanView(dw, design, { x: 0, y: 0 })
+  drawPlanView(dw, design, { x: 0, y: 0 }, config)
 
   // ---- ELEVATION VIEW (右側) ----
   const elevOX = shaft.width_mm + 4000
