@@ -1108,7 +1108,7 @@
         </div>
         <div class="viz-body">
           <div id="svg-container">
-            <div class="error" id="svg-placeholder">載入中…</div>
+            <div id="svg-placeholder"></div>
           </div>
         </div>
       </div>
@@ -1381,7 +1381,7 @@
 
       const sourceSelect = document.getElementById('source-select')
       sourceSelect.addEventListener('change', () => loadSource(sourceSelect.value))
-      loadSource(sourceSelect.value)
+      // Don't auto-load Hack_Canada on startup — start with blank canvas
 
       // ---- Solver form handling ----
 
