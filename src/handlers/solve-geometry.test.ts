@@ -133,13 +133,16 @@ describe('solver + DXF geometry consistency under case override', () => {
       loader,
     )
 
-    // cwt.position is stored in config but currently doesn't affect plan.ts
-    // geometry (the position literal is hardcoded in plan.ts layout logic).
-    // This test documents the current behavior: the override is ACCEPTED
-    // but the DXF string is unchanged. When Milestone 1c or later adds
-    // position-aware drawing, this test will need updating.
-    //
-    // For now: assert that the override doesn't break solve (no throw).
+    // cwt.position is now honored by plan.ts (Finding 1 fix). Overriding
+    // back_left → back_center must materially change the DXF geometry:
+    // the CWT rectangle (and its rails) are redrawn at a different X origin.
     expect(overridden.design).toBeDefined()
+    // Structural design outputs (shaft/car/door) are independent of CWT
+    // position — it's a drawing-only value.
+    expect(overridden.design.shaft).toEqual(baseline.design.shaft)
+    expect(overridden.design.car).toEqual(baseline.design.car)
+    expect(overridden.design.door).toEqual(baseline.design.door)
+    // DXF strings must differ because CWT rectangle moved.
+    expect(overridden.dxf_string).not.toEqual(baseline.dxf_string)
   })
 })
