@@ -86,7 +86,8 @@ function formatRange(rule: TeamRule): string {
     const max = rule.baseline_max !== null ? String(rule.baseline_max) : ''
     const unit = rule.unit || ''
     if (!min && !max) return '-'
-    return `${min}-${max} ${unit}`.trim()
+    if (unit) return `${min}-${max}${unit}`
+    return `${min}-${max}`
   }
   return '-'
 }
@@ -99,7 +100,6 @@ export function buildDynamicContext(
   rules: TeamRule[],
   solverInput: Record<string, unknown>,
   caseOverride: CaseOverride,
-  chatHistory: ChatMessage[],
 ): string {
   const sections: string[] = []
 

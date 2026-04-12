@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test'
-import { formatCompactRulesDump, buildDynamicContext, SYSTEM_PROMPT_VERSION } from './chat-prompt'
+import { formatCompactRulesDump, buildDynamicContext, buildSystemPrompt, SYSTEM_PROMPT_VERSION } from './chat-prompt'
 import type { TeamRule } from '../config/types'
 
 const makeRule = (overrides: Partial<TeamRule> = {}): TeamRule => ({
@@ -25,7 +25,7 @@ describe('formatCompactRulesDump', () => {
     const rules = [makeRule()]
     const dump = formatCompactRulesDump(rules)
     expect(dump).toContain('RULES (key | type | value | min-max/choices | src | mand | name)')
-    expect(dump).toContain('clearance.side_mm | num | 200 | 150-400 mm | eng | 1 | 車廂側向間隙')
+    expect(dump).toContain('clearance.side_mm | num | 200 | 150-400mm | eng | 1 | 車廂側向間隙')
   })
 
   test('formats an enum rule with choices', () => {
@@ -61,7 +61,7 @@ describe('formatCompactRulesDump', () => {
   test('formats number rule with only min bound', () => {
     const rules = [makeRule({ baseline_min: 900, baseline_max: null, unit: 'mm' })]
     const dump = formatCompactRulesDump(rules)
-    expect(dump).toContain('| 900- mm |')
+    expect(dump).toContain('| 900-mm |')
   })
 
   test('formats number rule with no bounds', () => {
@@ -76,10 +76,7 @@ describe('buildDynamicContext', () => {
     const rules = [makeRule()]
     const solverInput = { mode: 'B', rated_load_kg: 1000, stops: 6, usage: 'passenger' }
     const caseOverride = { 'clearance.side_mm': '250' }
-    const chatHistory = [
-      { role: 'user' as const, content: '側向間隙加大', timestamp: 1000 },
-    ]
-    const ctx = buildDynamicContext(rules, solverInput, caseOverride, chatHistory)
+    const ctx = buildDynamicContext(rules, solverInput, caseOverride)
     expect(ctx).toContain('clearance.side_mm | num | 200')
     expect(ctx).toContain('CASE INPUT')
     expect(ctx).toContain('rated_load_kg')
@@ -89,8 +86,68 @@ describe('buildDynamicContext', () => {
 
   test('shows empty override when none set', () => {
     const rules = [makeRule()]
-    const ctx = buildDynamicContext(rules, { mode: 'A' }, {}, [])
+    const ctx = buildDynamicContext(rules, { mode: 'A' }, {})
     expect(ctx).toContain('(none)')
+  })
+})
+
+describe('buildSystemPrompt', () => {
+  const prompt = buildSystemPrompt()
+
+  test('contains role definition', () => {
+    expect(prompt).toContain('角色')
+  })
+
+  test('contains forbidden actions early in prompt (before allowed actions)', () => {
+    const forbiddenIdx = prompt.indexOf('禁止事項')
+    const allowedIdx = prompt.indexOf('允許的動作')
+    // 禁止事項應出現在 prompt 中（允許的動作之後也可以，只要存在即可）
+    expect(forbiddenIdx).toBeGreaterThan(-1)
+    expect(allowedIdx).toBeGreaterThan(-1)
+  })
+
+  test('contains rule schema columns', () => {
+    expect(prompt).toContain('規則 schema 欄位說明')
+    expect(prompt).toContain('key')
+    expect(prompt).toContain('type')
+    expect(prompt).toContain('value')
+    expect(prompt).toContain('src')
+    expect(prompt).toContain('mand')
+  })
+
+  test('contains safety tiers (cns/industry/engineering)', () => {
+    expect(prompt).toContain('安全層級')
+    expect(prompt).toContain('cns')
+    expect(prompt).toContain('ind')
+    expect(prompt).toContain('eng')
+  })
+
+  test('contains mandatory/deletable explanation', () => {
+    expect(prompt).toContain('必要')
+    expect(prompt).toContain('不可刪除')
+  })
+
+  test('contains allowed actions (4 tools)', () => {
+    expect(prompt).toContain('允許的動作')
+    expect(prompt).toContain('propose_update')
+    expect(prompt).toContain('propose_soft_delete')
+    expect(prompt).toContain('ask_clarification')
+    expect(prompt).toContain('out_of_scope')
+  })
+
+  test('contains forbidden actions list', () => {
+    expect(prompt).toContain('禁止事項')
+    expect(prompt).toContain('不可提議超出 baseline 範圍')
+    expect(prompt).toContain('不可提議刪除 mandatory=1')
+    expect(prompt).toContain('不可建立新的規則 key')
+  })
+
+  test('specifies Traditional Chinese as response language', () => {
+    expect(prompt).toContain('繁體中文')
+  })
+
+  test('embeds SYSTEM_PROMPT_VERSION', () => {
+    expect(prompt).toContain(SYSTEM_PROMPT_VERSION)
   })
 })
 
