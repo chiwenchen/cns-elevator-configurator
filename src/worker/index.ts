@@ -190,6 +190,12 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
 
+    // --- Redirect elevator-configurator → vera-plot ---
+    if (url.hostname === 'elevator-configurator.redarch.dev') {
+      const target = new URL(url.pathname + url.search, 'https://vera-plot.redarch.dev')
+      return Response.redirect(target.toString(), 301)
+    }
+
     // --- API routes ---
     if (url.pathname === '/api/analysis') {
       const source = url.searchParams.get('source') || 'hack-canada'
