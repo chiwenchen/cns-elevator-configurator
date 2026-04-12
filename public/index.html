@@ -2234,12 +2234,24 @@
         document.getElementById('ai-chat-btn').classList.add('active')
         document.getElementById('chat-input').disabled = false
         document.getElementById('chat-send-btn').disabled = false
-        // Show welcome message on first open
+        // Show welcome message on first open, include current solver context
         const msgArea = document.getElementById('chat-messages')
         if (msgArea && msgArea.children.length === 0) {
+          const activeTab = document.querySelector('.mode-tab.active')
+          const activeMode = activeTab && activeTab.dataset.mode ? activeTab.dataset.mode : 'A'
+          const payload = collectSolverFormPayload(activeMode)
+          const usageMap = { passenger: '客用電梯', freight: '貨用電梯', bed: '病床電梯', accessible: '無障礙電梯' }
+          const usage = usageMap[payload.usage] || payload.usage || ''
+          const contextParts = []
+          if (usage) contextParts.push(usage)
+          if (payload.width_mm && payload.depth_mm) contextParts.push(`井道 ${payload.width_mm}x${payload.depth_mm}mm`)
+          if (payload.rated_load_kg) contextParts.push(`載重 ${payload.rated_load_kg}kg`)
+          if (payload.stops) contextParts.push(`${payload.stops} 層`)
+          const contextStr = contextParts.length > 0 ? `目前您正在設計：${contextParts.join('、')}。` : ''
+
           const welcome = document.createElement('div')
           welcome.className = 'chat-bubble assistant'
-          welcome.textContent = '嗨，我是 Vera，您的電梯設計助理。您可以在此與我討論設計規則的調整，例如配重位置、車廂尺寸、安全裝置參數等。確認後我將即時套用變更並重新產生圖面。'
+          welcome.textContent = `嗨，我是 Vera，您的電梯設計助理。${contextStr}您可以在此與我討論設計規則的調整，例如配重位置、車廂尺寸、安全裝置參數等。確認後我將即時套用變更並重新產生圖面。`
           msgArea.appendChild(welcome)
         }
         document.getElementById('chat-input').focus()
