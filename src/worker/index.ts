@@ -610,11 +610,11 @@ export default {
         const caller = createAnthropicCaller(env.ANTHROPIC_API_KEY)
         const result = await handleChat(body, loader, caller)
 
-        // Record AI usage
+        // Record AI usage (chat_sessions has NOT NULL columns: case_snapshot, messages, status)
         const sessionId = crypto.randomUUID()
         await env.DB.prepare(
-          `INSERT INTO chat_sessions (id, user_id, company_id, created_at) VALUES (?, ?, ?, ?)`
-        ).bind(sessionId, user.id, user.company_id, new Date().toISOString()).run()
+          `INSERT INTO chat_sessions (id, case_snapshot, messages, status, user_id, company_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`
+        ).bind(sessionId, '{}', '[]', 'active', user.id, user.company_id, new Date().toISOString()).run()
 
         return jsonResponse(result)
       } catch (err) {
