@@ -104,4 +104,24 @@ describe('solve-snapshot: Mode B 500kg passenger regression', () => {
       result.validation_report.summary
     expect(guideline_pass + guideline_warning + cns_pass + cns_warning).toBe(46)
   })
+
+  test('validation_report summary counts cns_warning when cns rule overridden', async () => {
+    const loader = new StaticRulesLoader()
+    const result = await handleSolve(
+      {
+        mode: 'B',
+        rated_load_kg: 500,
+        stops: 6,
+        usage: 'passenger',
+        machine_location: 'MR',
+        caseOverride: { 'height.overhead.refuge_mm': '2100' },
+      },
+      loader,
+    )
+    expect(result.validation_report.summary.cns_warning).toBe(1)
+    const cnsItemCount = result.validation_report.items.filter(
+      (i) => i.source === 'cns',
+    ).length
+    expect(result.validation_report.summary.cns_pass).toBeLessThan(cnsItemCount)
+  })
 })

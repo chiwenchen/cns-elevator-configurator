@@ -1681,11 +1681,12 @@
         const guideline_pass = summary.guideline_pass || 0
         const guideline_warning = summary.guideline_warning || 0
         const cns_pass = summary.cns_pass || 0
+        const cns_warning = summary.cns_warning || 0
         const total_fail = summary.total_fail || 0
         container.innerHTML = `
           <span class="count-pass">PASS ${guideline_pass + cns_pass}</span>
-          <span class="count-warning">WARN ${guideline_warning}</span>
-          <span class="count-cns">CNS ${cns_pass}</span>
+          <span class="count-warning">WARN ${guideline_warning + cns_warning}</span>
+          <span class="count-cns">CNS ${cns_pass}${cns_warning > 0 ? ' (' + cns_warning + ' 微調)' : ''}</span>
           ${total_fail > 0 ? `<span class="count-fail">FAIL ${total_fail}</span>` : ''}
         `
         renderValidationBody(report)
