@@ -394,8 +394,17 @@ export async function handleChat(
   // 7. Layer 2 validation
   const validatedAction = validateProposal(parsed.action, teamRules)
 
+  // If Layer 2 downgraded a proposal to ask_clarification, surface the rejection reason
+  const wasProposal =
+    parsed.action.type === 'propose_update' || parsed.action.type === 'propose_soft_delete'
+  const wasDowngraded = wasProposal && validatedAction.type === 'ask_clarification'
+  const assistantMessage =
+    wasDowngraded
+      ? parsed.assistantMessage + '\n\n' + (validatedAction as { type: 'ask_clarification'; question: string; choices: string[] }).question
+      : parsed.assistantMessage
+
   return {
-    assistant_message: parsed.assistantMessage,
+    assistant_message: assistantMessage,
     action: validatedAction,
     session_id: body.session_id,
     prompt_version: SYSTEM_PROMPT_VERSION,

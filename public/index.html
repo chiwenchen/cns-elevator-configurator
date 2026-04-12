@@ -2107,29 +2107,47 @@
         scrollChatToBottom()
       }
 
+      function makeEl(tag, className, text) {
+        const el = document.createElement(tag)
+        if (className) el.className = className
+        if (text !== undefined) el.textContent = text
+        return el
+      }
+
       function renderProposalCard(action) {
         const card = document.createElement('div')
         card.className = 'chat-proposal-card'
 
         if (action.type === 'propose_update') {
-          card.innerHTML = `
-            <div class="proposal-header">提議修改: ${action.rule_key}</div>
-            <div class="proposal-diff">${action.current_value} -> ${action.new_value}</div>
-            <div class="proposal-reasoning">${action.reasoning}</div>
-            <div class="proposal-actions">
-              <button class="proposal-reject-btn" data-action="reject">不要</button>
-              <button class="proposal-accept-btn" data-action="accept">套用並重畫</button>
-            </div>
-          `
+          const header = makeEl('div', 'proposal-header', '提議修改: ' + action.rule_key)
+          const diff = makeEl('div', 'proposal-diff', action.current_value + ' -> ' + action.new_value)
+          const reasoning = makeEl('div', 'proposal-reasoning', action.reasoning)
+          const actions = document.createElement('div')
+          actions.className = 'proposal-actions'
+          const rejectBtn = makeEl('button', 'proposal-reject-btn', '不要')
+          rejectBtn.dataset.action = 'reject'
+          const acceptBtn = makeEl('button', 'proposal-accept-btn', '套用並重畫')
+          acceptBtn.dataset.action = 'accept'
+          actions.appendChild(rejectBtn)
+          actions.appendChild(acceptBtn)
+          card.appendChild(header)
+          card.appendChild(diff)
+          card.appendChild(reasoning)
+          card.appendChild(actions)
         } else if (action.type === 'propose_soft_delete') {
-          card.innerHTML = `
-            <div class="proposal-header">提議刪除: ${action.rule_key}</div>
-            <div class="proposal-reasoning">${action.reasoning}</div>
-            <div class="proposal-actions">
-              <button class="proposal-reject-btn" data-action="reject">不要</button>
-              <button class="proposal-accept-btn" data-action="accept-delete">套用並重畫</button>
-            </div>
-          `
+          const header = makeEl('div', 'proposal-header', '提議刪除: ' + action.rule_key)
+          const reasoning = makeEl('div', 'proposal-reasoning', action.reasoning)
+          const actions = document.createElement('div')
+          actions.className = 'proposal-actions'
+          const rejectBtn = makeEl('button', 'proposal-reject-btn', '不要')
+          rejectBtn.dataset.action = 'reject'
+          const acceptBtn = makeEl('button', 'proposal-accept-btn', '套用並重畫')
+          acceptBtn.dataset.action = 'accept-delete'
+          actions.appendChild(rejectBtn)
+          actions.appendChild(acceptBtn)
+          card.appendChild(header)
+          card.appendChild(reasoning)
+          card.appendChild(actions)
         }
 
         // Wire up buttons
@@ -2198,6 +2216,9 @@
             renderProposalCard(action)
             break
           case 'ask_clarification':
+            if (action.question && action.question.trim()) {
+              addChatBubble('system', action.question)
+            }
             if (action.choices && action.choices.length > 0) {
               renderClarificationChoices(action)
             }
