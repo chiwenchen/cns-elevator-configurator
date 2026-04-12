@@ -275,14 +275,18 @@
         padding: 14px 20px;
         border-bottom: 1px solid var(--border);
         display: flex;
-        justify-content: space-between;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .viz-legend-row {
+        display: flex;
+        justify-content: flex-end;
         align-items: center;
       }
       .viz-title {
         font-size: 12px;
         color: var(--fg-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.02em;
       }
       .legend {
         display: flex;
@@ -1091,7 +1095,7 @@
 
       <div class="viz">
         <div class="viz-header">
-          <span class="viz-title" id="viz-title">建築平面圖 · 由 DXF SVG 渲染</span>
+          <div class="viz-legend-row">
           <div class="legend" id="legend-container">
             <div class="legend-item">
               <span class="legend-swatch" style="background:#d9dde3;border-color:#d9dde3"></span>牆
@@ -1112,6 +1116,8 @@
               <span class="legend-swatch swatch-elev"></span>電梯區域
             </div>
           </div>
+          </div>
+          <span class="viz-title" id="viz-title"></span>
         </div>
         <div class="viz-body">
           <div id="svg-container">
