@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>用戶管理 — Vera Plot</title>
+    <style>
+      :root {
+        --bg: #0e1013;
+        --bg-panel: #15181d;
+        --bg-elev: #1b1f25;
+        --fg: #e7e9ec;
+        --fg-muted: #8b93a0;
+        --fg-dim: #535c6b;
+        --border: #242932;
+        --border-strong: #333a45;
+        --accent: #e8734e;
+        --accent-soft: rgba(232, 115, 78, 0.18);
+        --accent-hover: #f58662;
+        --success: #7ee787;
+        --success-soft: rgba(46, 160, 67, 0.12);
+        --error: #ff8a80;
+        --error-soft: rgba(248, 81, 73, 0.12);
+        --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        --sans: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang TC",
+          "Microsoft JhengHei", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: var(--sans);
+        font-size: 14px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+      body {
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+      header {
+        padding: 20px 28px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+      .header-top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 24px;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      header h1 small {
+        color: var(--fg-muted);
+        font-weight: 400;
+        margin-left: 10px;
+      }
+      .app-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 8px;
+        font-size: 12px;
+      }
+      .app-nav .nav-links {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+      }
+      .app-nav .nav-link {
+        color: var(--fg-muted);
+        text-decoration: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+      }
+      .app-nav .nav-link.active {
+        color: var(--fg);
+        background: var(--bg-panel);
+      }
+      .app-nav .nav-link:hover:not(.active) {
+        color: var(--fg);
+      }
+      .nav-auth {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .nav-auth .auth-quota {
+        font-family: var(--mono);
+        color: var(--fg-muted);
+        font-size: 11px;
+      }
+      .nav-auth .auth-email {
+        color: var(--fg-muted);
+      }
+      .nav-auth .auth-logout-btn {
+        color: var(--fg-dim);
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-family: var(--sans);
+        font-size: 11px;
+        padding: 2px 4px;
+      }
+      .nav-auth .auth-logout-btn:hover {
+        color: var(--fg);
+      }
+      main {
+        padding: 28px 32px;
+        max-width: 1000px;
+      }
+      .page-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0 0 20px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      th {
+        padding: 8px 0;
+        font-weight: 400;
+        color: var(--fg-muted);
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+      }
+      th:not(:first-child) {
+        padding-left: 16px;
+      }
+      td {
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+      }
+      td:not(:first-child) {
+        padding-left: 16px;
+      }
+      .email-cell {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--fg);
+      }
+      .role-badge {
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 2px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .role-badge.role-user {
+        background: transparent;
+        color: var(--fg-muted);
+      }
+      .company-cell {
+        color: var(--fg-muted);
+        font-size: 12px;
+      }
+      .usage-cell {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--fg-muted);
+      }
+      .btn-sm {
+        padding: 5px 10px;
+        font-size: 11px;
+        font-family: var(--sans);
+        cursor: pointer;
+        border-radius: 3px;
+        background: transparent;
+        white-space: nowrap;
+      }
+      .btn-promote {
+        border: 1px solid var(--accent);
+        color: var(--accent);
+      }
+      .btn-promote:hover {
+        background: var(--accent-soft);
+      }
+      .btn-demote {
+        border: 1px solid var(--border);
+        color: var(--fg-dim);
+      }
+      .btn-demote:hover {
+        border-color: var(--border-strong);
+        color: var(--fg-muted);
+      }
+      .loading {
+        padding: 32px 0;
+        color: var(--fg-dim);
+        font-size: 13px;
+        text-align: center;
+      }
+      .error-msg {
+        padding: 12px 16px;
+        background: var(--error-soft);
+        border-left: 3px solid var(--error);
+        color: var(--error);
+        font-size: 12px;
+        border-radius: 3px;
+        margin-bottom: 16px;
+      }
+      .success-msg {
+        padding: 12px 16px;
+        background: var(--success-soft);
+        border-left: 3px solid #3fb950;
+        color: var(--success);
+        font-size: 12px;
+        border-radius: 3px;
+        margin-bottom: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="header-top">
+        <h1>Vera Plot <small>後台管理</small></h1>
+      </div>
+      <nav class="app-nav">
+        <div class="nav-links">
+          <a href="/" class="nav-link">設計出圖</a>
+          <a href="/designs.html" class="nav-link">我的圖紙</a>
+          <a href="/admin.html" class="nav-link active">用戶管理</a>
+        </div>
+        <div class="nav-auth" id="nav-auth"></div>
+      </nav>
+    </header>
+
+    <main>
+      <h2 class="page-title">用戶管理</h2>
+
+      <div id="msg-container"></div>
+      <div id="table-container" class="loading">載入中…</div>
+    </main>
+
+    <script>
+      'use strict'
+
+      let currentUser = null
+
+      // ---- Auth check: must be admin ----
+      async function init() {
+        try {
+          const res = await fetch('/api/auth/me')
+          if (!res.ok) {
+            window.location.href = '/'
+            return
+          }
+          const data = await res.json()
+          const u = data.user || {}
+          if (u.role !== 'admin') {
+            window.location.href = '/'
+            return
+          }
+          currentUser = data
+          renderNav(data)
+          await loadUsers()
+        } catch {
+          window.location.href = '/'
+        }
+      }
+
+      function renderNav(data) {
+        const u = data.user || {}
+        const q = data.quota || {}
+        const authEl = document.getElementById('nav-auth')
+        const dxfUsed = q.dxf_used != null ? q.dxf_used : 0
+        const dxfLimit = q.dxf_limit != null ? q.dxf_limit : 0
+        const aiUsed = q.ai_used != null ? q.ai_used : 0
+        const aiLimit = q.ai_limit != null ? q.ai_limit : 0
+        const email = escHtml(u.email || '')
+        const company = u.company_name ? escHtml(u.company_name) : null
+
+        authEl.innerHTML = [
+          `<span class="auth-quota">DXF ${dxfUsed}/${dxfLimit} · AI ${aiUsed}/${aiLimit}</span>`,
+          company
+            ? `<span class="auth-email">${company}</span>`
+            : `<span class="auth-email">${email}</span>`,
+          `<button class="auth-logout-btn" id="logout-btn">登出</button>`,
+        ].join('')
+
+        document.getElementById('logout-btn').onclick = async () => {
+          try { await fetch('/api/auth/logout', { method: 'POST' }) } catch { /* ignore */ }
+          window.location.href = '/'
+        }
+      }
+
+      // ---- Load users ----
+      async function loadUsers() {
+        const res = await fetch('/api/admin/users')
+        if (!res.ok) {
+          showMsg('error', '無法載入用戶資料')
+          return
+        }
+        const data = await res.json()
+        renderTable(data.users || [])
+      }
+
+      function renderTable(users) {
+        const container = document.getElementById('table-container')
+        if (users.length === 0) {
+          container.className = ''
+          container.innerHTML = '<p style="color:var(--fg-dim);font-size:13px;">尚無用戶資料</p>'
+          return
+        }
+
+        const selfId = (currentUser && currentUser.user) ? currentUser.user.id : null
+
+        const rows = users.map(u => {
+          const roleBadgeClass = u.role === 'admin' || u.role === 'pro' ? 'role-badge' : 'role-badge role-user'
+          const roleLabel = u.role === 'admin' ? 'ADMIN' : u.role === 'pro' ? 'PRO' : 'User'
+          const company = u.company_name ? escHtml(u.company_name) : '<span style="color:var(--fg-dim)">—</span>'
+
+          let actionCell = '<td></td>'
+          if (u.id !== selfId && u.role !== 'admin') {
+            if (u.role === 'pro') {
+              actionCell = `<td><button class="btn-sm btn-demote" data-id="${escHtml(u.id)}" data-action="demote">降為 User</button></td>`
+            } else {
+              actionCell = `<td><button class="btn-sm btn-promote" data-id="${escHtml(u.id)}" data-action="promote">升為 Pro</button></td>`
+            }
+          }
+
+          return `
+            <tr data-user-id="${escHtml(u.id)}">
+              <td class="email-cell">${escHtml(u.email || u.raw_email || '')}</td>
+              <td><span class="${roleBadgeClass}">${roleLabel}</span></td>
+              <td class="company-cell">${company}</td>
+              <td class="usage-cell">${u.dxf_this_week != null ? u.dxf_this_week : '—'}</td>
+              <td class="usage-cell">${u.ai_this_week != null ? u.ai_this_week : '—'}</td>
+              ${actionCell}
+            </tr>
+          `
+        }).join('')
+
+        container.className = ''
+        container.innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>角色</th>
+                <th>公司</th>
+                <th>DXF / 本週</th>
+                <th>AI / 本週</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        `
+
+        // Bind role change buttons
+        container.querySelectorAll('[data-action="promote"], [data-action="demote"]').forEach(btn => {
+          btn.onclick = () => changeRole(btn.dataset.id, btn.dataset.action === 'promote' ? 'pro' : 'user')
+        })
+      }
+
+      async function changeRole(userId, newRole) {
+        try {
+          const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
+            method: 'PATCH',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ role: newRole }),
+          })
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}))
+            throw new Error(err.error || `HTTP ${res.status}`)
+          }
+          showMsg('success', `角色已更新為 ${newRole === 'pro' ? 'Pro' : 'User'}`)
+          await loadUsers()
+        } catch (err) {
+          showMsg('error', `更新失敗：${err.message}`)
+        }
+      }
+
+      // ---- Helpers ----
+      function escHtml(str) {
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+      }
+
+      function showMsg(type, text) {
+        const el = document.getElementById('msg-container')
+        el.innerHTML = `<div class="${type}-msg">${escHtml(text)}</div>`
+        setTimeout(() => { el.innerHTML = '' }, 4000)
+      }
+
+      init()
+    </script>
+  </body>
+</html>
