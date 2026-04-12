@@ -1045,6 +1045,12 @@
           <button class="chat-close-btn" id="chat-close-btn">X</button>
         </div>
         <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-commit-area" id="chat-commit-area" style="padding:8px 16px;border-top:1px solid var(--border);display:none;flex-shrink:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <span style="font-size:12px;color:var(--fg-muted);">案子微調 <span id="chat-override-badge"></span></span>
+            <button class="chat-send-btn" id="chat-commit-btn" disabled style="font-size:12px;padding:4px 10px;">收工存入團隊</button>
+          </div>
+        </div>
         <div class="chat-input-area">
           <input type="text" id="chat-input" placeholder="描述設計問題..." disabled />
           <button class="chat-send-btn" id="chat-send-btn" disabled>送出</button>
@@ -2022,14 +2028,15 @@
         const count = Object.keys(caseOverrideState).length
         const badge = document.getElementById('override-count-badge')
         const commitBtn = document.getElementById('commit-team-btn')
-        if (!badge || !commitBtn) return
-        if (count === 0) {
-          badge.textContent = ''
-          commitBtn.disabled = true
-        } else {
-          badge.textContent = `(${count} 條微調)`
-          commitBtn.disabled = false
-        }
+        if (badge) badge.textContent = count > 0 ? `(${count} 條微調)` : ''
+        if (commitBtn) commitBtn.disabled = count === 0
+        // Sync chat sidebar commit area
+        const chatArea = document.getElementById('chat-commit-area')
+        const chatBadge = document.getElementById('chat-override-badge')
+        const chatCommitBtn = document.getElementById('chat-commit-btn')
+        if (chatArea) chatArea.style.display = count > 0 ? 'block' : 'none'
+        if (chatBadge) chatBadge.textContent = count > 0 ? `(${count} 條)` : ''
+        if (chatCommitBtn) chatCommitBtn.disabled = count === 0
       }
 
       function collectSolverFormPayload(mode) {
@@ -2313,7 +2320,7 @@
       })
 
       // ---- Commit team button ----
-      document.getElementById('commit-team-btn').onclick = async () => {
+      async function commitOverridesToTeam() {
         const override = { ...caseOverrideState }
         if (Object.keys(override).length === 0) return
         try {
@@ -2329,9 +2336,7 @@
           }
           const data = await res.json()
           clearAllOverrides()
-          // Reload rules if rules list already fetched
           if (rulesState.rules.length > 0) await fetchRules()
-          // Re-solve current case with now-empty override
           await resolveCurrentCase()
           const applied = Array.isArray(data.applied) ? data.applied : []
           const skipped = Array.isArray(data.skipped) ? data.skipped : []
@@ -2343,6 +2348,9 @@
           showToast(`錯誤：${e.message}`, 'error')
         }
       }
+
+      document.getElementById('commit-team-btn').onclick = commitOverridesToTeam
+      document.getElementById('chat-commit-btn').onclick = commitOverridesToTeam
 
       // Initial badge state
       updateOverrideCountBadge()
