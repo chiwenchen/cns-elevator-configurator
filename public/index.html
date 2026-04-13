@@ -1212,12 +1212,14 @@
         display: block;
       }
 
-      /* ---- Mobile mode: hide desktop elements ---- */
-      body.mobile header .app-nav,
+      /* ---- Mobile mode: hide desktop elements, keep auth ---- */
       body.mobile header .source,
-      body.mobile header #nav-ai-btn { display: none !important; }
+      body.mobile header .app-nav .nav-link,
+      body.mobile header #nav-ai-btn,
+      body.mobile header #nav-admin { display: none !important; }
 
-      body.mobile header { justify-content: space-between; }
+      body.mobile header .app-nav { gap: 0; }
+      body.mobile header .header-top { width: 100%; }
       body.mobile #nav-auth { display: flex !important; gap: 8px; align-items: center; font-size: 12px; }
 
       body.mobile #view-configurator {
