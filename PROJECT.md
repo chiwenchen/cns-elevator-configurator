@@ -227,9 +227,11 @@ wrangler d1 execute elevator-configurator-db --remote --file=seeds/0001_baseline
 ```
 
 生產環境：
-- Worker: `elevator-configurator` on `elevator-configurator.redarch.dev`
+- Worker: `elevator-configurator` on `vera-plot.redarch.dev`
 - D1: `elevator-configurator-db` (ID: `907ec485-0ee5-47de-9edd-086eb82f8703`)
-- Secret: `ANTHROPIC_API_KEY`
+- Secrets: `ANTHROPIC_API_KEY`, `JWT_SECRET`, `RESEND_API_KEY`
+- Sentry: `VERA_PLOT_WORKER_SENTRY_DSN` (Worker), browser DSN in index.html
+- CI: GitHub Actions auto-deploy on merge (deploy.yml injects version from PR number)
 
 ## Milestone 歷程
 
@@ -240,6 +242,9 @@ wrangler d1 execute elevator-configurator-db --remote --file=seeds/0001_baseline
 | M1c | #12, #13 | Rules Tab + Validation Panel + CRUD API |
 | M1d | #14, #15 | AI Chat sidebar (Claude Sonnet 4.6) |
 | QA fixes | #16-#20 | Model ID, form coercion, XSS fix, commit UX |
+| Auth + designs | #21-#32 | OTP login, saved designs, download naming, Sentry |
+| RWD mobile | #47-#59 | Bottom tab bar, swipe drawing, pinch-to-zoom, tablet |
+| Polish | #60-#61 | Version display, dead code cleanup |
 
 ## Phase 2 規劃
 
