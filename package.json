@@ -13,5 +13,8 @@
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "toucan-js": "^4.1.1"
   }
 }
