@@ -16,6 +16,14 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Test
         run: bun test
+      - name: Set version from latest merged PR number
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_NUM=$(gh pr list --state merged --limit 1 --json number --jq '.[0].number')
+          VERSION="v.$(printf '%03d' "$PR_NUM")"
+          echo "APP_VERSION=$VERSION"
+          sed -i "s/APP_VERSION = \".*\"/APP_VERSION = \"$VERSION\"/" wrangler.toml
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:

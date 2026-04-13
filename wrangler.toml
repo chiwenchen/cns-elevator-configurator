@@ -11,6 +11,9 @@ binding = "ASSETS"
 pattern = "vera-plot.redarch.dev"
 custom_domain = true
 
+[vars]
+APP_VERSION = "v.039"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "elevator-configurator-db"

@@ -89,6 +89,7 @@ interface Env {
   JWT_SECRET: string
   RESEND_API_KEY: string
   VERA_PLOT_WORKER_SENTRY_DSN?: string
+  APP_VERSION?: string
 }
 
 // Cache the hack-canada DXF text for the lifetime of the isolate.
@@ -739,6 +740,18 @@ async function handleRequest(
     }
 
     // --- Static assets ---
-    // Let Workers Assets serve /, /index.html, /assets/*, /favicon.ico, etc.
-    return env.ASSETS.fetch(request)
+    const assetResponse = await env.ASSETS.fetch(request)
+
+    // Inject version into HTML pages
+    const contentType = assetResponse.headers.get('content-type') || ''
+    if (contentType.includes('text/html') && env.APP_VERSION) {
+      const html = await assetResponse.text()
+      const injected = html.replaceAll('{{VERSION}}', env.APP_VERSION)
+      return new Response(injected, {
+        status: assetResponse.status,
+        headers: assetResponse.headers,
+      })
+    }
+
+    return assetResponse
 }
