@@ -3190,6 +3190,12 @@
         drawingPanelInitialized = true
         initSwipeHandlers()
         initPinchZoom()
+
+        // If SVG already exists (solve happened before tab switch), fill it now
+        const existingSvg = document.querySelector('#svg-container svg')
+        if (existingSvg) {
+          updateMobileDrawingPanels(existingSvg, null)
+        }
       }
 
       let currentSlide = 0
