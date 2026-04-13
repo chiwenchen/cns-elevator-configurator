@@ -35,7 +35,7 @@ export interface GeneratedAnalysis {
   inserts: []
   elevator_labels: []
   extra_lines: Array<{ a: Point; b: Point; layer: string }>
-  extra_texts: Array<{ text: string; position: Point; layer: string; height: number }>
+  extra_texts: Array<{ text: string; position: Point; layer: string; height: number; halign?: number }>
   shaft_groups: Array<{ width_mm: number; depth_mm: number; instance_count: number; labels: string[] }>
 }
 
@@ -52,7 +52,7 @@ export function analyzeGeneratedDxf(
   type Poly = { vertices: Point[]; layer: string; closed: boolean }
   const polys: Poly[] = []
   const lines: Array<{ a: Point; b: Point; layer: string }> = []
-  const texts: Array<{ text: string; position: Point; layer: string; height: number }> = []
+  const texts: Array<{ text: string; position: Point; layer: string; height: number; halign?: number }> = []
 
   for (const e of entities) {
     if (e.type === 'LWPOLYLINE' || e.type === 'POLYLINE') {
@@ -68,13 +68,16 @@ export function analyzeGeneratedDxf(
       if (!a || !b) continue
       lines.push({ a: { x: a.x, y: a.y }, b: { x: b.x, y: b.y }, layer: e.layer || '0' })
     } else if (e.type === 'TEXT' || e.type === 'MTEXT') {
-      const pos = e.position || e.startPoint
+      const halign = (e as any).halign ?? 0
+      // For center/right-aligned text, use endPoint (alignment point) instead of startPoint
+      const pos = (halign > 0 && e.endPoint) ? e.endPoint : (e.position || e.startPoint)
       if (!pos || typeof pos.x !== 'number') continue
       texts.push({
         text: e.text || '',
         position: { x: pos.x, y: pos.y },
         layer: e.layer || '0',
         height: e.textHeight || e.height || 100,
+        halign,
       })
     }
   }
