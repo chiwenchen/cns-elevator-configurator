@@ -606,6 +606,44 @@
       .modal-btn.primary { background: var(--accent); border-color: var(--accent); color: white; }
       .modal-btn.danger:hover { border-color: #e8734e; color: #e8734e; }
 
+      /* Drawing name badge */
+      .drawing-name {
+        display: none;
+        text-align: center;
+        color: var(--accent);
+        border: 1px solid var(--accent);
+        border-radius: 4px;
+        padding: 4px 12px;
+        font-size: 14px;
+        width: fit-content;
+        margin: 8px auto;
+      }
+      .drawing-name.visible {
+        display: block;
+      }
+
+      /* Modal input (reused for naming modal) */
+      .modal-input {
+        width: 100%;
+        background: var(--bg);
+        color: var(--fg);
+        border: 1px solid var(--border-strong);
+        padding: 8px 10px;
+        font-family: var(--sans);
+        font-size: 13px;
+        border-radius: 4px;
+        margin-bottom: 8px;
+      }
+      .modal-input:focus {
+        outline: 1px solid var(--accent);
+        border-color: var(--accent);
+      }
+      .modal-helper {
+        font-size: 11px;
+        color: var(--fg-dim);
+        margin-bottom: 16px;
+      }
+
       /* Toast */
       .toast-container {
         position: fixed; bottom: 20px; right: 20px; z-index: 200;
@@ -1345,6 +1383,7 @@
           </div>
           </div>
           <span class="viz-title" id="viz-title"></span>
+          <div id="drawing-name" class="drawing-name"></div>
         </div>
         <div class="viz-body">
           <div id="svg-container">
@@ -1537,6 +1576,19 @@
         <div class="modal-body" id="gate-quota-message"></div>
         <div class="modal-actions">
           <button class="modal-btn" id="gate-quota-close">知道了</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Download Naming Modal -->
+    <div id="download-naming-modal" class="modal-backdrop hidden">
+      <div class="modal" style="max-width:400px;">
+        <h3>為圖紙命名</h3>
+        <input type="text" class="modal-input" id="download-name-input" placeholder="電梯圖紙名稱" />
+        <div class="modal-helper">可選，留空將使用預設名稱</div>
+        <div class="modal-actions">
+          <button class="modal-btn" id="download-name-cancel">取消</button>
+          <button class="modal-btn primary" id="download-name-confirm">下載</button>
         </div>
       </div>
     </div>
@@ -1962,7 +2014,131 @@
       window.addEventListener('DOMContentLoaded', () => {
         renderRoute()
         checkAuth()
+        loadSavedDesignFromUrl()
       })
+
+      // ---- Load Saved Design from ?load= query param ----
+      async function loadSavedDesignFromUrl() {
+        const designId = new URLSearchParams(location.search).get('load')
+        if (!designId) return
+
+        // Clean up the URL immediately
+        const cleanUrl = location.pathname + location.hash
+        history.replaceState(null, '', cleanUrl)
+
+        try {
+          // Fetch the saved design
+          const res = await fetch(`/api/designs/${encodeURIComponent(designId)}`, {
+            credentials: 'include',
+          })
+          if (!res.ok) {
+            showToast(`無法載入圖紙：HTTP ${res.status}`, 'error')
+            return
+          }
+          const record = await res.json()
+
+          // Parse solver_input
+          const solverInput = typeof record.solver_input === 'string'
+            ? JSON.parse(record.solver_input)
+            : (record.solver_input || {})
+
+          // Parse case_overrides
+          const caseOverrides = typeof record.case_overrides === 'string'
+            ? JSON.parse(record.case_overrides || '{}')
+            : (record.case_overrides || {})
+
+          // Determine mode: if solver_input has width_mm → mode A, if rated_load_kg → mode B
+          const mode = solverInput.width_mm ? 'A' : 'B'
+
+          // Switch to correct tab
+          modeTabs.forEach((t) => t.classList.remove('active'))
+          const targetTab = document.querySelector(`.mode-tab[data-mode="${mode}"]`)
+          if (targetTab) targetTab.classList.add('active')
+          formA.style.display = mode === 'A' ? '' : 'none'
+          formB.style.display = mode === 'B' ? '' : 'none'
+
+          // Fill form fields
+          const form = mode === 'A' ? formA : formB
+          for (const el of form.elements) {
+            if (el.name && solverInput[el.name] !== undefined) {
+              el.value = solverInput[el.name]
+            }
+          }
+
+          // Restore case overrides
+          for (const k of Object.keys(caseOverrideState)) delete caseOverrideState[k]
+          for (const [k, v] of Object.entries(caseOverrides)) {
+            caseOverrideState[k] = v
+          }
+          updateOverrideCountBadge()
+
+          // Set professional toggle based on detail_level
+          const isPro = record.detail_level === 'professional'
+          const modeKey = mode.toLowerCase()
+          if (isPro !== professionalMode[modeKey]) {
+            toggleProfessional(modeKey)
+          }
+
+          // Re-solve to get analysis data for rendering
+          const solvePayload = { ...solverInput }
+          const solveRes = await fetch('/api/solve', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              mode,
+              ...solvePayload,
+              caseOverride: { ...caseOverrideState },
+              detail_level: record.detail_level || 'draft',
+            }),
+          })
+
+          if (solveRes.ok) {
+            const solveData = await solveRes.json()
+
+            // Render validation panel
+            renderValidationSummary(solveData.validation_report || null)
+
+            // Store the SAVED dxf_string for download (not the newly generated one)
+            const savedDxfString = record.dxf_string || solveData.dxf_string
+            lastDxfString = savedDxfString
+            lastMode = mode
+
+            const d = solveData.design
+            statusEl.className = 'solver-status success'
+            statusEl.innerHTML = [
+              '✓ 已載入圖紙',
+              '',
+              `載重: ${d.rated_load_kg} kg`,
+              `車廂: ${d.car.width_mm}×${d.car.depth_mm}×${d.car.height_mm} mm`,
+              `面積: ${d.car.area_m2} m²`,
+              `坑道: ${d.shaft.width_mm}×${d.shaft.depth_mm} mm`,
+              `全高: ${d.shaft.total_height_mm + d.shaft.overhead_mm + d.shaft.pit_depth_mm} mm`,
+              `門寬: ${d.door.width_mm} mm`,
+              `DXF: ${record.dxf_kb || solveData.dxf_kb} KB`,
+            ].join('\n')
+
+            // Render SVG
+            applyCopy(mode === 'A' ? 'solver-mode-a' : 'solver-mode-b')
+            renderMetrics(solveData.analysis, mode === 'A' ? 'solver-mode-a' : 'solver-mode-b')
+            renderShafts(solveData.analysis.shaft_groups)
+            renderSvg(solveData.analysis)
+
+            // Enable download button with saved dxf_string
+            const btn = document.getElementById('download-' + modeKey)
+            btn.disabled = false
+            btn.onclick = () => downloadDxf(d, savedDxfString)
+
+            // Display design name
+            if (record.name) {
+              showDrawingName(record.name)
+            }
+          } else {
+            showToast('載入圖紙後重新解算失敗，請手動重新產生', 'error')
+          }
+        } catch (err) {
+          showToast(`載入圖紙失敗：${err.message}`, 'error')
+        }
+      }
 
       // 根據 source 調整 UI 文案
       const copyByMode = {
@@ -2134,6 +2310,11 @@
       }
 
       async function submitSolve(mode, payload) {
+        // Hide drawing name when generating new DXF
+        const drawingNameEl = document.getElementById('drawing-name')
+        drawingNameEl.classList.remove('visible')
+        drawingNameEl.textContent = ''
+
         statusEl.className = 'solver-status'
         statusEl.textContent = '解算中…'
         statusEl.style.display = 'block'
@@ -2200,22 +2381,81 @@
         }
       }
 
+      const usageNameMap = { passenger: '客用電梯', freight: '貨用電梯', bed: '病床電梯', accessible: '無障礙電梯' }
+
+      function generateDefaultName(d) {
+        const usageCn = usageNameMap[d.shaft.usage] || d.shaft.usage
+        const stops = d.shaft.stops || ''
+        const load = d.rated_load_kg
+        return `${usageCn} — ${stops}F / ${load}kg`
+      }
+
       function downloadDxf(d, dxfString) {
         if (!requireAuth('dxf')) return
+
+        const defaultName = generateDefaultName(d)
+        const nameInput = document.getElementById('download-name-input')
+        nameInput.value = defaultName
+
+        const modal = document.getElementById('download-naming-modal')
+        modal.classList.remove('hidden')
+        nameInput.focus()
+        nameInput.select()
+
+        // Store references for the confirm handler
+        modal._pendingDesign = d
+        modal._pendingDxfString = dxfString
+        modal._pendingDefaultName = defaultName
+      }
+
+      function executeDownload(fileName, dxfString) {
         const blob = new Blob([dxfString], { type: 'application/dxf' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
-        const usage = d.shaft.usage
-        const load = d.rated_load_kg
-        const dateStr = d.generated_at.slice(0, 10)
-        const proTag = professionalMode[d.solver_mode.toLowerCase()] ? '-professional' : ''
         a.href = url
-        a.download = `elevator-${d.solver_mode}-${usage}${proTag}-${load}kg-${dateStr}.dxf`
+        a.download = `${fileName}.dxf`
         document.body.appendChild(a)
         a.click()
         document.body.removeChild(a)
         URL.revokeObjectURL(url)
       }
+
+      function showDrawingName(name) {
+        const el = document.getElementById('drawing-name')
+        if (name) {
+          el.textContent = name
+          el.classList.add('visible')
+        } else {
+          el.textContent = ''
+          el.classList.remove('visible')
+        }
+      }
+
+      // Download naming modal event listeners
+      document.getElementById('download-name-cancel').onclick = () => {
+        document.getElementById('download-naming-modal').classList.add('hidden')
+      }
+      document.getElementById('download-naming-modal').addEventListener('click', (e) => {
+        if (e.target.id === 'download-naming-modal') {
+          document.getElementById('download-naming-modal').classList.add('hidden')
+        }
+      })
+      document.getElementById('download-name-confirm').onclick = () => {
+        const modal = document.getElementById('download-naming-modal')
+        const nameInput = document.getElementById('download-name-input')
+        const chosenName = nameInput.value.trim() || modal._pendingDefaultName
+        modal.classList.add('hidden')
+
+        executeDownload(chosenName, modal._pendingDxfString)
+        showDrawingName(chosenName)
+      }
+      // Allow Enter key to confirm download
+      document.getElementById('download-name-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          document.getElementById('download-name-confirm').click()
+        }
+      })
 
       formA.addEventListener('submit', (e) => {
         e.preventDefault()
