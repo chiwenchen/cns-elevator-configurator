@@ -24,7 +24,7 @@ export async function handleListDesigns(
   let shared: any[] = []
   if (user.company_id) {
     const sharedResult = await db.prepare(
-      `SELECT d.${LIST_COLUMNS.split(',').map(c => 'd.' + c.trim()).join(', ')}, u.raw_email as user_raw_email
+      `SELECT ${LIST_COLUMNS.split(',').map(c => 'd.' + c.trim()).join(', ')}, u.raw_email as user_raw_email
        FROM saved_designs d JOIN users u ON d.user_id = u.id
        WHERE d.company_id = ? AND d.user_id != ? AND d.archived_at IS NULL
        ORDER BY d.created_at DESC`
