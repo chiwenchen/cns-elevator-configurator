@@ -1,45 +1,36 @@
-# CNS Elevator Configurator — Project Context
+# Vera Plot — Project Context
 
 ## 專案目標
 
-台灣電梯製造商內部業務工具。業務輸入坑道規格 → app 輸出 1-3 個合法型號推薦 + 粗估價 + CNS 2866 合規章。
+台灣電梯製造商內部業務工具。業務輸入坑道規格或需求條件，系統自動生成合規電梯設計圖 (DXF)，搭配 AI 設計指引助理。
 
 **使用者**：內部業務（Sales），**不是**設計師、**不是**客戶。
 **量體**：年產 1000 台新梯。
 **核心價值**：業務回覆客戶時間從 2-4 天 → 15 分鐘。
+**線上版**：https://vera-plot.redarch.dev
 
 ## 設計文件
 
-完整設計 spec 在 `docs/DESIGN.md`。動任何 code 前先讀它。
-
-## 當前階段
-
-**Week 0 — 資料可行性 spike**。三個驗證必須通過才能進 Sprint 1：
-1. `spikes/spike-1-dxf-parser/` — DWG/DXF 能不能 parse 出坑道尺寸？
-2. `spikes/spike-2-cns-rules/` — CNS 2866 條文能不能結構化成 rule schema？
-3. `spikes/spike-3-pricing-data/` — 歷史成交價資料能不能拿到？
+- 完整設計 spec：`docs/superpowers/specs/2026-04-12-guidance-system-design.md`
+- RWD mobile spec：`docs/superpowers/specs/2026-04-13-rwd-mobile-design.md`
+- 開發者技術文件：`PROJECT.md`
+- Phase 2 延遲項目：`docs/TODO.md`
 
 ## Tech Stack
 
 - **Runtime**: Bun 1.3+（不要用 node / npm / yarn / pnpm）
 - **Language**: TypeScript 5.9+
 - **Testing**: `bun test`（built-in，不要用 jest / vitest）
-- **Frontend (Sprint 2+)**: Next.js 15 or Bun HTML imports with React
-- **DB (Sprint 2+)**: `bun:sqlite` for dev, `Bun.sql` for Postgres production
-
-## 命名與術語（core schemas）
-
-見 `docs/DESIGN.md` §五點五。四個關鍵詞不要混用：
-
-- **validator** — 吃 (ShaftSpec, CatalogModel) 吐 ValidationResult
-- **matcher** — 吃 ShaftSpec 從型錄挑 top-3
-- **pricing** — 吃 model_id 吐價格區間
-- **configurator** — 上面三者的組合 = 業務看到的服務
+- **Deployment**: Cloudflare Workers + D1 (SQLite at edge)
+- **AI**: Anthropic Claude Sonnet 4.6 (model ID: `claude-sonnet-4-6`)
+- **Frontend**: Vanilla JS + CSS（單一 index.html，無框架）
+- **Monitoring**: Sentry (Worker: toucan-js, Browser: @sentry/browser)
+- **Email**: Resend (OTP 驗證碼)
 
 ## Git Convention
 
-- Conventional commits: `feat(scope): ...`, `fix(scope): ...`, `docs: ...`, `spike: ...`
-- 所有 PR 開到 `main`，禁止直接 push main（protect rules after repo creation）
+- Conventional commits: `feat(scope): ...`, `fix(scope): ...`, `docs: ...`
+- 所有 PR 開到 `main`，禁止直接 push main
 
 ## Deploy 流程（強制，無例外）
 
@@ -47,10 +38,9 @@
 
 1. `git checkout main && git pull --rebase`
 2. `git checkout -b <feature-branch>`
-3. 開發 + 測試（`bun test` 全部通過，coverage ≥ 90%）
+3. 開發 + 測試（`bun test` 全部通過，coverage >= 90%）
 4. `git push -u origin <branch>` + `gh pr create` + 等待 merge 完成
-5. `git checkout main && git pull --rebase`
-6. `wrangler deploy`
+5. CI 自動 deploy（deploy.yml 注入版本號後 wrangler deploy）
 
 **絕對禁止：**
 - 在 main branch 上直接 commit
@@ -59,8 +49,6 @@
 
 ## 不要
 
-- ❌ 不要寫 DXF 輸出（v1 out of scope）
-- ❌ 不要整合 AutoCAD
-- ❌ 不要做主管儀表板
-- ❌ 不要對外公開 API（內部工具）
-- ❌ 不要把歷史案例 / 成交價上傳到外部 LLM
+- 不要對外公開 API（內部工具）
+- 不要把歷史案例 / 成交價上傳到外部 LLM
+- 不要在 public/index.html 使用 emoji（使用者認為廉價）
