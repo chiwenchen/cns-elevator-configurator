@@ -222,13 +222,6 @@ async function handleRequest(
       return user
     }
 
-    // --- Redirect elevator-configurator → vera-plot ---
-    // Use 308 (not 301) to preserve HTTP method (POST stays POST)
-    if (url.hostname === 'elevator-configurator.redarch.dev') {
-      const target = new URL(url.pathname + url.search, 'https://vera-plot.redarch.dev')
-      return Response.redirect(target.toString(), 308)
-    }
-
     // --- API routes ---
     if (url.pathname === '/api/analysis') {
       const source = url.searchParams.get('source') || 'hack-canada'
