@@ -1716,6 +1716,13 @@
       function closeLoginModal() {
         document.getElementById('login-modal').classList.add('hidden')
         clearOtpCountdown()
+        // Reset form state
+        document.getElementById('login-email-input').value = ''
+        loginEmail = ''
+        document.querySelectorAll('.otp-box').forEach((el) => (el.value = ''))
+        clearLoginError('email')
+        clearLoginError('otp')
+        clearLoginError('onboarding')
       }
 
       function showLoginStep(step) {
@@ -1757,7 +1764,7 @@
           })
           if (!res.ok) {
             const err = await res.json().catch(() => ({}))
-            showLoginError('email', err.message || '寄送失敗，請稍後再試')
+            showLoginError('email', err.error || '寄送失敗，請稍後再試')
             return
           }
           loginEmail = email
