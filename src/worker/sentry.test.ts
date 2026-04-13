@@ -8,20 +8,20 @@ describe('createSentry', () => {
     passThroughOnException: () => {},
   } as unknown as ExecutionContext
 
-  test('returns null when SENTRY_DSN is not set', () => {
+  test('returns null when VERA_PLOT_WORKER_SENTRY_DSN is not set', () => {
     const result = createSentry(fakeRequest, {}, fakeCtx)
     expect(result).toBeNull()
   })
 
-  test('returns null when SENTRY_DSN is empty string', () => {
-    const result = createSentry(fakeRequest, { SENTRY_DSN: '' }, fakeCtx)
+  test('returns null when VERA_PLOT_WORKER_SENTRY_DSN is empty string', () => {
+    const result = createSentry(fakeRequest, { VERA_PLOT_WORKER_SENTRY_DSN: '' }, fakeCtx)
     expect(result).toBeNull()
   })
 
-  test('returns Toucan instance when SENTRY_DSN is set', () => {
+  test('returns Toucan instance when VERA_PLOT_WORKER_SENTRY_DSN is set', () => {
     const result = createSentry(
       fakeRequest,
-      { SENTRY_DSN: 'https://abc123@o0.ingest.sentry.io/0' },
+      { VERA_PLOT_WORKER_SENTRY_DSN: 'https://abc123@o0.ingest.sentry.io/0' },
       fakeCtx,
     )
     expect(result).not.toBeNull()

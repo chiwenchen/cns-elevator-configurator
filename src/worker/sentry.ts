@@ -1,12 +1,12 @@
 /**
  * Sentry 錯誤監控封裝 — 使用 toucan-js（Cloudflare Workers 專用 SDK）。
  *
- * 若 SENTRY_DSN 未設定（本地開發），所有呼叫皆為 no-op。
+ * 若 VERA_PLOT_WORKER_SENTRY_DSN 未設定（本地開發），所有呼叫皆為 no-op。
  */
 import { Toucan } from 'toucan-js'
 
 interface SentryEnv {
-  SENTRY_DSN?: string
+  VERA_PLOT_WORKER_SENTRY_DSN?: string
 }
 
 /**
@@ -17,10 +17,10 @@ export function createSentry(
   env: SentryEnv,
   ctx: ExecutionContext,
 ): Toucan | null {
-  if (!env.SENTRY_DSN) return null
+  if (!env.VERA_PLOT_WORKER_SENTRY_DSN) return null
 
   return new Toucan({
-    dsn: env.SENTRY_DSN,
+    dsn: env.VERA_PLOT_WORKER_SENTRY_DSN,
     context: ctx,
     request,
     requestDataOptions: {

@@ -88,7 +88,7 @@ interface Env {
   ANTHROPIC_API_KEY?: string
   JWT_SECRET: string
   RESEND_API_KEY: string
-  SENTRY_DSN?: string
+  VERA_PLOT_WORKER_SENTRY_DSN?: string
 }
 
 // Cache the hack-canada DXF text for the lifetime of the isolate.
