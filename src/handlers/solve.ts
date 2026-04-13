@@ -39,7 +39,7 @@ export class QuotaExceededError extends Error {
 const VALID_USAGES: Usage[] = ['passenger', 'freight', 'bed', 'accessible']
 const VALID_MACHINE_LOCATIONS: MachineLocation[] = ['MR', 'MRL']
 
-export interface ValidatedSolveBody {
+interface ValidatedSolveBody {
   mode: 'A' | 'B'
   caseOverride: CaseOverride
   stops: number
@@ -198,7 +198,7 @@ export function parseSolveBody(raw: unknown): ValidatedSolveBody {
   return parsed
 }
 
-export interface SolveResponse {
+interface SolveResponse {
   design: ReturnType<typeof solveModeA>
   dxf_string?: string
   dxf_kb: number

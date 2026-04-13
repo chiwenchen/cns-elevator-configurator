@@ -1,0 +1,10 @@
+{
+  "entry": ["src/worker/index.ts", "src/demo/server.ts"],
+  "project": ["src/**/*.ts", "seeds/**/*.ts"],
+  "ignore": [
+    "src/**/*.test.ts",
+    "spikes/**",
+    ".claude/**"
+  ],
+  "ignoreDependencies": ["typescript"]
+}

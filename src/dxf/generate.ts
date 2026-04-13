@@ -28,7 +28,7 @@ import { drawPlanProfessional } from './plan-professional'
 import { drawElevationProfessional } from './elevation-professional'
 import { drawSpecBlock } from './spec-block'
 
-export type DetailLevel = 'draft' | 'professional'
+type DetailLevel = 'draft' | 'professional'
 
 export function generateElevatorDXF(
   design: ElevatorDesign,

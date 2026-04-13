@@ -133,12 +133,12 @@ interface AnthropicTextBlock {
   text: string
 }
 
-export interface AnthropicResponse {
+interface AnthropicResponse {
   content: Array<AnthropicToolUseBlock | AnthropicTextBlock>
   stop_reason: string
 }
 
-export type AnthropicCaller = (opts: {
+type AnthropicCaller = (opts: {
   model: string
   max_tokens: number
   system: string

@@ -1,7 +1,7 @@
 // @ts-ignore
 import Drawing from 'dxf-writer'
 
-export interface LayerDef {
+interface LayerDef {
   name: string
   aci: number
   lineStyle?: 'DASHED'

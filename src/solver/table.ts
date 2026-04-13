@@ -21,7 +21,7 @@
  *   然後用 usage aspect ratio 推成 car_width × car_depth
  */
 
-export interface LoadAreaPoint {
+interface LoadAreaPoint {
   rated_load_kg: number
   max_car_area_m2: number
   rated_passengers: number

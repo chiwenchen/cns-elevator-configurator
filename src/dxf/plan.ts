@@ -16,7 +16,7 @@ interface RectXY {
   y1: number
 }
 
-export interface CwtPlacement {
+interface CwtPlacement {
   cwt: RectXY
   rails: [RectXY, RectXY]
 }

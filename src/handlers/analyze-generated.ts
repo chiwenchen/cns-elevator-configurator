@@ -10,7 +10,7 @@
 import DxfParser from 'dxf-parser'
 import type { Point } from './types'
 
-export interface GeneratedAnalysis {
+interface GeneratedAnalysis {
   source: string
   file: string
   file_kb: number
