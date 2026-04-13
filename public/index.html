@@ -1211,6 +1211,28 @@
       .login-error.visible {
         display: block;
       }
+
+      /* ---- Mobile mode: hide desktop elements ---- */
+      body.mobile header .app-nav,
+      body.mobile header .source,
+      body.mobile header #nav-ai-btn { display: none !important; }
+
+      body.mobile #view-configurator {
+        display: flex !important;
+        flex-direction: column;
+        grid-template-columns: unset;
+        height: calc(100vh - 44px - 52px); /* header + tab bar */
+        overflow: hidden;
+      }
+
+      body.mobile #view-configurator aside,
+      body.mobile #view-configurator .viz,
+      body.mobile #view-configurator #chat-sidebar,
+      body.mobile .validation-panel { display: none !important; }
+
+      /* ---- Desktop mode: hide mobile elements ---- */
+      body.desktop .mobile-tab-bar,
+      body.desktop .mobile-tab-content { display: none !important; }
     </style>
     <script
       src="https://browser.sentry-cdn.com/8.9.2/bundle.min.js"
@@ -1611,6 +1633,52 @@
       // ---- iOS gesture prevention (prevent page-level pinch-to-zoom) ----
       document.addEventListener('gesturestart', (e) => e.preventDefault())
       document.addEventListener('gesturechange', (e) => e.preventDefault())
+
+      // ---- Responsive mode detection ----
+      const mobileQuery = window.matchMedia('(max-width: 767px)')
+      let isMobileMode = mobileQuery.matches
+
+      function onModeChange(e) {
+        isMobileMode = e.matches
+        if (isMobileMode) {
+          enterMobileMode()
+        } else {
+          enterDesktopMode()
+        }
+      }
+      mobileQuery.addEventListener('change', onModeChange)
+
+      function enterMobileMode() {
+        document.body.classList.add('mobile')
+        document.body.classList.remove('desktop')
+        // Redirect to mobile hash if on desktop hash
+        const hash = location.hash
+        if (!hash.startsWith('#/m/')) {
+          location.hash = '#/m/params'
+        }
+      }
+
+      function enterDesktopMode() {
+        document.body.classList.remove('mobile')
+        document.body.classList.add('desktop')
+        // Redirect to desktop hash if on mobile hash
+        const hash = location.hash
+        if (hash.startsWith('#/m/')) {
+          location.hash = '#/configurator'
+        }
+      }
+
+      // Initial mode set (called after DOM ready, in DOMContentLoaded)
+      function initResponsiveMode() {
+        if (isMobileMode) {
+          document.body.classList.add('mobile')
+          if (!location.hash.startsWith('#/m/')) {
+            location.hash = '#/m/params'
+          }
+        } else {
+          document.body.classList.add('desktop')
+        }
+      }
 
       // ---- Sentry Browser SDK ----
       if (window.Sentry) {
@@ -2052,6 +2120,7 @@
 
       window.addEventListener('hashchange', renderRoute)
       window.addEventListener('DOMContentLoaded', () => {
+        initResponsiveMode()
         renderRoute()
         checkAuth()
         loadSavedDesignFromUrl()
