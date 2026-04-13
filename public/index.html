@@ -1891,6 +1891,16 @@
       }
       mobileQuery.addEventListener('change', onModeChange)
 
+      // ---- Task 8: Keyboard handling (mobile) ----
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => {
+          if (!isMobileMode) return
+          const heightDiff = window.innerHeight - window.visualViewport.height
+          const isKeyboardOpen = heightDiff > 150
+          document.body.classList.toggle('keyboard-open', isKeyboardOpen)
+        })
+      }
+
       function enterMobileMode() {
         document.body.classList.add('mobile')
         document.body.classList.remove('desktop')
@@ -3685,6 +3695,7 @@
           ${total_fail > 0 ? `<span class="count-fail">FAIL ${total_fail}</span>` : ''}
         `
         renderValidationBody(report)
+        updateMobileValidationSummary()
       }
 
       function renderValidationBody(report) {
