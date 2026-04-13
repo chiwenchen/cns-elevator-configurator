@@ -1293,6 +1293,139 @@
       /* Hide tab bar when keyboard is open */
       body.keyboard-open .mobile-tab-bar { display: none; }
       body.keyboard-open .mobile-tab-content { bottom: 0; }
+
+      /* ---- Task 4: Mobile submit bar ---- */
+      .mobile-submit-bar {
+        padding: 12px 16px;
+        border-top: 1px solid var(--border);
+        background: var(--bg-panel);
+        flex-shrink: 0;
+      }
+      .mobile-solve-btn {
+        width: 100%;
+        padding: 12px;
+        font-size: 15px;
+      }
+      /* Mobile form styling */
+      body.mobile .solver-panel {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+      }
+      body.mobile .solver-header { padding: 10px 16px; }
+      body.mobile .form-row { grid-template-columns: 1fr; gap: 4px; }
+      body.mobile .form-row label { font-size: 12px; }
+      body.mobile .form-row input,
+      body.mobile .form-row select { font-size: 16px; padding: 10px; }
+      /* Landscape: two-column form */
+      @media (max-width: 767px) and (orientation: landscape) {
+        body.mobile .solver-content { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      }
+
+      /* ---- Task 5: Mobile drawing panel ---- */
+      .mobile-drawing-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 16px;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      .mobile-drawing-title {
+        font-size: 13px;
+        color: var(--fg-muted);
+      }
+      .mobile-download-btn {
+        background: var(--accent-soft);
+        color: var(--accent);
+        border: 1px solid var(--accent);
+        padding: 4px 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-family: var(--sans);
+        cursor: pointer;
+      }
+      .mobile-download-btn:disabled { opacity: 0.4; cursor: default; }
+      .mobile-drawing-swiper {
+        flex: 1;
+        overflow: hidden;
+        position: relative;
+        min-height: 0;
+      }
+      .mobile-drawing-track {
+        display: flex;
+        width: 200%;
+        height: 100%;
+        transition: transform 0.3s ease;
+      }
+      .drawing-viewport {
+        width: 50%;
+        height: 100%;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        touch-action: none;
+        background: var(--bg);
+      }
+      .drawing-viewport svg {
+        max-width: 100%;
+        max-height: 100%;
+      }
+      .drawing-empty {
+        color: var(--fg-dim);
+        font-size: 13px;
+      }
+      .mobile-drawing-dots {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        padding: 8px;
+        flex-shrink: 0;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--fg-dim);
+        cursor: pointer;
+      }
+      .dot.active { background: var(--accent); }
+      .mobile-validation-summary {
+        padding: 8px 16px;
+        border-top: 1px solid var(--border);
+        font-size: 12px;
+        color: var(--fg-muted);
+        flex-shrink: 0;
+      }
+
+      /* ---- Task 6: Mobile chat + rules ---- */
+      .mobile-chat-header {
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border);
+        font-size: 13px;
+        font-weight: 600;
+        flex-shrink: 0;
+      }
+      .mobile-chat-body {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+      }
+      .mobile-chat-input {
+        border-top: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      /* Mobile rules styling */
+      body.mobile #view-rules {
+        overflow-y: auto;
+        height: 100%;
+      }
+      body.mobile .rules-filter-bar {
+        overflow-x: auto;
+        white-space: nowrap;
+        flex-wrap: nowrap;
+      }
     </style>
     <script
       src="https://browser.sentry-cdn.com/8.9.2/bundle.min.js"
@@ -1746,9 +1879,46 @@
         }
       }
 
+      // Declared early so enterDesktopMode can check it safely
+      const mobilePanelPopulated = { params: false, drawing: false, ai: false, rules: false }
+
       function enterDesktopMode() {
         document.body.classList.remove('mobile')
         document.body.classList.add('desktop')
+
+        // Restore solver panel to desktop position
+        if (mobilePanelPopulated && mobilePanelPopulated.params) {
+          const solverPanel = document.querySelector('.solver-panel')
+          const configurator = document.getElementById('view-configurator')
+          if (solverPanel && solverPanel.parentElement?.id === 'mobile-panel-params') {
+            configurator.insertBefore(solverPanel, configurator.firstChild)
+          }
+          mobilePanelPopulated.params = false
+        }
+
+        // Restore chat sidebar
+        if (mobilePanelPopulated && mobilePanelPopulated.ai) {
+          const chatMessages = document.getElementById('chat-messages')
+          const chatInputArea = document.querySelector('.chat-input-area')
+          const chatCommitArea = document.getElementById('chat-commit-area')
+          const sidebar = document.getElementById('chat-sidebar')
+          if (chatMessages && sidebar) {
+            sidebar.querySelector('.chat-messages')?.remove()
+            sidebar.insertBefore(chatMessages, sidebar.querySelector('.chat-input-area'))
+          }
+          if (chatInputArea && sidebar) sidebar.appendChild(chatInputArea)
+          if (chatCommitArea && sidebar) sidebar.appendChild(chatCommitArea)
+          mobilePanelPopulated.ai = false
+        }
+
+        // Restore rules view
+        if (mobilePanelPopulated && mobilePanelPopulated.rules) {
+          const rulesView = document.getElementById('view-rules')
+          const main = document.querySelector('main')
+          if (rulesView) main.appendChild(rulesView)
+          mobilePanelPopulated.rules = false
+        }
+
         // Redirect to desktop hash if on mobile hash
         const hash = location.hash
         if (hash.startsWith('#/m/')) {
@@ -2241,7 +2411,26 @@
       }
 
       function populateMobilePanel(tabName) {
-        // Content population is handled per-task below (Tasks 4-7)
+        if (tabName === 'params' && !mobilePanelPopulated.params) {
+          const panel = document.getElementById('mobile-panel-params')
+          const solverPanel = document.querySelector('.solver-panel')
+          panel.appendChild(solverPanel)
+          // Add mobile submit button at bottom
+          const submitBar = document.createElement('div')
+          submitBar.className = 'mobile-submit-bar'
+          submitBar.innerHTML = '<button class="btn-primary mobile-solve-btn" id="mobile-solve-btn">產生 DXF 草稿</button>'
+          panel.appendChild(submitBar)
+          // Wire up mobile solve button
+          document.getElementById('mobile-solve-btn').onclick = () => {
+            const activeMode = document.querySelector('.mode-tab.active')?.dataset.mode || 'B'
+            const form = activeMode === 'A' ? document.getElementById('form-a') : document.getElementById('form-b')
+            form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+          }
+          mobilePanelPopulated.params = true
+        }
+        if (tabName === 'drawing') populateDrawingPanel()
+        if (tabName === 'ai') populateAiPanel()
+        if (tabName === 'rules') populateRulesPanel()
       }
 
       window.addEventListener('hashchange', () => renderRoute())
@@ -2612,6 +2801,11 @@
           const btn = document.getElementById('download-' + mode.toLowerCase())
           btn.disabled = false
           btn.onclick = () => downloadDxf(d, data.dxf_string)
+
+          // Auto-switch to drawing tab on mobile
+          if (isMobileMode) {
+            location.hash = '#/m/drawing'
+          }
         } catch (err) {
           if (window.Sentry) Sentry.captureException(err)
           statusEl.className = 'solver-status error'
@@ -2898,6 +3092,244 @@
         const container = document.getElementById('svg-container')
         container.innerHTML = ''
         container.appendChild(svg)
+
+        // Hook: update mobile drawing panels after SVG render
+        updateMobileDrawingPanels(svg, data)
+      }
+
+      // ---- Task 5: Mobile Drawing Panel ----
+      let drawingPanelInitialized = false
+
+      function populateDrawingPanel() {
+        if (drawingPanelInitialized) return
+        const panel = document.getElementById('mobile-panel-drawing')
+        panel.innerHTML = `
+          <div class="mobile-drawing-header">
+            <span class="mobile-drawing-title" id="mobile-drawing-title">尚未生成</span>
+            <button class="mobile-download-btn" id="mobile-download-btn" disabled>下載 DXF</button>
+          </div>
+          <div class="mobile-drawing-swiper" id="mobile-drawing-swiper">
+            <div class="mobile-drawing-track" id="mobile-drawing-track">
+              <div class="drawing-viewport" id="mobile-plan-view">
+                <div class="drawing-empty">產生圖紙後在此預覽平面圖</div>
+              </div>
+              <div class="drawing-viewport" id="mobile-elevation-view">
+                <div class="drawing-empty">產生圖紙後在此預覽側面圖</div>
+              </div>
+            </div>
+          </div>
+          <div class="mobile-drawing-dots">
+            <span class="dot active" data-index="0"></span>
+            <span class="dot" data-index="1"></span>
+          </div>
+          <div class="mobile-validation-summary" id="mobile-validation-summary"></div>
+        `
+        // Wire download button
+        document.getElementById('mobile-download-btn').onclick = () => {
+          if (typeof downloadDxf === 'function') downloadDxf()
+        }
+        // Wire dots
+        panel.querySelectorAll('.dot').forEach((dot) => {
+          dot.onclick = () => swipeToSlide(Number(dot.dataset.index))
+        })
+        drawingPanelInitialized = true
+        initSwipeHandlers()
+        initPinchZoom()
+      }
+
+      let currentSlide = 0
+
+      function swipeToSlide(index) {
+        currentSlide = index
+        const track = document.getElementById('mobile-drawing-track')
+        if (track) track.style.transform = `translateX(${-index * 50}%)`
+        document.querySelectorAll('.mobile-drawing-dots .dot').forEach((d, i) => {
+          d.classList.toggle('active', i === index)
+        })
+      }
+
+      function initSwipeHandlers() {
+        const swiper = document.getElementById('mobile-drawing-swiper')
+        if (!swiper) return
+        let startX = 0, startY = 0, swiping = false
+
+        swiper.addEventListener('touchstart', (e) => {
+          if (e.touches.length >= 2) return // pinch, not swipe
+          startX = e.touches[0].clientX
+          startY = e.touches[0].clientY
+          swiping = true
+        }, { passive: true })
+
+        swiper.addEventListener('touchmove', (e) => {
+          if (!swiping || e.touches.length >= 2) { swiping = false; return }
+        }, { passive: true })
+
+        swiper.addEventListener('touchend', (e) => {
+          if (!swiping) return
+          swiping = false
+          const endX = e.changedTouches[0].clientX
+          const endY = e.changedTouches[0].clientY
+          const dx = endX - startX
+          const dy = endY - startY
+          if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+            if (dx < 0 && currentSlide === 0) swipeToSlide(1)
+            else if (dx > 0 && currentSlide === 1) swipeToSlide(0)
+          }
+        })
+      }
+
+      function initPinchZoom() {
+        document.querySelectorAll('.drawing-viewport').forEach((viewport) => {
+          let scale = 1, lastScale = 1, posX = 0, posY = 0
+          let startDist = 0, startPosX = 0, startPosY = 0
+          let rafId = null
+
+          function getDistance(t1, t2) {
+            return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY)
+          }
+
+          function applyTransform() {
+            const svg = viewport.querySelector('svg')
+            if (svg) svg.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`
+          }
+
+          viewport.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+              e.preventDefault()
+              startDist = getDistance(e.touches[0], e.touches[1])
+              lastScale = scale
+            } else if (e.touches.length === 1) {
+              startPosX = e.touches[0].clientX - posX
+              startPosY = e.touches[0].clientY - posY
+            }
+          }, { passive: false })
+
+          viewport.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2) {
+              e.preventDefault()
+              const dist = getDistance(e.touches[0], e.touches[1])
+              scale = Math.min(3, Math.max(0.5, lastScale * (dist / startDist)))
+              if (!rafId) {
+                rafId = requestAnimationFrame(() => { applyTransform(); rafId = null })
+              }
+            } else if (e.touches.length === 1 && scale > 1) {
+              e.preventDefault()
+              posX = e.touches[0].clientX - startPosX
+              posY = e.touches[0].clientY - startPosY
+              if (!rafId) {
+                rafId = requestAnimationFrame(() => { applyTransform(); rafId = null })
+              }
+            }
+          }, { passive: false })
+
+          // Double-tap to reset
+          let lastTap = 0
+          viewport.addEventListener('touchend', (e) => {
+            if (e.touches.length === 0) {
+              const now = Date.now()
+              if (now - lastTap < 300) {
+                scale = 1; posX = 0; posY = 0
+                applyTransform()
+              }
+              lastTap = now
+            }
+          })
+        })
+      }
+
+      function updateMobileValidationSummary() {
+        const summaryEl = document.getElementById('mobile-validation-summary')
+        if (!summaryEl) return
+        const countsEl = document.getElementById('validation-counts')
+        if (countsEl) {
+          summaryEl.innerHTML = countsEl.innerHTML
+        }
+      }
+
+      function updateMobileDrawingPanels(svgElement, analysis) {
+        if (!isMobileMode || !drawingPanelInitialized) return
+
+        const planView = document.getElementById('mobile-plan-view')
+        const elevView = document.getElementById('mobile-elevation-view')
+        if (!planView || !elevView) return
+
+        // Clone SVG for both views
+        const svgClone1 = svgElement.cloneNode(true)
+        const svgClone2 = svgElement.cloneNode(true)
+
+        // Reset any existing transforms
+        svgClone1.style.transform = ''
+        svgClone2.style.transform = ''
+
+        // Use the full SVG for plan view (user can zoom in)
+        planView.innerHTML = ''
+        planView.appendChild(svgClone1)
+
+        // Use the full SVG for elevation view too (same content, independent zoom)
+        elevView.innerHTML = ''
+        elevView.appendChild(svgClone2)
+
+        // Update title and enable download
+        const titleEl = document.getElementById('mobile-drawing-title')
+        const dlBtn = document.getElementById('mobile-download-btn')
+        if (titleEl) titleEl.textContent = '平面圖 / 側面圖'
+        if (dlBtn) dlBtn.disabled = false
+
+        // Update validation summary
+        updateMobileValidationSummary()
+
+        // Re-init pinch zoom for new SVGs
+        initPinchZoom()
+
+        // Reset to first slide
+        swipeToSlide(0)
+      }
+
+      // ---- Task 6: Mobile AI Panel ----
+      function populateAiPanel() {
+        if (mobilePanelPopulated.ai) return
+        const panel = document.getElementById('mobile-panel-ai')
+        // Move chat elements into mobile panel
+        const chatMessages = document.getElementById('chat-messages')
+        const chatInputArea = document.querySelector('.chat-input-area')
+        const chatCommitArea = document.getElementById('chat-commit-area')
+
+        // Create mobile chat wrapper
+        panel.innerHTML = `
+          <div class="mobile-chat-header">
+            <span>AI 設計助理</span>
+          </div>
+          <div class="mobile-chat-body" id="mobile-chat-body"></div>
+          <div class="mobile-chat-input" id="mobile-chat-input-area"></div>
+        `
+        // Move existing chat messages
+        document.getElementById('mobile-chat-body').appendChild(chatMessages)
+        document.getElementById('mobile-chat-input-area').appendChild(chatInputArea)
+        if (chatCommitArea) document.getElementById('mobile-chat-input-area').appendChild(chatCommitArea)
+
+        // Auto-open chat state
+        if (chatState.status === 'idle') {
+          chatState.status = 'chat_open'
+          chatState.sessionId = chatState.sessionId || generateSessionId()
+          document.getElementById('chat-input').disabled = false
+          document.getElementById('chat-send-btn').disabled = false
+        }
+
+        mobilePanelPopulated.ai = true
+      }
+
+      // ---- Task 6: Mobile Rules Panel ----
+      function populateRulesPanel() {
+        if (mobilePanelPopulated.rules) return
+        const panel = document.getElementById('mobile-panel-rules')
+        const rulesView = document.getElementById('view-rules')
+        panel.appendChild(rulesView)
+        rulesView.classList.remove('hidden')
+        // Fetch rules if not yet loaded
+        if (typeof fetchRules === 'function' && rulesState && rulesState.rules.length === 0) {
+          fetchRules()
+        }
+        mobilePanelPopulated.rules = true
       }
 
       // ---- Rules Tab State ----
