@@ -2732,6 +2732,7 @@
       // ---- Solver form handling ----
 
       let lastDxfString = null
+      let lastDesign = null
       let lastMode = 'A'
 
       const modeTabs = document.querySelectorAll('.mode-tab')
@@ -2821,6 +2822,7 @@
 
           // Success
           lastDxfString = data.dxf_string
+          lastDesign = data.design
           lastMode = mode
 
           const d = data.design
@@ -3181,7 +3183,7 @@
         `
         // Wire download button
         document.getElementById('mobile-download-btn').onclick = () => {
-          if (typeof downloadDxf === 'function') downloadDxf()
+          if (lastDesign && lastDxfString) downloadDxf(lastDesign, lastDxfString)
         }
         // Wire dots
         panel.querySelectorAll('.dot').forEach((dot) => {
