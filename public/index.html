@@ -1295,30 +1295,21 @@
       body.keyboard-open .mobile-tab-content { bottom: 0; }
 
       /* ---- Issue 4: AI tab rainbow border animation ---- */
-      .mobile-tab-ai {
-        position: relative;
-        z-index: 0;
+      .mobile-tab-ai svg {
+        background: linear-gradient(90deg, #e8734e 0%, #e8734e 40%, #ffa060 48%, #ffd54f 50%, #ffa060 52%, #e8734e 60%, #e8734e 100%);
+        background-size: 300% 100%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: vera-sweep 4s linear infinite;
+        fill: url(#ai-sparkle-gradient);
       }
-      .mobile-tab-ai::before {
-        content: '';
-        position: absolute;
-        inset: 2px 0;
-        border-radius: 8px 8px 0 0;
-        padding: 2px;
-        background: conic-gradient(
-          from var(--border-angle),
-          #e8734e, #ffd54f, #4f8ff0, #8aa680, #ba68c8, #e8734e
-        );
-        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
-        animation: border-rotate 3s linear infinite;
-        opacity: 0.7;
-        z-index: -1;
-      }
-      .mobile-tab-ai.active::before {
-        opacity: 1;
-        animation-duration: 2s;
+      .mobile-tab-ai.active span {
+        background: linear-gradient(90deg, #e8734e 0%, #ffd54f 50%, #e8734e 100%);
+        background-size: 300% 100%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: vera-sweep 4s linear infinite;
       }
 
       /* ---- Issue 1: In mobile mode, hide original form submit/download buttons ---- */
@@ -1811,10 +1802,23 @@
         <span>圖紙</span>
       </a>
       <a class="mobile-tab mobile-tab-ai" href="#/m/ai" data-tab="ai">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z"/>
-          <path d="M20 5L20.8 7.2L23 8L20.8 8.8L20 11L19.2 8.8L17 8L19.2 7.2L20 5Z" opacity="0.7"/>
-          <path d="M5 17L5.6 18.4L7 19L5.6 19.6L5 21L4.4 19.6L3 19L4.4 18.4L5 17Z" opacity="0.5"/>
+        <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor">
+          <defs>
+            <linearGradient id="ai-sparkle-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#e8734e">
+                <animate attributeName="stop-color" values="#e8734e;#ffd54f;#4f8ff0;#e8734e" dur="3s" repeatCount="indefinite"/>
+              </stop>
+              <stop offset="50%" stop-color="#ffd54f">
+                <animate attributeName="stop-color" values="#ffd54f;#4f8ff0;#e8734e;#ffd54f" dur="3s" repeatCount="indefinite"/>
+              </stop>
+              <stop offset="100%" stop-color="#4f8ff0">
+                <animate attributeName="stop-color" values="#4f8ff0;#e8734e;#ffd54f;#4f8ff0" dur="3s" repeatCount="indefinite"/>
+              </stop>
+            </linearGradient>
+          </defs>
+          <path d="M16 0C16 0 18.5 12 16 16C13.5 12 16 0 16 0Z M16 32C16 32 13.5 20 16 16C18.5 20 16 32 16 32Z M0 16C0 16 12 13.5 16 16C12 18.5 0 16 0 16Z M32 16C32 16 20 18.5 16 16C20 13.5 32 16 32 16Z" fill="url(#ai-sparkle-gradient)"/>
+          <path d="M26 3C26 3 27 6.5 26 8C25 6.5 26 3 26 3Z M26 13C26 13 25 9.5 26 8C27 9.5 26 13 26 13Z M21 8C21 8 24.5 7 26 8C24.5 9 21 8 21 8Z M31 8C31 8 27.5 9 26 8C27.5 7 31 8 31 8Z" fill="url(#ai-sparkle-gradient)" opacity="0.8"/>
+          <path d="M7 23C7 23 7.7 25 7 26C6.3 25 7 23 7 23Z M7 29C7 29 6.3 27 7 26C7.7 27 7 29 7 29Z M4 26C4 26 6 25.3 7 26C6 26.7 4 26 4 26Z M10 26C10 26 8 26.7 7 26C8 25.3 10 26 10 26Z" fill="url(#ai-sparkle-gradient)" opacity="0.6"/>
         </svg>
         <span>AI</span>
       </a>
