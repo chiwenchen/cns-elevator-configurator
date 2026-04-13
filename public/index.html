@@ -3132,6 +3132,9 @@
               : '#e7e9ec'
             txt.setAttribute('fill', txtColor)
             txt.setAttribute('font-family', 'ui-monospace, monospace')
+            // DXF halign: 0=left, 1=center, 2=right, 4=middle
+            if (t.halign === 1 || t.halign === 4) txt.setAttribute('text-anchor', 'middle')
+            else if (t.halign === 2) txt.setAttribute('text-anchor', 'end')
             txt.textContent = t.text
             g.appendChild(txt)
           }
