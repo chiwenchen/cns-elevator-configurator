@@ -3314,21 +3314,32 @@
         const elevView = document.getElementById('mobile-elevation-view')
         if (!planView || !elevView) return
 
-        // Clone SVG for both views
-        const svgClone1 = svgElement.cloneNode(true)
-        const svgClone2 = svgElement.cloneNode(true)
+        // Parse the original viewBox to split plan (left) from elevation (right)
+        // DXF layout: plan at x=0, elevation at x=shaftWidth+4000
+        const vb = svgElement.getAttribute('viewBox')
+        if (!vb) return
+        const [vbX, vbY, vbW, vbH] = vb.split(/\s+/).map(Number)
+        const midX = vbX + vbW / 2
 
-        // Reset any existing transforms
-        svgClone1.style.transform = ''
-        svgClone2.style.transform = ''
+        // Clone 1: plan view (left half)
+        const svgPlan = svgElement.cloneNode(true)
+        svgPlan.setAttribute('viewBox', `${vbX} ${vbY} ${vbW / 2} ${vbH}`)
+        svgPlan.style.transform = ''
+        svgPlan.style.width = '100%'
+        svgPlan.style.height = '100%'
 
-        // Use the full SVG for plan view (user can zoom in)
+        // Clone 2: elevation view (right half)
+        const svgElev = svgElement.cloneNode(true)
+        svgElev.setAttribute('viewBox', `${midX} ${vbY} ${vbW / 2} ${vbH}`)
+        svgElev.style.transform = ''
+        svgElev.style.width = '100%'
+        svgElev.style.height = '100%'
+
         planView.innerHTML = ''
-        planView.appendChild(svgClone1)
+        planView.appendChild(svgPlan)
 
-        // Use the full SVG for elevation view too (same content, independent zoom)
         elevView.innerHTML = ''
-        elevView.appendChild(svgClone2)
+        elevView.appendChild(svgElev)
 
         // Update title and enable download
         const titleEl = document.getElementById('mobile-drawing-title')
