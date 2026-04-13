@@ -1233,6 +1233,66 @@
       /* ---- Desktop mode: hide mobile elements ---- */
       body.desktop .mobile-tab-bar,
       body.desktop .mobile-tab-content { display: none !important; }
+
+      /* ---- Mobile Tab Bar ---- */
+      .mobile-tab-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 52px;
+        background: var(--bg-panel);
+        border-top: 1px solid var(--border);
+        display: flex;
+        z-index: 100;
+      }
+      .mobile-tab {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        text-decoration: none;
+        color: var(--fg-muted);
+        font-size: 10px;
+        transition: color 0.15s;
+      }
+      .mobile-tab.active {
+        color: var(--accent);
+      }
+      .mobile-tab svg {
+        width: 20px;
+        height: 20px;
+      }
+      .mobile-tab-content {
+        position: fixed;
+        top: 44px;
+        left: 0;
+        right: 0;
+        bottom: 52px;
+        overflow: hidden;
+      }
+      .mobile-panel {
+        display: none;
+        width: 100%;
+        height: 100%;
+        overflow-y: auto;
+        background: var(--bg);
+      }
+      .mobile-panel.active {
+        display: flex;
+        flex-direction: column;
+      }
+      /* Landscape: smaller tab bar */
+      @media (max-width: 767px) and (orientation: landscape) {
+        .mobile-tab-bar { height: 40px; }
+        .mobile-tab span { display: none; }
+        .mobile-tab-content { bottom: 40px; }
+      }
+      /* Hide tab bar when keyboard is open */
+      body.keyboard-open .mobile-tab-bar { display: none; }
+      body.keyboard-open .mobile-tab-content { bottom: 0; }
     </style>
     <script
       src="https://browser.sentry-cdn.com/8.9.2/bundle.min.js"
@@ -1539,6 +1599,34 @@
         </div>
 
       </section>
+
+    <!-- Mobile Tab Bar -->
+    <nav class="mobile-tab-bar" id="mobile-tab-bar">
+      <a class="mobile-tab active" href="#/m/params" data-tab="params">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
+        <span>參數</span>
+      </a>
+      <a class="mobile-tab" href="#/m/drawing" data-tab="drawing">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="2" y1="9" x2="22" y2="9"/><line x1="8" y1="3" x2="8" y2="21"/></svg>
+        <span>圖紙</span>
+      </a>
+      <a class="mobile-tab" href="#/m/ai" data-tab="ai">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 15,8 22,9 17,14 18,21 12,18 6,21 7,14 2,9 9,8"/></svg>
+        <span>AI</span>
+      </a>
+      <a class="mobile-tab" href="#/m/rules" data-tab="rules">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        <span>規則</span>
+      </a>
+    </nav>
+
+    <!-- Mobile Tab Content Panels -->
+    <div class="mobile-tab-content" id="mobile-tab-content">
+      <div class="mobile-panel active" id="mobile-panel-params"></div>
+      <div class="mobile-panel" id="mobile-panel-drawing"></div>
+      <div class="mobile-panel" id="mobile-panel-ai"></div>
+      <div class="mobile-panel" id="mobile-panel-rules"></div>
+    </div>
     </main>
 
     <!-- Login Modal -->
@@ -2087,38 +2175,76 @@
         document.getElementById('gate-quota-modal').classList.add('hidden')
       }
 
-      // ---- Hash router ----
+      // ---- Routing (desktop + mobile) ----
       function currentRoute() {
-        const hash = window.location.hash || '#/configurator'
-        if (hash.startsWith('#/rules/deleted')) return 'rules-deleted'
-        if (hash.startsWith('#/rules')) return 'rules'
+        const hash = location.hash || '#/configurator'
+        // Mobile routes
+        if (hash === '#/m/drawing') return 'm-drawing'
+        if (hash === '#/m/ai') return 'm-ai'
+        if (hash === '#/m/rules') return 'm-rules'
+        if (hash.startsWith('#/m/')) return 'm-params'
+        // Desktop routes
+        if (hash.includes('/rules/deleted')) return 'rules-deleted'
+        if (hash.includes('/rules')) return 'rules'
         return 'configurator'
       }
 
       function renderRoute() {
         const route = currentRoute()
-        const configuratorView = document.getElementById('view-configurator')
-        const rulesView = document.getElementById('view-rules')
-        const navLinks = document.querySelectorAll('.nav-link')
+
+        if (route.startsWith('m-')) {
+          renderMobileRoute(route)
+        } else {
+          renderDesktopRoute(route)
+        }
+      }
+
+      function renderDesktopRoute(route) {
+        const configurator = document.getElementById('view-configurator')
+        const rules = document.getElementById('view-rules')
 
         if (route === 'configurator') {
-          configuratorView.classList.remove('hidden')
-          rulesView.classList.add('hidden')
+          configurator.classList.remove('hidden')
+          rules.classList.add('hidden')
         } else {
-          configuratorView.classList.add('hidden')
-          rulesView.classList.remove('hidden')
+          configurator.classList.add('hidden')
+          rules.classList.remove('hidden')
         }
 
-        navLinks.forEach((link) => {
-          const isActive = link.dataset.view === (route === 'configurator' ? 'configurator' : 'rules')
-          link.classList.toggle('active', isActive)
+        // Update nav active state
+        document.querySelectorAll('.nav-link').forEach((link) => {
+          const view = link.dataset.view
+          link.classList.toggle('active', view === (route === 'configurator' ? 'configurator' : 'rules'))
         })
 
-        // Dispatch event so individual views can refresh
         document.dispatchEvent(new CustomEvent('route-change', { detail: { route } }))
       }
 
-      window.addEventListener('hashchange', renderRoute)
+      let currentMobileTab = 'params'
+
+      function renderMobileRoute(route) {
+        const tabName = route.replace('m-', '')
+        currentMobileTab = tabName
+
+        // Update tab bar active state
+        document.querySelectorAll('.mobile-tab').forEach((tab) => {
+          tab.classList.toggle('active', tab.dataset.tab === tabName)
+        })
+
+        // Switch panels
+        document.querySelectorAll('.mobile-panel').forEach((panel) => {
+          panel.classList.toggle('active', panel.id === 'mobile-panel-' + tabName)
+        })
+
+        // Populate panel content on first visit
+        populateMobilePanel(tabName)
+      }
+
+      function populateMobilePanel(tabName) {
+        // Content population is handled per-task below (Tasks 4-7)
+      }
+
+      window.addEventListener('hashchange', () => renderRoute())
       window.addEventListener('DOMContentLoaded', () => {
         initResponsiveMode()
         renderRoute()
