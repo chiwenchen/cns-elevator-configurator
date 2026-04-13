@@ -1426,6 +1426,28 @@
         white-space: nowrap;
         flex-wrap: nowrap;
       }
+
+      /* ---- Task 7: Tablet breakpoint (768px - 1060px) ---- */
+      @media (min-width: 768px) and (max-width: 1060px) {
+        #view-configurator {
+          grid-template-columns: 300px 1fr !important;
+        }
+        #view-configurator aside {
+          display: none !important;
+        }
+        #view-configurator #chat-sidebar {
+          position: fixed;
+          right: 0;
+          top: 0;
+          bottom: 0;
+          z-index: 50;
+          box-shadow: -4px 0 16px rgba(0,0,0,0.3);
+        }
+        .validation-panel {
+          left: 0;
+          right: 0;
+        }
+      }
     </style>
     <script
       src="https://browser.sentry-cdn.com/8.9.2/bundle.min.js"
