@@ -1209,6 +1209,10 @@
         display: block;
       }
     </style>
+    <script
+      src="https://browser.sentry-cdn.com/8.9.2/bundle.min.js"
+      crossorigin="anonymous"
+    ></script>
   </head>
   <body>
     <header>
@@ -1601,6 +1605,20 @@
     </footer>
 
     <script>
+      // ---- Sentry Browser SDK ----
+      if (window.Sentry) {
+        Sentry.init({
+          dsn: 'https://YOUR_BROWSER_DSN_HERE', // TODO: replace with real Browser DSN
+          environment: location.hostname.includes('localhost') ? 'development' : 'production',
+          enabled: !location.hostname.includes('localhost'),
+          sampleRate: 1.0,
+          ignoreErrors: [
+            'ResizeObserver loop',
+            'Non-Error promise rejection',
+          ],
+        })
+      }
+
       // ---- Auth State ----
       let currentUser = null // { user: {...}, quota: {...} }
 
@@ -1609,13 +1627,18 @@
           const res = await fetch('/api/auth/me')
           if (res.ok) {
             currentUser = await res.json()
+            if (window.Sentry && currentUser?.user) {
+              Sentry.setUser({ id: currentUser.user.id, email: currentUser.user.email })
+            }
             renderAuthenticatedNav()
           } else {
             currentUser = null
+            if (window.Sentry) Sentry.setUser(null)
             renderAnonymousNav()
           }
         } catch {
           currentUser = null
+          if (window.Sentry) Sentry.setUser(null)
           renderAnonymousNav()
         }
       }
@@ -1775,6 +1798,7 @@
           const firstBox = document.querySelector('.otp-box[data-idx="0"]')
           if (firstBox) firstBox.focus()
         } catch (e) {
+          if (window.Sentry) Sentry.captureException(e)
           showLoginError('email', '網路錯誤，請稍後再試')
         } finally {
           btn.disabled = false
@@ -1858,6 +1882,7 @@
             renderAuthenticatedNav()
           }
         } catch (e) {
+          if (window.Sentry) Sentry.captureException(e)
           showLoginError('otp', '網路錯誤，請稍後再試')
           document.querySelectorAll('.otp-box').forEach((b) => b.disabled = false)
         }
@@ -1927,6 +1952,7 @@
           await checkAuth()
           closeLoginModal()
         } catch (e) {
+          if (window.Sentry) Sentry.captureException(e)
           showLoginError('onboarding', '網路錯誤')
         } finally {
           btn.disabled = false
@@ -2143,6 +2169,7 @@
             showToast('載入圖紙後重新解算失敗，請手動重新產生', 'error')
           }
         } catch (err) {
+          if (window.Sentry) Sentry.captureException(err)
           showToast(`載入圖紙失敗：${err.message}`, 'error')
         }
       }
@@ -2255,6 +2282,7 @@
           renderShafts(data.shaft_groups)
           renderSvg(data)
         } catch (err) {
+          if (window.Sentry) Sentry.captureException(err)
           container.innerHTML =
             '<div class="error">載入失敗:\n' + err.message + '</div>'
         }
@@ -2383,6 +2411,7 @@
           btn.disabled = false
           btn.onclick = () => downloadDxf(d, data.dxf_string)
         } catch (err) {
+          if (window.Sentry) Sentry.captureException(err)
           statusEl.className = 'solver-status error'
           statusEl.textContent = '✕ 網路錯誤：' + err.message
         }
@@ -2885,6 +2914,7 @@
             renderRulesList()
           }
         } catch (e) {
+          if (window.Sentry) Sentry.captureException(e)
           showToast(`錯誤：${e.message}`, 'error')
         }
       }
@@ -2921,6 +2951,7 @@
           await fetchRules()
           showToast(`已刪除 ${rule.key}`)
         } catch (e) {
+          if (window.Sentry) Sentry.captureException(e)
           showToast(`錯誤：${e.message}`, 'error')
         } finally {
           document.getElementById('delete-modal').classList.add('hidden')
@@ -2939,6 +2970,7 @@
           await fetchRules()
           showToast(`已還原 ${key}`)
         } catch (e) {
+          if (window.Sentry) Sentry.captureException(e)
           showToast(`錯誤：${e.message}`, 'error')
         }
       }
@@ -3401,6 +3433,7 @@
           }
           handleChatResponse(data)
         } catch (e) {
+          if (window.Sentry) Sentry.captureException(e)
           setThinking(false)
           addChatBubble('system', 'AI 暫時無法回應，請稍後再試')
         }
@@ -3499,6 +3532,7 @@
             showToast(`跳過 ${s.key}：${s.reason}`, 'error')
           }
         } catch (e) {
+          if (window.Sentry) Sentry.captureException(e)
           showToast(`錯誤：${e.message}`, 'error')
         }
       }

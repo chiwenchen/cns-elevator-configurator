@@ -68,6 +68,7 @@ import { parseCookie, extractUser, shouldRunCleanup, SESSION_COOKIE_NAME } from 
 import type { AuthUser } from '../auth/middleware'
 import { createOtpSender, createInviteSender } from '../auth/resend'
 import { getWeekStartUtc, getQuotaLimits } from '../config/quota'
+import { createSentry, captureException } from './sentry'
 
 interface D1Database {
   prepare(query: string): {
@@ -87,6 +88,7 @@ interface Env {
   ANTHROPIC_API_KEY?: string
   JWT_SECRET: string
   RESEND_API_KEY: string
+  SENTRY_DSN?: string
 }
 
 // Cache the hack-canada DXF text for the lifetime of the isolate.
@@ -113,7 +115,7 @@ function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   })
 }
 
-function handleRulesError(err: unknown): Response {
+function handleRulesError(err: unknown, sentry: import('toucan-js').Toucan | null = null): Response {
   if (err instanceof InvalidRulesBodyError) {
     return jsonResponse({ error: 'invalid_request', message: err.message }, { status: 400 })
   }
@@ -141,6 +143,7 @@ function handleRulesError(err: unknown): Response {
       { status: 400 },
     )
   }
+  captureException(sentry, err)
   return jsonResponse(
     { error: 'internal_error', message: String(err) },
     { status: 500 },
@@ -187,8 +190,37 @@ async function resolveAuthUser(request: Request, env: Env): Promise<AuthUser | n
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const sentry = createSentry(request, env, ctx)
     const url = new URL(request.url)
+
+    try {
+    return await handleRequest(request, env, url, sentry)
+    } catch (err) {
+      captureException(sentry, err, { route: url.pathname, method: request.method })
+      return jsonResponse({ error: 'internal_error', message: 'unexpected server error' }, { status: 500 })
+    }
+  },
+}
+
+async function handleRequest(
+  request: Request,
+  env: Env,
+  url: URL,
+  sentry: import('toucan-js').Toucan | null,
+): Promise<Response> {
+    // Sentry context: route + method
+    sentry?.setTag('route', url.pathname)
+    sentry?.setTag('method', request.method)
+
+    // Wrapper: resolve auth user and set Sentry user context
+    const resolveAuth = async (): Promise<AuthUser | null> => {
+      const user = await resolveAuthUser(request, env)
+      if (user && sentry) {
+        sentry.setUser({ id: user.id, email: user.email })
+      }
+      return user
+    }
 
     // --- Redirect elevator-configurator → vera-plot ---
     if (url.hostname === 'elevator-configurator.redarch.dev') {
@@ -207,6 +239,7 @@ export default {
         const data = analyzeArchDxf(dxfText, source, '/assets/hack-canada.dxf')
         return jsonResponse(data)
       } catch (err) {
+        captureException(sentry, err, { route: '/api/analysis', source })
         return jsonResponse(
           { error: String(err), hint: `source: ${source}` },
           { status: 500 }
@@ -225,6 +258,7 @@ export default {
         if (err instanceof AuthError) {
           return jsonResponse({ error: err.message }, { status: err.status })
         }
+        captureException(sentry, err, { route: url.pathname })
         return jsonResponse({ error: String(err) }, { status: 500 })
       }
     }
@@ -240,13 +274,14 @@ export default {
         if (err instanceof AuthError) {
           return jsonResponse({ error: err.message }, { status: err.status })
         }
+        captureException(sentry, err, { route: url.pathname })
         return jsonResponse({ error: String(err) }, { status: 500 })
       }
     }
 
     if (url.pathname === '/api/auth/logout' && request.method === 'POST') {
       try {
-        const user = await resolveAuthUser(request, env)
+        const user = await resolveAuth()
         if (!user) return jsonResponse({ error: 'unauthorized' }, { status: 401 })
         const result = await handleLogout(user.session_id, env.DB)
         return jsonResponse({ ok: result.ok }, {
@@ -256,13 +291,14 @@ export default {
         if (err instanceof AuthError) {
           return jsonResponse({ error: err.message }, { status: err.status })
         }
+        captureException(sentry, err, { route: url.pathname })
         return jsonResponse({ error: String(err) }, { status: 500 })
       }
     }
 
     if (url.pathname === '/api/auth/me' && request.method === 'GET') {
       try {
-        const user = await resolveAuthUser(request, env)
+        const user = await resolveAuth()
         if (!user) return jsonResponse({ error: 'unauthorized' }, { status: 401 })
         const result = await handleMe(user, env.DB)
         return jsonResponse(result)
@@ -270,6 +306,7 @@ export default {
         if (err instanceof AuthError) {
           return jsonResponse({ error: err.message }, { status: err.status })
         }
+        captureException(sentry, err, { route: url.pathname })
         return jsonResponse({ error: String(err) }, { status: 500 })
       }
     }
@@ -277,7 +314,7 @@ export default {
     // --- Design routes ---
     if (url.pathname === '/api/designs' && request.method === 'GET') {
       try {
-        const user = await resolveAuthUser(request, env)
+        const user = await resolveAuth()
         if (!user) return jsonResponse({ error: 'unauthorized' }, { status: 401 })
         const result = await handleListDesigns(user, env.DB)
         return jsonResponse(result)
@@ -285,13 +322,14 @@ export default {
         if (err instanceof DesignError) {
           return jsonResponse({ error: err.message }, { status: err.status })
         }
+        captureException(sentry, err, { route: url.pathname })
         return jsonResponse({ error: String(err) }, { status: 500 })
       }
     }
 
     if (url.pathname === '/api/designs/archived' && request.method === 'GET') {
       try {
-        const user = await resolveAuthUser(request, env)
+        const user = await resolveAuth()
         if (!user) return jsonResponse({ error: 'unauthorized' }, { status: 401 })
         const result = await handleListArchivedDesigns(user, env.DB)
         return jsonResponse(result)
@@ -299,6 +337,7 @@ export default {
         if (err instanceof DesignError) {
           return jsonResponse({ error: err.message }, { status: err.status })
         }
+        captureException(sentry, err, { route: url.pathname })
         return jsonResponse({ error: String(err) }, { status: 500 })
       }
     }
@@ -308,7 +347,7 @@ export default {
       const designId = designIdMatch[1]!
       if (request.method === 'GET') {
         try {
-          const user = await resolveAuthUser(request, env)
+          const user = await resolveAuth()
           if (!user) return jsonResponse({ error: 'unauthorized' }, { status: 401 })
           const result = await handleGetDesign(designId, user, env.DB)
           return jsonResponse(result)
@@ -316,12 +355,13 @@ export default {
           if (err instanceof DesignError) {
             return jsonResponse({ error: err.message }, { status: err.status })
           }
-          return jsonResponse({ error: String(err) }, { status: 500 })
+          captureException(sentry, err, { route: url.pathname })
+        return jsonResponse({ error: String(err) }, { status: 500 })
         }
       }
       if (request.method === 'DELETE') {
         try {
-          const user = await resolveAuthUser(request, env)
+          const user = await resolveAuth()
           if (!user) return jsonResponse({ error: 'unauthorized' }, { status: 401 })
           const result = await handleDeleteDesign(designId, user, env.DB)
           return jsonResponse(result)
@@ -329,7 +369,8 @@ export default {
           if (err instanceof DesignError) {
             return jsonResponse({ error: err.message }, { status: err.status })
           }
-          return jsonResponse({ error: String(err) }, { status: 500 })
+          captureException(sentry, err, { route: url.pathname })
+        return jsonResponse({ error: String(err) }, { status: 500 })
         }
       }
     }
@@ -338,7 +379,7 @@ export default {
     if (archiveMatch && request.method === 'POST') {
       try {
         const designId = archiveMatch[1]!
-        const user = await resolveAuthUser(request, env)
+        const user = await resolveAuth()
         if (!user) return jsonResponse({ error: 'unauthorized' }, { status: 401 })
         const result = await handleArchiveDesign(designId, user, env.DB)
         return jsonResponse(result)
@@ -346,6 +387,7 @@ export default {
         if (err instanceof DesignError) {
           return jsonResponse({ error: err.message }, { status: err.status })
         }
+        captureException(sentry, err, { route: url.pathname })
         return jsonResponse({ error: String(err) }, { status: 500 })
       }
     }
@@ -354,7 +396,7 @@ export default {
     if (unarchiveMatch && request.method === 'POST') {
       try {
         const designId = unarchiveMatch[1]!
-        const user = await resolveAuthUser(request, env)
+        const user = await resolveAuth()
         if (!user) return jsonResponse({ error: 'unauthorized' }, { status: 401 })
         const result = await handleUnarchiveDesign(designId, user, env.DB)
         return jsonResponse(result)
@@ -362,6 +404,7 @@ export default {
         if (err instanceof DesignError) {
           return jsonResponse({ error: err.message }, { status: err.status })
         }
+        captureException(sentry, err, { route: url.pathname })
         return jsonResponse({ error: String(err) }, { status: 500 })
       }
     }
@@ -369,7 +412,7 @@ export default {
     // --- Company routes ---
     if (url.pathname === '/api/company' && request.method === 'POST') {
       try {
-        const user = await resolveAuthUser(request, env)
+        const user = await resolveAuth()
         if (!user) return jsonResponse({ error: 'unauthorized' }, { status: 401 })
         const body = await request.json() as { name?: string }
         const result = await handleCreateCompany(body, user, env.DB)
@@ -378,13 +421,14 @@ export default {
         if (err instanceof CompanyError) {
           return jsonResponse({ error: err.message }, { status: err.status })
         }
+        captureException(sentry, err, { route: url.pathname })
         return jsonResponse({ error: String(err) }, { status: 500 })
       }
     }
 
     if (url.pathname === '/api/company' && request.method === 'GET') {
       try {
-        const user = await resolveAuthUser(request, env)
+        const user = await resolveAuth()
         if (!user) return jsonResponse({ error: 'unauthorized' }, { status: 401 })
         const result = await handleGetCompany(user, env.DB)
         return jsonResponse(result)
@@ -392,13 +436,14 @@ export default {
         if (err instanceof CompanyError) {
           return jsonResponse({ error: err.message }, { status: err.status })
         }
+        captureException(sentry, err, { route: url.pathname })
         return jsonResponse({ error: String(err) }, { status: 500 })
       }
     }
 
     if (url.pathname === '/api/company/invite' && request.method === 'POST') {
       try {
-        const user = await resolveAuthUser(request, env)
+        const user = await resolveAuth()
         if (!user) return jsonResponse({ error: 'unauthorized' }, { status: 401 })
         const body = await request.json() as { email?: string }
         const sendInvite = createInviteSender(env.RESEND_API_KEY)
@@ -408,6 +453,7 @@ export default {
         if (err instanceof CompanyError) {
           return jsonResponse({ error: err.message }, { status: err.status })
         }
+        captureException(sentry, err, { route: url.pathname })
         return jsonResponse({ error: String(err) }, { status: 500 })
       }
     }
@@ -416,7 +462,7 @@ export default {
     if (joinMatch && request.method === 'POST') {
       try {
         const token = joinMatch[1]!
-        const user = await resolveAuthUser(request, env)
+        const user = await resolveAuth()
         if (!user) return jsonResponse({ error: 'unauthorized' }, { status: 401 })
         const result = await handleJoinCompany(token, user, env.DB)
         return jsonResponse(result)
@@ -424,13 +470,14 @@ export default {
         if (err instanceof CompanyError) {
           return jsonResponse({ error: err.message }, { status: err.status })
         }
+        captureException(sentry, err, { route: url.pathname })
         return jsonResponse({ error: String(err) }, { status: 500 })
       }
     }
 
     if (url.pathname === '/api/company/leave' && request.method === 'POST') {
       try {
-        const user = await resolveAuthUser(request, env)
+        const user = await resolveAuth()
         if (!user) return jsonResponse({ error: 'unauthorized' }, { status: 401 })
         const result = await handleLeaveCompany(user, env.DB)
         return jsonResponse(result)
@@ -438,6 +485,7 @@ export default {
         if (err instanceof CompanyError) {
           return jsonResponse({ error: err.message }, { status: err.status })
         }
+        captureException(sentry, err, { route: url.pathname })
         return jsonResponse({ error: String(err) }, { status: 500 })
       }
     }
@@ -446,7 +494,7 @@ export default {
     if (removeMemberMatch && request.method === 'DELETE') {
       try {
         const targetUserId = removeMemberMatch[1]!
-        const user = await resolveAuthUser(request, env)
+        const user = await resolveAuth()
         if (!user) return jsonResponse({ error: 'unauthorized' }, { status: 401 })
         const result = await handleRemoveMember(targetUserId, user, env.DB)
         return jsonResponse(result)
@@ -454,6 +502,7 @@ export default {
         if (err instanceof CompanyError) {
           return jsonResponse({ error: err.message }, { status: err.status })
         }
+        captureException(sentry, err, { route: url.pathname })
         return jsonResponse({ error: String(err) }, { status: 500 })
       }
     }
@@ -461,7 +510,7 @@ export default {
     // --- Admin routes ---
     if (url.pathname === '/api/admin/users' && request.method === 'GET') {
       try {
-        const user = await resolveAuthUser(request, env)
+        const user = await resolveAuth()
         if (!user) return jsonResponse({ error: 'unauthorized' }, { status: 401 })
         if (user.role !== 'admin') return jsonResponse({ error: 'forbidden' }, { status: 403 })
         const result = await handleListUsers(env.DB)
@@ -470,6 +519,7 @@ export default {
         if (err instanceof AdminError) {
           return jsonResponse({ error: err.message }, { status: err.status })
         }
+        captureException(sentry, err, { route: url.pathname })
         return jsonResponse({ error: String(err) }, { status: 500 })
       }
     }
@@ -478,7 +528,7 @@ export default {
     if (adminUserMatch && request.method === 'PATCH') {
       try {
         const targetId = adminUserMatch[1]!
-        const user = await resolveAuthUser(request, env)
+        const user = await resolveAuth()
         if (!user) return jsonResponse({ error: 'unauthorized' }, { status: 401 })
         if (user.role !== 'admin') return jsonResponse({ error: 'forbidden' }, { status: 403 })
         const body = await request.json() as { role?: string }
@@ -488,6 +538,7 @@ export default {
         if (err instanceof AdminError) {
           return jsonResponse({ error: err.message }, { status: err.status })
         }
+        captureException(sentry, err, { route: url.pathname })
         return jsonResponse({ error: String(err) }, { status: 500 })
       }
     }
@@ -499,7 +550,7 @@ export default {
         const result = await handleListRules(store)
         return jsonResponse(result)
       } catch (err) {
-        return handleRulesError(err)
+        return handleRulesError(err, sentry)
       }
     }
 
@@ -509,7 +560,7 @@ export default {
         const result = await handleListDeletedRules(store)
         return jsonResponse(result)
       } catch (err) {
-        return handleRulesError(err)
+        return handleRulesError(err, sentry)
       }
     }
 
@@ -520,7 +571,7 @@ export default {
         const result = await handleCommit(store, body)
         return jsonResponse(result)
       } catch (err) {
-        return handleRulesError(err)
+        return handleRulesError(err, sentry)
       }
     }
 
@@ -533,7 +584,7 @@ export default {
         const result = await handleRestoreRule(store, key)
         return jsonResponse(result)
       } catch (err) {
-        return handleRulesError(err)
+        return handleRulesError(err, sentry)
       }
     }
 
@@ -548,7 +599,7 @@ export default {
           const result = await handlePatchRule(store, key, body)
           return jsonResponse(result)
         } catch (err) {
-          return handleRulesError(err)
+          return handleRulesError(err, sentry)
         }
       }
       if (request.method === 'DELETE') {
@@ -556,7 +607,7 @@ export default {
           const result = await handleDeleteRule(store, key)
           return jsonResponse(result)
         } catch (err) {
-          return handleRulesError(err)
+          return handleRulesError(err, sentry)
         }
       }
     }
@@ -569,7 +620,7 @@ export default {
         )
       }
       try {
-        const user = await resolveAuthUser(request, env)
+        const user = await resolveAuth()
         if (!user) return jsonResponse({ error: 'unauthorized', message: '請先登入' }, { status: 401 })
 
         // Check AI quota
@@ -630,6 +681,7 @@ export default {
             { status: 503 },
           )
         }
+        captureException(sentry, err, { route: '/api/chat' })
         return jsonResponse(
           { error: 'chat_failed', message: String(err) },
           { status: 500 },
@@ -641,7 +693,7 @@ export default {
       try {
         const body = await request.json()
         const loader = new D1RulesLoader(env.DB)
-        const user = await resolveAuthUser(request, env)
+        const user = await resolveAuth()
         const result = await handleSolve(body, loader, user, env.DB)
         return jsonResponse(result)
       } catch (err) {
@@ -684,6 +736,7 @@ export default {
             { status: 429 }
           )
         }
+        captureException(sentry, err, { route: '/api/solve' })
         return jsonResponse(
           { error: 'solve_failed', message: String(err) },
           { status: 500 }
@@ -694,5 +747,4 @@ export default {
     // --- Static assets ---
     // Let Workers Assets serve /, /index.html, /assets/*, /favicon.ico, etc.
     return env.ASSETS.fetch(request)
-  },
 }
