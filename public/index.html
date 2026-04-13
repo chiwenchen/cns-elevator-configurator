@@ -3321,18 +3321,26 @@
         const vb = svgElement.getAttribute('viewBox')
         if (!vb) return
         const [vbX, vbY, vbW, vbH] = vb.split(/\s+/).map(Number)
-        const midX = vbX + vbW / 2
 
-        // Clone 1: plan view (left half)
+        // Smart split: use shaft width to calculate where elevation starts
+        // Elevation origin X = shaft.width_mm + 4000 (from generate.ts)
+        const shaftW = lastDesign ? lastDesign.shaft.width_mm : 0
+        const gap = 4000
+        const splitX = shaftW + gap / 2  // midpoint of the gap between plan and elevation
+        const planW = splitX - vbX + 500  // +500 padding for dim labels on right side of plan
+        const elevStartX = splitX - 500   // -500 padding for dim labels on left side of elevation
+        const elevW = (vbX + vbW) - elevStartX
+
+        // Clone 1: plan view (left portion, centered)
         const svgPlan = svgElement.cloneNode(true)
-        svgPlan.setAttribute('viewBox', `${vbX} ${vbY} ${vbW / 2} ${vbH}`)
+        svgPlan.setAttribute('viewBox', `${vbX} ${vbY} ${planW} ${vbH}`)
         svgPlan.style.transform = ''
         svgPlan.style.width = '100%'
         svgPlan.style.height = '100%'
 
-        // Clone 2: elevation view (right half)
+        // Clone 2: elevation view (right portion, centered)
         const svgElev = svgElement.cloneNode(true)
-        svgElev.setAttribute('viewBox', `${midX} ${vbY} ${vbW / 2} ${vbH}`)
+        svgElev.setAttribute('viewBox', `${elevStartX} ${vbY} ${elevW} ${vbH}`)
         svgElev.style.transform = ''
         svgElev.style.width = '100%'
         svgElev.style.height = '100%'
