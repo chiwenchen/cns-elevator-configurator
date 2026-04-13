@@ -3316,31 +3316,38 @@
         const elevView = document.getElementById('mobile-elevation-view')
         if (!planView || !elevView) return
 
-        // Parse the original viewBox to split plan (left) from elevation (right)
-        // DXF layout: plan at x=0, elevation at x=shaftWidth+4000
+        // Split plan (left) from elevation (right) using shaft-centered viewBoxes
+        // DXF layout: plan at origin (0,0), elevation at (shaftW+4000, 0)
         const vb = svgElement.getAttribute('viewBox')
         if (!vb) return
-        const [vbX, vbY, vbW, vbH] = vb.split(/\s+/).map(Number)
+        const [, vbY, , vbH] = vb.split(/\s+/).map(Number)
 
-        // Smart split: use shaft width to calculate where elevation starts
-        // Elevation origin X = shaft.width_mm + 4000 (from generate.ts)
-        const shaftW = lastDesign ? lastDesign.shaft.width_mm : 0
-        const gap = 4000
-        const splitX = shaftW + gap / 2  // midpoint of the gap between plan and elevation
-        const planW = splitX - vbX + 500  // +500 padding for dim labels on right side of plan
-        const elevStartX = splitX - 500   // -500 padding for dim labels on left side of elevation
-        const elevW = (vbX + vbW) - elevStartX
+        const d = lastDesign
+        const shaftW = d ? d.shaft.width_mm : 2000
+        const shaftD = d ? d.shaft.depth_mm : 2000
+        const elevOX = shaftW + 4000
 
-        // Clone 1: plan view (left portion, centered)
+        // Plan view: center on shaft (0,0)-(shaftW, shaftD) with symmetric padding
+        const planPad = Math.max(shaftW, shaftD) * 0.6
+        const planCX = shaftW / 2
+        const planViewW = shaftW + planPad * 2
+        const planViewX = planCX - planViewW / 2
+
+        // Elevation view: center on shaft at (elevOX, 0)
+        const elevCX = elevOX + shaftW / 2
+        const elevViewW = shaftW + planPad * 2
+        const elevViewX = elevCX - elevViewW / 2
+
+        // Clone 1: plan view (centered on shaft)
         const svgPlan = svgElement.cloneNode(true)
-        svgPlan.setAttribute('viewBox', `${vbX} ${vbY} ${planW} ${vbH}`)
+        svgPlan.setAttribute('viewBox', `${planViewX} ${vbY} ${planViewW} ${vbH}`)
         svgPlan.style.transform = ''
         svgPlan.style.width = '100%'
         svgPlan.style.height = '100%'
 
-        // Clone 2: elevation view (right portion, centered)
+        // Clone 2: elevation view (centered on elevation shaft)
         const svgElev = svgElement.cloneNode(true)
-        svgElev.setAttribute('viewBox', `${elevStartX} ${vbY} ${elevW} ${vbH}`)
+        svgElev.setAttribute('viewBox', `${elevViewX} ${vbY} ${elevViewW} ${vbH}`)
         svgElev.style.transform = ''
         svgElev.style.width = '100%'
         svgElev.style.height = '100%'
