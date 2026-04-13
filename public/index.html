@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>Vera Plot — 智能電梯設計</title>
     <style>
       :root {
@@ -28,6 +28,9 @@
       * {
         box-sizing: border-box;
       }
+      /* ---- Native app feel ---- */
+      html { touch-action: manipulation; }
+      body { overscroll-behavior: none; }
       html,
       body {
         margin: 0;
@@ -1605,6 +1608,10 @@
     </footer>
 
     <script>
+      // ---- iOS gesture prevention (prevent page-level pinch-to-zoom) ----
+      document.addEventListener('gesturestart', (e) => e.preventDefault())
+      document.addEventListener('gesturechange', (e) => e.preventDefault())
+
       // ---- Sentry Browser SDK ----
       if (window.Sentry) {
         Sentry.init({
