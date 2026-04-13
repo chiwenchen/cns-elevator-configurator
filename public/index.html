@@ -1427,6 +1427,20 @@
         flex-wrap: nowrap;
       }
 
+      /* ---- Task 9: Mobile header ---- */
+      body.mobile header {
+        padding: 8px 16px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+      }
+      body.mobile header h1 {
+        font-size: 16px;
+      }
+      body.mobile header h1 small {
+        font-size: 11px;
+      }
+
       /* ---- Task 7: Tablet breakpoint (768px - 1060px) ---- */
       @media (min-width: 768px) and (max-width: 1060px) {
         #view-configurator {
@@ -2875,13 +2889,22 @@
       function executeDownload(fileName, dxfString) {
         const blob = new Blob([dxfString], { type: 'application/dxf' })
         const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `${fileName}.dxf`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
+
+        // iOS Safari doesn't support <a download> well — open in new tab instead
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+        if (isIOS) {
+          window.open(url, '_blank')
+          showToast('DXF 已開啟，請點「分享」→「儲存到檔案」')
+          setTimeout(() => URL.revokeObjectURL(url), 10000)
+        } else {
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `${fileName}.dxf`
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          URL.revokeObjectURL(url)
+        }
       }
 
       function showDrawingName(name) {
