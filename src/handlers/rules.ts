@@ -16,12 +16,12 @@ import { RuleNotFoundError, RuleMandatoryError } from '../config/types'
 import { BaselineViolationError } from '../config/effective'
 import type { RulesStore } from '../config/load'
 
-export interface ListRulesResponse {
+interface ListRulesResponse {
   rules: TeamRule[]
   categories: RuleCategory[]
 }
 
-export interface RuleCategory {
+interface RuleCategory {
   id: string
   display_name: string
   sort_order: number
@@ -51,12 +51,12 @@ export async function handleListDeletedRules(
   return { rules }
 }
 
-export interface PatchRuleRequest {
+interface PatchRuleRequest {
   value: string
   reason?: string
 }
 
-export interface PatchRuleResponse {
+interface PatchRuleResponse {
   rule: TeamRule
 }
 
@@ -98,7 +98,7 @@ export async function handleRestoreRule(
   return { rule }
 }
 
-export interface CommitRequest {
+interface CommitRequest {
   session_id?: string
   case_override: CaseOverride
 }
