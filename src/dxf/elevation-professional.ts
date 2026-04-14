@@ -180,8 +180,43 @@ export function drawElevationProfessional(
   const sheaveCx = machX + pro.machine_width_mm / 2
   const sheaveCy = machY + pro.machine_height_mm / 2
   dw.drawCircle(sheaveCx, sheaveCy, sheaveR)
-  dw.setActiveLayer('TEXT')
-  dw.drawText(machX + pro.machine_width_mm / 2, machY - 80, 60, 0, 'MACHINE (示意)', 'center')
+  dw.setActiveLayer('NOTE')
+  dw.drawText(
+    machX + pro.machine_width_mm / 2,
+    machY - 100,
+    80,
+    0,
+    'TRACTION MACHINE (BY VENDOR)',
+    'center',
+  )
+
+  // ── HOIST BEAM callout (top of shaft) ──
+  const hoistBeamY = shaftVisualTop - 150
+  dw.setActiveLayer('NOTE')
+  dw.drawText(
+    ox - 200,
+    hoistBeamY,
+    90,
+    0,
+    'HOIST BEAM (BY OTHERS)',
+    'right',
+  )
+  // Leader line from label to shaft top-left corner
+  dw.drawLine(ox - 180, hoistBeamY, ox - 20, hoistBeamY)
+  dw.drawLine(ox - 20, hoistBeamY, ox, shaftVisualTop)
+
+  // ── EMBED PLATES callout (one representative, referring to all brackets) ──
+  const embedY = (pitBottom + zigBot) / 2
+  dw.drawText(
+    ox - 200,
+    embedY,
+    90,
+    0,
+    'EMBED PLATES (BY OTHERS)',
+    'right',
+  )
+  dw.drawLine(ox - 180, embedY, ox - 20, embedY)
+  dw.drawLine(ox - 20, embedY, ox, embedY)
 
   // ── 8. Governor in top zone ──
   dw.setActiveLayer('SAFETY')
@@ -297,8 +332,37 @@ export function drawElevationProfessional(
   dw.drawLine(annotX, ohSeg2, annotX, ohSeg3)
   dw.drawText(annotX + 80, (ohSeg2 + ohSeg3) / 2, 80, 0, `機器 ${machBufVal}`)
 
-  // ── 12. PIT dimension ──
-  dw.drawText(annotX, firstFloorY - shaft.pit_depth_mm / 2, 120, 0, `PIT ${shaft.pit_depth_mm}`)
+  // ── 12. OH + PIT prominent totals (industry standard, second column) ──
+  // Building architects need these two numbers more than anything else.
+  const dimCol2X = annotX + 1200
+  const dimTextH = 180
+  const arrowOff = 40
+  // OH: top floor plane → shaft ceiling (use top zone region for visual anchor)
+  dw.drawLine(annotX, ohBaseY, dimCol2X + 200, ohBaseY)
+  dw.drawLine(annotX, ohSeg3, dimCol2X + 200, ohSeg3)
+  dw.drawLine(dimCol2X + 100, ohBaseY, dimCol2X + 100, ohSeg3)
+  dw.drawLine(dimCol2X + 60, ohBaseY + arrowOff, dimCol2X + 140, ohBaseY)
+  dw.drawLine(dimCol2X + 60, ohSeg3 - arrowOff, dimCol2X + 140, ohSeg3)
+  dw.drawText(
+    dimCol2X + 250,
+    (ohBaseY + ohSeg3) / 2,
+    dimTextH,
+    0,
+    `OH = ${shaft.overhead_mm} mm`,
+  )
+  // PIT: 1F → pit bottom
+  dw.drawLine(ox + sw, firstFloorY, dimCol2X + 200, firstFloorY)
+  dw.drawLine(ox + sw, pitBottom, dimCol2X + 200, pitBottom)
+  dw.drawLine(dimCol2X + 100, pitBottom, dimCol2X + 100, firstFloorY)
+  dw.drawLine(dimCol2X + 60, firstFloorY - arrowOff, dimCol2X + 140, firstFloorY)
+  dw.drawLine(dimCol2X + 60, pitBottom + arrowOff, dimCol2X + 140, pitBottom)
+  dw.drawText(
+    dimCol2X + 250,
+    (firstFloorY + pitBottom) / 2,
+    dimTextH,
+    0,
+    `PIT = ${shaft.pit_depth_mm} mm`,
+  )
 
   // ── 13. Title ──
   dw.setActiveLayer('TEXT')

@@ -267,10 +267,10 @@ describe('DXF Writer + round-trip', () => {
     const parser = new DxfParser()
     const parsed = parser.parseSync(dxf)
 
-    // Should have 2 SHAFT polylines (plan + elevation)
+    // Should have 3 SHAFT polylines (plan + elevation + MR plan shaft outline)
     const shaftPolys = parsed.entities.filter(
       (e: any) => e.layer === 'SHAFT' && e.type === 'LWPOLYLINE'
     )
-    expect(shaftPolys.length).toBe(2)
+    expect(shaftPolys.length).toBe(3)
   })
 })

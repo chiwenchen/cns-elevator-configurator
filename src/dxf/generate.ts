@@ -26,7 +26,9 @@ import { DRAFT_LAYERS, PROFESSIONAL_LAYERS, registerLayers } from './layers'
 import { drawElevationDraft } from './elevation-draft'
 import { drawPlanProfessional } from './plan-professional'
 import { drawElevationProfessional } from './elevation-professional'
-import { drawSpecBlock } from './spec-block'
+import { drawSpecBlock, specBlockBBox } from './spec-block'
+import { drawTitleBlock, titleBlockBBox } from './title-block'
+import { drawMachineRoomPlan } from './machine-room-plan'
 
 type DetailLevel = 'draft' | 'professional'
 
@@ -61,10 +63,24 @@ export function generateElevatorDXF(
     drawElevationDraft(dw, design, { x: elevOX, y: elevOY })
   }
 
-  // ---- SPEC BLOCK (最右, 對齊 plan view 頂端) ----
+  // ---- MACHINE ROOM PLAN (only for MR, placed below the plan view) ----
+  if (design.machine_location === 'MR') {
+    const mrOriginY = -(shaft.depth_mm + 4500)
+    drawMachineRoomPlan(dw, design, { x: 0, y: mrOriginY })
+  }
+
+  // ---- SPEC BLOCK + TITLE BLOCK (最右側, 垂直堆疊) ----
+  // Spec block sits above the baseline, title block sits below it.
+  // Right edges align so the stack reads as one unit.
+  const specBBox = specBlockBBox(12)
+  const titleBBox = titleBlockBBox()
   const specX = elevOX + shaft.width_mm + 3500
-  const specY = shaft.depth_mm + 500
-  drawSpecBlock(dw, design, { x: specX, y: specY })
+  const specY = 0
+  drawSpecBlock(dw, design, { x: specX, y: specY }, config)
+
+  const titleX = specX - (titleBBox.width - specBBox.width)
+  const titleY = specY - titleBBox.height - 400
+  drawTitleBlock(dw, design, { x: titleX, y: titleY })
 
   return dw.toDxfString()
 }

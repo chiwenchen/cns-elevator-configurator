@@ -1,0 +1,4 @@
+libredwg-bin/
+*.dxf
+*.dwg
+out/

@@ -573,14 +573,15 @@ describe('generateElevatorDXF integration', () => {
 
   const configWithPro: EffectiveConfig = makeConfig()
 
-  test('draft mode does not include professional layers', () => {
+  test('draft mode does not include professional-only layers', () => {
     const dxf = generateElevatorDXF(DESIGN, configNoPro, 'draft')
     expect(dxf).toContain('SHAFT')
     expect(dxf).toContain('CAR')
+    // SLING / BUFFER / SAFETY / ROPE / LANDING are professional-only layers
     expect(dxf).not.toContain('SLING')
     expect(dxf).not.toContain('BUFFER')
     expect(dxf).not.toContain('SAFETY')
-    expect(dxf).not.toContain('MACHINE')
+    // MACHINE is now a draft layer too (used by the MR plan view).
   })
 
   test('professional mode includes all layers', () => {

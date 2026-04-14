@@ -230,11 +230,42 @@ export function drawPlanView(
     )
   }
 
-  // ---- 6. Center lines ----
+  // ---- 6. Center lines (industry standard: C CAR + C CWT) ----
   dw.setActiveLayer('CENTER')
+  // C CAR vertical — car centerline runs front-to-back through shaft
   const cx = ox + shaft.width_mm / 2
-  dw.drawLine(cx, oy - 200, cx, oy + shaft.depth_mm + 200)
-  dw.drawLine(ox - 200, oy + carCenterY, ox + shaft.width_mm + 200, oy + carCenterY)
+  dw.drawLine(cx, oy - 400, cx, oy + shaft.depth_mm + 400)
+  // Horizontal through car center (depth axis)
+  dw.drawLine(ox - 400, oy + carCenterY, ox + shaft.width_mm + 400, oy + carCenterY)
+
+  // C CWT — centerline through the counterweight rectangle
+  const cwtCx = ox + (placement.cwt.x0 + placement.cwt.x1) / 2
+  const cwtCy = oy + (placement.cwt.y0 + placement.cwt.y1) / 2
+  // Draw short cross at CWT center (both axes), stopping near shaft walls
+  dw.drawLine(
+    Math.max(ox - 400, cwtCx - 800),
+    cwtCy,
+    Math.min(ox + shaft.width_mm + 400, cwtCx + 800),
+    cwtCy,
+  )
+  dw.drawLine(
+    cwtCx,
+    Math.max(oy - 400, cwtCy - 600),
+    cwtCx,
+    Math.min(oy + shaft.depth_mm + 400, cwtCy + 600),
+  )
+
+  // Centerline labels — Ç (C with bar) is the standard drafting mark.
+  dw.setActiveLayer('TEXT')
+  dw.drawText(cx, oy + shaft.depth_mm + 450, 90, 0, 'Ç CAR', 'center')
+  dw.drawText(
+    cwtCx + 150,
+    cwtCy + 650,
+    70,
+    0,
+    'Ç CWT',
+    'left',
+  )
 
   // ---- 7. Dimensions ----
   dw.setActiveLayer('DIMS')

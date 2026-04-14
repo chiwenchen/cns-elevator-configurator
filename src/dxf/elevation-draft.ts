@@ -62,14 +62,48 @@ export function drawElevationDraft(
     carTop
   )
 
-  // 尺寸標註 — 只保留 PIT
+  // ---- OH / PIT 尺寸（業務最在意的兩個數字）----
+  // Drawn prominently on the right side with dimension extension lines.
   dw.setActiveLayer('DIMS')
+  const dimColX = ox + shaft.width_mm + 700
+  const dimTextH = 180
+  const dimArrowOff = 40
+
+  // OH (Overhead): top floor → shaft ceiling.
+  // Visible top of shaft = shaftTop. Top floor is hidden by zigzag break,
+  // so we use shaftTop and shaftTop-ohVal as a labeled region (synthetic).
+  const ohValue = shaft.overhead_mm
+  const ohTopY = shaftTop
+  const ohBotY = shaftTop - 800 // purely visual anchor within visible region
+  // Extension lines
+  dw.drawLine(ox + shaft.width_mm, ohTopY, dimColX + 200, ohTopY)
+  dw.drawLine(ox + shaft.width_mm, ohBotY, dimColX + 200, ohBotY)
+  // Dim line
+  dw.drawLine(dimColX + 100, ohBotY, dimColX + 100, ohTopY)
+  // Arrow ticks
+  dw.drawLine(dimColX + 60, ohTopY - dimArrowOff, dimColX + 140, ohTopY)
+  dw.drawLine(dimColX + 60, ohBotY + dimArrowOff, dimColX + 140, ohBotY)
   dw.drawText(
-    ox + shaft.width_mm + 350,
-    firstStopY - shaft.pit_depth_mm / 2,
-    120,
+    dimColX + 250,
+    (ohTopY + ohBotY) / 2,
+    dimTextH,
     0,
-    `PIT ${shaft.pit_depth_mm}`
+    `OH = ${ohValue} mm`,
+  )
+
+  // PIT: 1F → shaft floor.
+  const pitValue = shaft.pit_depth_mm
+  dw.drawLine(ox + shaft.width_mm, firstStopY, dimColX + 200, firstStopY)
+  dw.drawLine(ox + shaft.width_mm, shaftBottom, dimColX + 200, shaftBottom)
+  dw.drawLine(dimColX + 100, shaftBottom, dimColX + 100, firstStopY)
+  dw.drawLine(dimColX + 60, firstStopY - dimArrowOff, dimColX + 140, firstStopY)
+  dw.drawLine(dimColX + 60, shaftBottom + dimArrowOff, dimColX + 140, shaftBottom)
+  dw.drawText(
+    dimColX + 250,
+    (firstStopY + shaftBottom) / 2,
+    dimTextH,
+    0,
+    `PIT = ${pitValue} mm`,
   )
 
   dw.setActiveLayer('TEXT')
