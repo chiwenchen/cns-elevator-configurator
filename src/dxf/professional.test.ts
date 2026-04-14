@@ -307,20 +307,23 @@ describe('drawElevationProfessional', () => {
     expect(bufferLines.length).toBe(12) // zigzag present
   })
 
-  test('multi-floor: draws visible floor lines with zigzag compression', () => {
+  test('multi-floor: draws door openings at visible floors (zigzag compression)', () => {
     const stops = 7
     const dw = createMockDw()
     const design = makeDesign({ stops })
     const config = makeConfig()
     drawElevationProfessional(dw, design, { x: 0, y: 0 }, PRO, config)
 
-    const landingLines = getLayerCalls(dw.calls, 'LANDING').filter(c => c.method === 'drawLine')
-    // Zigzag compression: only 1F, 2F, top floor visible — not all stops
-    expect(landingLines.length).toBeGreaterThanOrEqual(3)
-    expect(landingLines.length).toBeLessThan(stops * 2)
+    // In the side section, each visible floor has a door opening drawn on
+    // DOOR layer (sill + header + jamb = 3 lines per floor).
+    // Zigzag compression shows 1F + top floor = 2 doors × 3 lines = 6.
+    const doorLines = getLayerCalls(dw.calls, 'DOOR').filter(c => c.method === 'drawLine')
+    expect(doorLines.length).toBeGreaterThanOrEqual(6)
+    // Should not scale with stops count (middle floors hidden by zigzag)
+    expect(doorLines.length).toBeLessThan(stops * 3)
   })
 
-  test('draws floor labels for visible floors (1F, 2F, top)', () => {
+  test('draws floor labels for 1F and top floor (zigzag hides middle)', () => {
     const stops = 5
     const dw = createMockDw()
     const design = makeDesign({ stops })
@@ -330,8 +333,8 @@ describe('drawElevationProfessional', () => {
     const floorLabels = dw.calls.filter(
       c => c.method === 'drawText' && typeof c.args[4] === 'string' && /^\d+F$/.test(c.args[4]),
     )
-    // Should have 1F, 2F, and top floor (5F) = 3 labels
-    expect(floorLabels.length).toBe(3)
+    // Zigzag compression shows only 1F + top floor = 2 labels
+    expect(floorLabels.length).toBe(2)
   })
 
   test('draws safety gear + governor on SAFETY layer', () => {
@@ -428,16 +431,19 @@ describe('drawElevationProfessional zigzag compression', () => {
     expect(h10).toBe(h3)
   })
 
-  test('10-stop elevation height is much smaller than naive proportional height would be', () => {
-    const dw = createMockDw()
-    const design = makeDesign({ stops: 10 })
-    const config = makeConfig()
-    drawElevationProfessional(dw, design, { x: 0, y: 0 }, PRO, config)
+  test('10-stop elevation height is independent of stops (zigzag hides middle floors)', () => {
+    const dw3 = createMockDw()
+    const dw10 = createMockDw()
+    drawElevationProfessional(dw3, makeDesign({ stops: 3 }), { x: 0, y: 0 }, PRO, makeConfig())
+    drawElevationProfessional(dw10, makeDesign({ stops: 10 }), { x: 0, y: 0 }, PRO, makeConfig())
 
-    const visualH = getShaftRectHeight(dw.calls)
-    // Naive proportional: total_height_mm = 12000 (makeDesign default)
-    // Visual height with zigzag should be far less than 12000
-    expect(visualH).toBeLessThan(design.shaft.total_height_mm * 0.7)
+    const h3 = getShaftRectHeight(dw3.calls)
+    const h10 = getShaftRectHeight(dw10.calls)
+
+    // Side section shows pit + car + zigzag + top-floor-slice + overhead at
+    // full size. Stops only affect hidden middle floors, so 3-stop and
+    // 10-stop visible heights must be identical.
+    expect(h10).toBe(h3)
   })
 
   test('zigzag break lines are drawn on STOP layer', () => {

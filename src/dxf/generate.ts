@@ -28,7 +28,6 @@ import { drawPlanProfessional } from './plan-professional'
 import { drawElevationProfessional } from './elevation-professional'
 import { drawSpecBlock, specBlockBBox } from './spec-block'
 import { drawTitleBlock, titleBlockBBox } from './title-block'
-import { drawMachineRoomPlan } from './machine-room-plan'
 
 type DetailLevel = 'draft' | 'professional'
 
@@ -54,19 +53,17 @@ export function generateElevatorDXF(
     drawPlanProfessional(dw, design, { x: 0, y: 0 }, config.professional, config)
   }
 
-  // ---- ELEVATION VIEW (右側) ----
+  // ---- SIDE SECTION ELEVATION (右側) ----
+  // Elevation now uses shaft DEPTH as its horizontal axis (side view, not
+  // front). So the right edge of the elevation is at elevOX + shaft.depth_mm,
+  // plus a dim column ~1200mm wide for OH/PIT annotations.
   const elevOX = shaft.width_mm + 4000
   const elevOY = 0
+  const elevHorizontalSpan = shaft.depth_mm + 1500 // shaft + dim column
   if (detailLevel === 'professional' && config.professional) {
     drawElevationProfessional(dw, design, { x: elevOX, y: 0 }, config.professional, config)
   } else {
-    drawElevationDraft(dw, design, { x: elevOX, y: elevOY })
-  }
-
-  // ---- MACHINE ROOM PLAN (only for MR, placed below the plan view) ----
-  if (design.machine_location === 'MR') {
-    const mrOriginY = -(shaft.depth_mm + 4500)
-    drawMachineRoomPlan(dw, design, { x: 0, y: mrOriginY })
+    drawElevationDraft(dw, design, { x: elevOX, y: elevOY }, config)
   }
 
   // ---- SPEC BLOCK + TITLE BLOCK (最右側, 垂直堆疊) ----
@@ -74,7 +71,7 @@ export function generateElevatorDXF(
   // Right edges align so the stack reads as one unit.
   const specBBox = specBlockBBox(12)
   const titleBBox = titleBlockBBox()
-  const specX = elevOX + shaft.width_mm + 3500
+  const specX = elevOX + elevHorizontalSpan + 1500
   const specY = 0
   drawSpecBlock(dw, design, { x: specX, y: specY }, config)
 

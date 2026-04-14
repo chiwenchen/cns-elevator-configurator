@@ -81,7 +81,7 @@ describe('solve-snapshot: Mode B 500kg passenger regression', () => {
     expect(result.dxf_string!).toContain('RAIL_CWT')
     expect(result.dxf_string!).toContain('DOOR')
     expect(result.dxf_string!).toContain('PLAN VIEW')
-    expect(result.dxf_string!).toContain('ELEVATION VIEW')
+    expect(result.dxf_string!).toContain('SIDE SECTION')
   })
 
   test('validation_report returns real shape with 46 items', async () => {
