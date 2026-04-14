@@ -52,9 +52,10 @@ describe('solve-snapshot: Mode B 500kg passenger regression', () => {
     expect(result.design.machine_location).toBe('MR')
     expect(result.design.solver_mode).toBe('B')
 
-    // DXF should be ~11-12 KB (timestamp causes small variance)
-    expect(result.dxf_kb).toBeGreaterThan(10)
-    expect(result.dxf_kb).toBeLessThan(13)
+    // DXF should be ~22-25 KB with title + full spec table + MR plan.
+    // (MR plan adds ~5KB; timestamp causes small variance.)
+    expect(result.dxf_kb).toBeGreaterThan(20)
+    expect(result.dxf_kb).toBeLessThan(28)
   })
 
   test('DXF string contains expected structural elements', async () => {
@@ -80,7 +81,7 @@ describe('solve-snapshot: Mode B 500kg passenger regression', () => {
     expect(result.dxf_string!).toContain('RAIL_CWT')
     expect(result.dxf_string!).toContain('DOOR')
     expect(result.dxf_string!).toContain('PLAN VIEW')
-    expect(result.dxf_string!).toContain('ELEVATION VIEW')
+    expect(result.dxf_string!).toContain('SIDE SECTION')
   })
 
   test('validation_report returns real shape with 46 items', async () => {

@@ -8,7 +8,7 @@ interface LayerDef {
 }
 
 /**
- * Draft mode layers (11 layers)
+ * Draft mode layers (14 layers)
  * ACI = AutoCAD Color Index
  */
 export const DRAFT_LAYERS: LayerDef[] = [
@@ -23,17 +23,22 @@ export const DRAFT_LAYERS: LayerDef[] = [
   { name: 'DIMS',     aci: Drawing.ACI.YELLOW },
   { name: 'TEXT',     aci: Drawing.ACI.WHITE },
   { name: 'STOP',     aci: Drawing.ACI.GREEN },
+  // New for Tier 1+2
+  { name: 'TITLE',    aci: Drawing.ACI.WHITE },
+  { name: 'SPEC',     aci: Drawing.ACI.WHITE },
+  { name: 'NOTE',     aci: 30 },  // orange — BY OTHERS / BY VENDOR callouts
+  { name: 'MACHINE',  aci: 32 },  // promoted from professional — MR plan uses it
 ]
 
 /**
- * Professional mode layers (7 additional layers)
+ * Professional mode layers — added on top of DRAFT_LAYERS.
+ * (MACHINE moved to DRAFT_LAYERS because the MR plan needs it there too.)
  */
 export const PROFESSIONAL_LAYERS: LayerDef[] = [
   { name: 'SLING',   aci: 14 },
   { name: 'BUFFER',  aci: 34 },
   { name: 'SAFETY',  aci: 174 },
   { name: 'ROPE',    aci: 214 },
-  { name: 'MACHINE', aci: 32 },
   { name: 'LANDING', aci: 154 },
 ]
 
